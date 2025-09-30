@@ -221,7 +221,7 @@ html::-webkit-scrollbar-thumb {
   }
 }
 
-@layer login {
+@layer login_form {
   .form-wrapper {
     width: 100vw;
     height: 100dvh;
@@ -263,15 +263,20 @@ html::-webkit-scrollbar-thumb {
         color: var(--color-white);
         cursor: pointer;
       }
+
+      /* Form Errors */
+      p.error {
+        font-size: 0.9rem;
+        text-align: left;
+        margin-bottom: -0.5em;
+        color: var(--color-primary);
+      }
     }
   }
 }
 
-@layer form_errors {
-  p.error {
-    font-size: 0.9rem;
-    text-align: left;
-    margin-bottom: -0.5em;
-    color: var(--color-primary);
+@layer dashboard {
+  .dashboard-body {
+    display: flex;
   }
 }

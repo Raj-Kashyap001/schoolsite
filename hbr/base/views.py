@@ -1,5 +1,5 @@
 from django.http import HttpRequest, HttpResponseBadRequest
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 from django.contrib import messages
 from django.contrib.auth.models import Group, User
 from django.contrib.auth import login, authenticate
@@ -11,6 +11,9 @@ def homepage(request: HttpRequest):
 
 
 def login_page(request: HttpRequest, role: str):
+    if request.user is not None:
+        return redirect("dashboard")
+
     valid_roles = [r.name for r in Group.objects.all()]
     if role not in valid_roles:
         return HttpResponseBadRequest("Invalid Role!")
@@ -20,7 +23,7 @@ def login_page(request: HttpRequest, role: str):
         user = authenticate(username=username, password=password)
         if user is not None and user.groups.filter(name=role).exists():
             login(request, user)
-            return render(request, "dashboard/index.html", {"role": role})
+            return redirect("dashboard")
         else:
             messages.error(request, "Invalid Credentials!")
 
