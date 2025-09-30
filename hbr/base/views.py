@@ -3,6 +3,7 @@ from django.shortcuts import redirect, render
 from django.contrib import messages
 from django.contrib.auth.models import Group, User
 from django.contrib.auth import login, authenticate, logout
+from django.contrib.auth.decorators import login_required
 
 
 def get_user_role(user):
@@ -12,6 +13,12 @@ def get_user_role(user):
         return "Teacher"
     else:
         return "Student"
+
+
+@login_required
+def logout_view(request: HttpRequest):
+    logout(request)
+    return redirect("home")
 
 
 # Create your views here.
