@@ -1,0 +1,33 @@
+<header>
+  <a href="{% url 'home' %}">LOGO</a>
+  <button id="openMobileNav" class="open-nav-btn"><i class="bx bx-menu-close"></i></button>
+  <nav id="mobileNav" class="navbar">
+    <button id="closeMobileNav" class="close-nav-btn"><i class="bx bx-x"></i></button>
+    <div class="navlinks">
+      <a href="/">Home</a>
+      <a href="#">About</a>
+      <a href="#">Academics</a>
+      <a href="#">Apply & Enroll</a>
+      <div class="login-cta">
+        <a href="#">Teacher Login</a>
+        <a href="#">Student Login</a>
+        <a href="#">Admin Login</a>
+      </div>
+    </div>
+  </nav>
+
+  <nav class="desktop-nav">
+    <a href="/">Home</a>
+    <a href="#">About</a>
+    <a href="#">Academics</a>
+    <a href="#">Apply & Enroll</a>
+    <div class="dropdown">
+      <button class="dropdown-trigger">Login <i class="bx bx-chevron-down"></i></button>
+      <div class="dropdown-content">
+        <a href="#">Teacher Login</a>
+        <a href="#">Student Login</a>
+        <a href="#">Admin Login</a>
+      </div>
+    </div>
+  </nav>
+</header>
