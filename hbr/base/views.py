@@ -2,7 +2,16 @@ from django.http import HttpRequest, HttpResponseBadRequest
 from django.shortcuts import redirect, render
 from django.contrib import messages
 from django.contrib.auth.models import Group, User
-from django.contrib.auth import login, authenticate
+from django.contrib.auth import login, authenticate, logout
+
+
+def get_user_role(user):
+    if user.groups.filter(name="Admin").exists():
+        return "Admin"
+    elif user.groups.filter(name="Teacher").exists():
+        return "Teacher"
+    else:
+        return "Student"
 
 
 # Create your views here.
@@ -11,12 +20,25 @@ def homepage(request: HttpRequest):
 
 
 def login_page(request: HttpRequest, role: str):
-    if request.user is not None:
-        return redirect("dashboard")
-
     valid_roles = [r.name for r in Group.objects.all()]
     if role not in valid_roles:
         return HttpResponseBadRequest("Invalid Role!")
+
+    if request.user.is_authenticated:
+        user_role = get_user_role(request.user)
+        if user_role == role:
+            return redirect("dashboard")
+        else:
+            # Show confirmation page
+            if request.method == "POST":
+                if "logout" in request.POST:
+                    logout(request)
+                    return redirect(f"/login/{role}")
+                elif "cancel" in request.POST:
+                    return redirect("dashboard")
+            context = {"current_role": user_role, "target_role": role}
+            return render(request, "base/confirm_logout.html", context)
+
     if request.method == "POST":
         username = request.POST.get("username")
         password = request.POST.get("password")

@@ -272,6 +272,25 @@ html::-webkit-scrollbar-thumb {
         color: var(--color-primary);
       }
     }
+
+    p {
+      margin: 0.5rem 0;
+      font-size: 1rem;
+    }
+
+    .confirm-buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+
+      button {
+        background: var(--color-primary);
+      }
+
+      button[name="cancel"] {
+        background: var(--color-black);
+      }
+    }
   }
 }
 

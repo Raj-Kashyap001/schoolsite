@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Confirm Logout</title>
+    {% include 'links.html' %}
+  </head>
+  <body>
+    <div class="form-wrapper">
+      <h1>Already Logged In</h1>
+      <p>
+        You are currently logged in as <strong>{{ current_role }}</strong>.
+      </p>
+      <p>
+        You are trying to login as <strong>{{ target_role }}</strong>.
+      </p>
+      <p>Would you like to logout and login as {{ target_role }}?</p>
+      <form method="POST">
+        {% csrf_token %}
+        <div class="confirm-buttons">
+          <button name="logout" value="yes">Yes, Logout</button>
+          <button name="cancel" value="no">No, Stay Logged In</button>
+        </div>
+      </form>
+    </div>
+  </body>
+</html>
