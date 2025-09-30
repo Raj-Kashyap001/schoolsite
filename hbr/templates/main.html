@@ -3,11 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- BOX ICONS -->
-    <link href="https://cdn.boxicons.com/fonts/basic/boxicons.min.css" rel="stylesheet" />
-    <link href="https://cdn.boxicons.com/fonts/brands/boxicons-brands.min.css" rel="stylesheet" />
-    {% load static %}
-    <link rel="stylesheet" href="{% static 'css/styles.css' %}" />
+    {% include 'links.html' %}
     <title>
       {% block title %}
         Main Site
@@ -22,6 +18,7 @@
       {% endblock %}
     </main>
     {% include 'footer.html' %}
+    {% load static %}
     <script src="{% static 'js/main.js' %}"></script>
   </body>
 </html>

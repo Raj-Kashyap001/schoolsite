@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login | {{ role }}</title>
+    {% include 'links.html' %}
+  </head>
+  <body>
+    <div class="form-wrapper">
+      <h1>{{ role }} Login</h1>
+      <form method="POST">
+        {% csrf_token %}
+        <input type="text" name="username" autocomplete="username" placeholder="Username" />
+        <input type="password" name="password" autocomplete="current-password" placeholder="********" />
+        {% if messages %}
+          {% for message in messages %}
+            <p class="{{ message.tags }} show">{{ message }}</p>
+          {% endfor %}
+        {% endif %}
+        <button>Login</button>
+      </form>
+    </div>
+  </body>
+</html>

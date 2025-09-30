@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django_browser_reload",
     "base.apps.BaseConfig",
+    "dashboard.apps.DashboardConfig",
 ]
 
 MIDDLEWARE = [

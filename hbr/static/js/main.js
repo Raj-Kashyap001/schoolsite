@@ -1,4 +1,4 @@
-console.log("hello world");
+// Mobile Navigation Toggle Logic
 
 openMobileNav.addEventListener("click", () => {
   mobileNav.classList.add("active");
