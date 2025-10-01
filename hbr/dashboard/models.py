@@ -28,6 +28,10 @@ class Classroom(models.Model):
 #     status = ]
 
 
+def student_profile_photo_path(instance, filename):
+    return f"students/{instance.roll_no}/profile/{filename}"
+
+
 class Student(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     sr_no = models.IntegerField()
@@ -39,6 +43,9 @@ class Student(models.Model):
     mobile_no = models.BigIntegerField()
     category = models.CharField(choices=Categories.choices, blank=True)
     gender = models.CharField(choices=Genders.choices)
+    profile_photo = models.ImageField(
+        upload_to=student_profile_photo_path, null=True, blank=True
+    )
     # stream = ["commerce", "maths", "bio", "arts"]
     # subjust = []
     # current_address = models.TextField()

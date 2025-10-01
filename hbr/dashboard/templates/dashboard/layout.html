@@ -13,14 +13,26 @@
         <div class="navbar-left">
           <button class="sidebar-toggle-mobile" id="sidebarToggleMobile"><i class="bx bx-sidebar"></i></button>
           <div class="breadcrumb">
-            <span>{{ request.user.username }}</span>
+            <a href="{% url 'dashboard' %}">Dashboard</a>
+            {% if request.resolver_match.url_name == 'profile' %}
+              <span class="separator">/</span>
+              <span>Profile</span>
+            {% elif request.resolver_match.url_name == 'settings' %}
+              <span class="separator">/</span>
+              <span>Settings</span>
+            {% endif %}
           </div>
         </div>
 
-        <form method="POST" action="{% url 'logout' %}">
-          {% csrf_token %}
-          <button class="logout-btn" type="submit"><i class="bx bx-log-out"></i> Logout</button>
-        </form>
+        <div class="navbar-right">
+          <div class="user-section">
+            <span class="user-info">{{ request.user.get_full_name|default:request.user.username }}</span>
+            <form method="POST" action="{% url 'logout' %}">
+              {% csrf_token %}
+              <button class="logout-btn" type="submit"><i class="bx bx-log-out"></i> Logout</button>
+            </form>
+          </div>
+        </div>
       </nav>
       {% block content %}
 
