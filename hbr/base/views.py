@@ -18,7 +18,7 @@ def get_user_role(user):
 @login_required
 def logout_view(request: HttpRequest):
     logout(request)
-    return redirect("home")
+    return redirect(f"/login/{get_user_role(request.user)}")
 
 
 # Create your views here.
@@ -68,5 +68,5 @@ def login_page(request: HttpRequest, role: str):
         else:
             messages.error(request, "Invalid Credentials!")
 
-    context = {"role": role}
+    context = {"role": role, "valid_roles": valid_roles}
     return render(request, "base/login.html", context)

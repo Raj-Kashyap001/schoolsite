@@ -20,6 +20,13 @@
         {% endif %}
         <button>Login</button>
       </form>
+      <div class="login-links">
+        {% for r in valid_roles %}
+          {% if r != role %}
+            <a href="{% url 'login' r %}">Login as {{ r }}</a>
+          {% endif %}
+        {% endfor %}
+      </div>
     </div>
   </body>
 </html>

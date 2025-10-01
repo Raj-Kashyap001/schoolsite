@@ -295,6 +295,23 @@ html::-webkit-scrollbar-thumb {
         background: var(--color-black);
       }
     }
+
+    .login-links {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      margin-top: 1rem;
+
+      a {
+        color: var(--color-primary);
+        text-decoration: none;
+        font-size: 0.9rem;
+
+        &:hover {
+          text-decoration: underline;
+        }
+      }
+    }
   }
 }
 
