@@ -40,6 +40,20 @@ def profile(request: HttpRequest):
             )
 
         if "profile_photo" in request.FILES:
+            # Delete old image if it exists
+            if student.profile_photo:
+                import os
+                from django.conf import settings
+
+                old_image_path = os.path.join(
+                    settings.MEDIA_ROOT, str(student.profile_photo)
+                )
+                if os.path.exists(old_image_path):
+                    try:
+                        os.remove(old_image_path)
+                    except OSError:
+                        pass  # Ignore if file doesn't exist or can't be deleted
+
             form = StudentProfileForm(request.POST, request.FILES, instance=student)
             if form.is_valid():
                 form.save()
