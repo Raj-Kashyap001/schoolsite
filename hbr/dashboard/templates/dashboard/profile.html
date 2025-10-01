@@ -1,0 +1,64 @@
+{% extends 'dashboard/layout.html' %}
+
+{% block content %}
+  <div class="profile-container">
+    <h1>Profile</h1>
+
+    <div class="profile-info">
+      <p>
+        <strong>Username:</strong> {{ user.username }}
+      </p>
+      <p>
+        <strong>First Name:</strong> {{ user.first_name }}
+      </p>
+      <p>
+        <strong>Last Name:</strong> {{ user.last_name }}
+      </p>
+      <p>
+        <strong>Email:</strong> {{ user.email }}
+      </p>
+      <p>
+        <strong>Role:</strong> {{ role }}
+      </p>
+
+      {% if role == 'Student' and student %}
+        <h2>Student Information</h2>
+        <p>
+          <strong>SR No:</strong> {{ student.sr_no }}
+        </p>
+        <p>
+          <strong>Roll No:</strong> {{ student.roll_no }}
+        </p>
+        <p>
+          <strong>Admission No:</strong> {{ student.admission_no }}
+        </p>
+        <p>
+          <strong>Father's Name:</strong> {{ student.father_name }}
+        </p>
+        <p>
+          <strong>Mother's Name:</strong> {{ student.mother_name }}
+        </p>
+        <p>
+          <strong>Date of Birth:</strong> {{ student.dob }}
+        </p>
+        <p>
+          <strong>Mobile No:</strong> {{ student.mobile_no }}
+        </p>
+        <p>
+          <strong>Category:</strong> {{ student.category }}
+        </p>
+        <p>
+          <strong>Gender:</strong> {{ student.gender }}
+        </p>
+        <p>
+          <strong>Classroom:</strong> {{ student.classroom }}
+        </p>
+      {% elif role == 'Student' and not student %}
+        <p>No student information found.</p>
+      {% else %}
+        <!-- TODO: Add teacher and admin specific info -->
+        <p>Additional information for {{ role }} will be added soon.</p>
+      {% endif %}
+    </div>
+  </div> <!-- End Container -->
+{% endblock %}

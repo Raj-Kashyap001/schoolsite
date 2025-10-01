@@ -26,6 +26,18 @@ def homepage(request: HttpRequest):
     return render(request, "base/home.html")
 
 
+def about(request: HttpRequest):
+    return render(request, "base/about.html")
+
+
+def academics(request: HttpRequest):
+    return render(request, "base/academics.html")
+
+
+def apply_enroll(request: HttpRequest):
+    return render(request, "base/apply_enroll.html")
+
+
 def login_page(request: HttpRequest, role: str):
     valid_roles = [r.name for r in Group.objects.all()]
     if role not in valid_roles:
