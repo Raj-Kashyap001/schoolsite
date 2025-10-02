@@ -6,10 +6,15 @@ from base.views import get_user_role
 from .pdf_utils import generate_student_profile_pdf, generate_payment_receipt_pdf
 from .forms import StudentProfileForm
 from .models import (
+    AcademicSession,
     Attendance,
     Document,
+    Exam,
+    ExamResult,
+    ExamSchedule,
     Leave,
     Student,
+    Term,
     CertificateType,
     Certificate,
     Payment,
@@ -250,6 +255,16 @@ def download_profile_pdf(request: HttpRequest):
         "gender": student.gender,
         "classroom": student.classroom,
         "profile_photo": student.profile_photo,
+        "stream": student.stream.name if student.stream else None,
+        "subjects": (
+            ", ".join([subject.name for subject in student.subjects.all()])
+            if student.subjects.exists()
+            else None
+        ),
+        "current_address": student.current_address,
+        "permanent_address": student.permanent_address,
+        "weight": float(student.weight) if student.weight else None,
+        "height": float(student.height) if student.height else None,
     }
 
     user_data = {
@@ -390,3 +405,123 @@ def download_receipt(request: HttpRequest, payment_id: int):
     response = HttpResponse(buffer, content_type="application/pdf")
     response["Content-Disposition"] = f'attachment; filename="receipt_{payment.id}.pdf"'  # type: ignore
     return response
+
+
+@login_required
+def exams(request: HttpRequest):
+    role = get_user_role(request.user)
+    context = {"role": role}
+
+    if role == "Student":
+        try:
+            student = Student.objects.get(user=request.user)
+
+            # Get current term - assuming the latest term
+            current_term = Term.objects.order_by("-end_date").first()
+            if current_term:
+                # Upcoming exam schedules for current term
+                upcoming_exams = Exam.objects.filter(
+                    term=current_term
+                ).prefetch_related("examschedule_set")
+
+                # Exam results for current term
+                current_results = ExamResult.objects.filter(
+                    student=student, exam__term=current_term
+                ).select_related("exam")
+
+                # For modal: all terms for querying previous results
+                all_terms = Term.objects.order_by("-end_date")
+
+                context.update(
+                    {
+                        "upcoming_exams": upcoming_exams,
+                        "current_results": current_results,
+                        "all_terms": all_terms,
+                        "current_term": current_term,
+                        "student": student,
+                    }  # type: ignore
+                )  # type: ignore
+            else:
+                context["error"] = "No academic terms found"
+                context["student"] = student  # type: ignore
+
+        except Student.DoesNotExist:
+            context["error"] = "Student profile not found"
+
+    return render(request, "dashboard/exams.html", context)
+
+
+@login_required
+def get_exam_timetable(request: HttpRequest, exam_id: int):
+    role = get_user_role(request.user)
+    if role != "Student":
+        return JsonResponse({"error": "Access denied"}, status=403)
+
+    try:
+        exam = Exam.objects.get(id=exam_id)
+        schedule = ExamSchedule.objects.filter(exam=exam).order_by("date", "time")
+        schedule_data = [
+            {
+                "date": item.date.strftime("%Y-%m-%d"),
+                "time": item.time.strftime("%H:%M"),
+                "subject": item.subject,
+                "room": item.room,
+            }
+            for item in schedule
+        ]
+        return JsonResponse({"exam_name": exam.name, "schedule": schedule_data})
+    except Exam.DoesNotExist:
+        return JsonResponse({"error": "Exam not found"}, status=404)
+
+
+@login_required
+def download_exam_timetable(request: HttpRequest, exam_id: int):
+    role = get_user_role(request.user)
+    if role != "Student":
+        return HttpResponse("Access denied", status=403)
+
+    try:
+        exam = Exam.objects.get(id=exam_id)
+        schedule = ExamSchedule.objects.filter(exam=exam).order_by("date", "time")
+
+        # Generate simple text timetable
+        content = f"Timetable for {exam.name}\n\n"
+        for item in schedule:
+            content += f"Date: {item.date}\nTime: {item.time}\nSubject: {item.subject}\nRoom: {item.room or 'N/A'}\n\n"
+
+        response = HttpResponse(content, content_type="text/plain")
+        response["Content-Disposition"] = (
+            f'attachment; filename="{exam.name}_timetable.txt"'
+        )
+        return response
+    except Exam.DoesNotExist:
+        return HttpResponse("Exam not found", status=404)
+
+
+@login_required
+def get_exam_results(request: HttpRequest, term_id: int):
+    role = get_user_role(request.user)
+    if role != "Student":
+        return JsonResponse({"error": "Access denied"}, status=403)
+
+    try:
+        student = Student.objects.get(user=request.user)
+        term = Term.objects.get(id=term_id)
+        results = ExamResult.objects.filter(
+            student=student, exam__term=term
+        ).select_related("exam")
+
+        results_data = [
+            {
+                "exam_name": result.exam.name,
+                "subject": result.subject,
+                "marks_obtained": (
+                    str(result.marks_obtained) if result.marks_obtained else None
+                ),
+                "grade": result.grade,
+            }
+            for result in results
+        ]
+        return JsonResponse({"results": results_data})
+    except (Student.DoesNotExist, Term.DoesNotExist):
+        return JsonResponse({"error": "Not found"}, status=404)

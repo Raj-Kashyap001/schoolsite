@@ -232,12 +232,42 @@ def generate_student_profile_pdf(student_data, user_data):
             "Class",
             str(student_data["classroom"]),
         ],
-        ["Date Joined", user_data["date_joined"].strftime("%d/%m/%Y"), "", ""],
+        [
+            "Stream",
+            student_data.get("stream") or "N/A",
+            "Weight",
+            f"{student_data.get('weight')} kg" if student_data.get("weight") else "N/A",
+        ],
+        [
+            "Height",
+            f"{student_data.get('height')} cm" if student_data.get("height") else "N/A",
+            "Date Joined",
+            user_data["date_joined"].strftime("%d/%m/%Y"),
+        ],
+        [
+            "Subjects",
+            student_data.get("subjects") or "N/A",
+            "",
+            "",
+        ],
+        [
+            "Current Address",
+            student_data.get("current_address") or "N/A",
+            "",
+            "",
+        ],
+        [
+            "Permanent Address",
+            student_data.get("permanent_address") or "N/A",
+            "",
+            "",
+        ],
     ]
 
     details_table = Table(
         details_data, colWidths=[1.5 * inch, 1.75 * inch, 1.5 * inch, 1.75 * inch]
     )
+    # Adjust table style for rows with empty cells
     details_table.setStyle(
         TableStyle(
             [
@@ -259,6 +289,10 @@ def generate_student_profile_pdf(student_data, user_data):
                 ("GRID", (0, 0), (-1, -1), 0.5, BORDER_COLOR),
                 # Use the new secondary color for row banding
                 ("ROWBACKGROUNDS", (0, 0), (-1, -1), [SECONDARY_COLOR, colors.white]),
+                # Span empty cells for full-width rows
+                ("SPAN", (1, 5), (3, 5)),  # Subjects row
+                ("SPAN", (1, 6), (3, 6)),  # Current Address row
+                ("SPAN", (1, 7), (3, 7)),  # Permanent Address row
             ]
         )
     )

@@ -1,3 +1,4 @@
+from decimal import Decimal
 from django.db import models
 from django.contrib.auth.models import User
 
@@ -14,12 +15,39 @@ class Genders(models.TextChoices):
     FEMALE = "FEMALE"
 
 
-class Classroom(models.Model):
-    grade = models.CharField()
-    section = models.CharField()
+class Subject(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    code = models.CharField(max_length=10, unique=True, blank=True)
+    is_active = models.BooleanField(default=True)
 
     def __str__(self):
-        return f"{self.grade} {self.section}"
+        return self.name
+
+
+class Stream(models.Model):
+    STREAM_CHOICES = [
+        ("SCIENCE", "Science"),
+        ("COMMERCE", "Commerce"),
+        ("ARTS", "Arts"),
+        ("MATHS", "Maths"),
+    ]
+
+    name = models.CharField(max_length=50, choices=STREAM_CHOICES, unique=True)
+    description = models.TextField(blank=True)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.name
+
+
+class Classroom(models.Model):
+    grade = models.CharField()
+    section = models.CharField(blank=True, null=True)
+
+    def __str__(self):
+        if self.section:
+            return f"{self.grade} {self.section}"
+        return self.grade
 
 
 class Teacher(models.Model):
@@ -51,15 +79,21 @@ class Student(models.Model):
     profile_photo = models.ImageField(
         upload_to=student_profile_photo_path, null=True, blank=True
     )
-    # stream = ["commerce", "maths", "bio", "arts"]
-    # subjects = []
-    # current_address = models.TextField()
-    # weight = models.CharField(null=True)
-    # height = models.CharField(null=True)
-    # permanent_address = models.TextField()
+    current_address = models.TextField(blank=True)
+    permanent_address = models.TextField(blank=True)
+    weight = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    height = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
 
     classroom = models.ForeignKey(
         Classroom, on_delete=models.CASCADE, related_name="student"
+    )
+    subjects = models.ManyToManyField(Subject, related_name="students", blank=True)
+    stream = models.ForeignKey(
+        Stream,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="students",
     )
 
     def __str__(self):
@@ -169,3 +203,70 @@ class Payment(models.Model):
 
     def __str__(self):
         return f"{self.student} - {self.description} - {self.amount} - {self.status}"
+
+
+class AcademicSession(models.Model):
+    year = models.CharField(max_length=20, unique=True)  # e.g., "2024-2025"
+    start_date = models.DateField()
+    end_date = models.DateField()
+
+    def __str__(self):
+        return self.year
+
+
+class Term(models.Model):
+    academic_session = models.ForeignKey(AcademicSession, on_delete=models.CASCADE)
+    name = models.CharField(max_length=100)  # e.g., "First Term", "Second Term"
+    start_date = models.DateField()
+    end_date = models.DateField()
+
+    def __str__(self):
+        return f"{self.name} - {self.academic_session.year}"
+
+    class Meta:
+        unique_together = ("academic_session", "name")
+
+
+class Exam(models.Model):
+    term = models.ForeignKey(Term, on_delete=models.CASCADE)
+    name = models.CharField(max_length=100)  # e.g., "Asst. 1st", "Int. 1st"
+    description = models.TextField(blank=True)
+
+    def __str__(self):
+        return f"{self.name} - {self.term}"
+
+    class Meta:
+        unique_together = ("term", "name")
+
+
+class ExamSchedule(models.Model):
+    exam = models.ForeignKey(Exam, on_delete=models.CASCADE)
+    date = models.DateField()
+    time = models.TimeField()
+    subject = models.CharField(max_length=100)
+    room = models.CharField(max_length=50, blank=True)
+
+    def __str__(self):
+        return f"{self.exam.name} - {self.subject} - {self.date}"
+
+    class Meta:
+        unique_together = ("exam", "date", "time", "subject")
+
+
+class ExamResult(models.Model):
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
+    exam = models.ForeignKey(Exam, on_delete=models.CASCADE)
+    subject = models.CharField(max_length=100)
+    marks_obtained = models.DecimalField(
+        max_digits=5, decimal_places=2, null=True, blank=True
+    )
+    total_marks = models.DecimalField(
+        max_digits=5, decimal_places=2, default=Decimal("100")
+    )
+    grade = models.CharField(max_length=10, blank=True)
+
+    def __str__(self):
+        return f"{self.student} - {self.exam.name} - {self.subject}"
+
+    class Meta:
+        unique_together = ("student", "exam", "subject")

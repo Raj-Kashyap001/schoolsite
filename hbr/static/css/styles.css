@@ -32,6 +32,9 @@ html::-webkit-scrollbar-thumb {
     background: var(--color-white);
     color: var(--color-black);
   }
+  button {
+    font: inherit;
+  }
 
   .btn {
     padding: 0.5rem 1rem;
@@ -66,7 +69,7 @@ html::-webkit-scrollbar-thumb {
     &.btn-outline {
       background: transparent;
       color: var(--color-primary);
-      border: 2px solid var(--color-primary);
+      border: 2px solid var(--color-primary) !important;
 
       &:hover {
         background: var(--color-primary);
@@ -1017,6 +1020,153 @@ html::-webkit-scrollbar-thumb {
   }
 }
 
+@layer exams_page {
+  .exams-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+
+    h1 {
+      text-align: center;
+      margin-bottom: 2rem;
+      color: var(--color-black);
+      font-size: 2.5rem;
+    }
+  }
+
+  .tabs {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 2rem;
+    gap: 1rem;
+  }
+
+  .tab-btn {
+    padding: 0.75rem 1.5rem;
+    background: var(--color-secondary);
+    color: var(--color-black);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+
+    &.active {
+      background: var(--color-primary);
+      color: var(--color-white);
+    }
+
+    &:hover:not(.active) {
+      background: color-mix(
+        in srgb,
+        var(--color-secondary),
+        var(--color-black) 10%
+      );
+    }
+  }
+
+  .tab-content {
+    display: none;
+
+    &.active {
+      display: block;
+    }
+  }
+
+  .exams-table,
+  .results-table,
+  .timetable-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--color-white);
+    box-shadow: 0 1px 6px hsl(0 0 0 /0.1);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 2rem;
+
+    th,
+    td {
+      padding: 0.8rem;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+
+    th {
+      background: var(--color-secondary);
+      color: var(--color-black);
+      font-weight: 600;
+    }
+
+    tbody tr:hover {
+      background: #f8f9fa;
+    }
+  }
+
+  .query-previous {
+    text-align: center;
+    margin-top: 2rem;
+  }
+  .btn.btn-outline {
+    border: 2px solid var(--color-primary) !important;
+  }
+
+  .modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+  }
+
+  .modal-content {
+    background-color: var(--color-white);
+    margin: 5% auto;
+    padding: 2rem;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 600px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+
+    h2 {
+      margin-bottom: 1.5rem;
+      color: var(--color-primary);
+      text-align: center;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: var(--color-black);
+      font-weight: 600;
+    }
+
+    select {
+      width: 100%;
+      padding: 0.6rem;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 1rem;
+      margin-bottom: 1rem;
+    }
+  }
+
+  .close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+
+    &:hover {
+      color: var(--color-black);
+    }
+  }
+}
+
 @layer certificates_page {
   .certificates-container {
     max-width: 1200px;
@@ -1254,5 +1404,9 @@ html::-webkit-scrollbar-thumb {
         background: color-mix(in srgb, #dc3545, var(--color-black) 20%);
       }
     }
+  }
+
+  .btn.btn-outline {
+    border: 1px solid green;
   }
 }

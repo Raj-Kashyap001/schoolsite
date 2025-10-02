@@ -48,6 +48,36 @@
             <p>
               <strong>Classroom:</strong> {{ student.classroom }}
             </p>
+            {% if student.stream %}
+              <p>
+                <strong>Stream:</strong> {{ student.stream.get_name_display }}
+              </p>
+            {% endif %}
+            {% if student.subjects.all %}
+              <p>
+                <strong>Subjects:</strong> {{ student.subjects.all|join:', ' }}
+              </p>
+            {% endif %}
+            {% if student.current_address %}
+              <p>
+                <strong>Current Address:</strong> {{ student.current_address }}
+              </p>
+            {% endif %}
+            {% if student.permanent_address %}
+              <p>
+                <strong>Permanent Address:</strong> {{ student.permanent_address }}
+              </p>
+            {% endif %}
+            {% if student.weight %}
+              <p>
+                <strong>Weight:</strong> {{ student.weight }} kg
+              </p>
+            {% endif %}
+            {% if student.height %}
+              <p>
+                <strong>Height:</strong> {{ student.height }} cm
+              </p>
+            {% endif %}
           </div>
           <div class="profile-actions">
             <button class="btn btn-primary" id="change-photo-btn">

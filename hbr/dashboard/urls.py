@@ -15,5 +15,17 @@ urlpatterns = [
         name="download_receipt",
     ),
     path("profile/download/", views.download_profile_pdf, name="download_profile_pdf"),
+    path("exams/", views.exams, name="exams"),
+    path(
+        "exams/timetable/<int:exam_id>/",
+        views.get_exam_timetable,
+        name="exam_timetable",
+    ),
+    path(
+        "exams/download/<int:exam_id>/",
+        views.download_exam_timetable,
+        name="download_exam_timetable",
+    ),
+    path("exams/results/<int:term_id>/", views.get_exam_results, name="exam_results"),
     path("settings/", views.settings, name="settings"),
 ]

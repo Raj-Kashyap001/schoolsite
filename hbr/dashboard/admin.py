@@ -1,13 +1,21 @@
 from django.contrib import admin
 from .models import (
-    Student,
-    Classroom,
-    Teacher,
+    AcademicSession,
     Attendance,
-    Document,
-    CertificateType,
     Certificate,
+    CertificateType,
+    Classroom,
+    Document,
+    Exam,
+    ExamResult,
+    ExamSchedule,
+    Leave,
     Payment,
+    Stream,
+    Student,
+    Subject,
+    Teacher,
+    Term,
 )
 
 
@@ -46,5 +54,21 @@ class CertificateAdmin(admin.ModelAdmin):
 # Register your models here.
 
 admin.site.register(
-    [Student, Classroom, Teacher, Attendance, Document, CertificateType, Payment]
+    [
+        AcademicSession,
+        Attendance,
+        CertificateType,
+        Classroom,
+        Document,
+        Exam,
+        ExamResult,
+        ExamSchedule,
+        Leave,
+        Payment,
+        Stream,
+        Student,
+        Subject,
+        Teacher,
+        Term,
+    ]
 )
