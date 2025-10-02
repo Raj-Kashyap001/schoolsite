@@ -1,5 +1,7 @@
 {% extends 'dashboard/layout.html' %}
 
 {% block content %}
-  <h1>Hello Mr. {{ request.user.first_name }}</h1>
+  <div class="dashboard-home">
+    <h1>Hello Mr. {{ user.first_name }}</h1>
+  </div>
 {% endblock %}

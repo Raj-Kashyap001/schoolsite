@@ -18,7 +18,8 @@ from django.conf import settings
 
 def generate_student_profile_pdf(student_data, user_data):
     """
-    Generate a modern PDF student profile document with contemporary design.
+    Generate a modern PDF student profile document with contemporary design
+    using the provided color scheme.
 
     Args:
         student_data: Dictionary containing student model data
@@ -39,21 +40,27 @@ def generate_student_profile_pdf(student_data, user_data):
     styles = getSampleStyleSheet()
     story = []
 
-    # Modern Color Palette
-    PRIMARY_COLOR = colors.HexColor("#3B82F6")
-    DARK_TEXT = colors.HexColor("#1F2937")
-    LIGHT_BG = colors.HexColor("#F9FAFB")
-    BORDER_COLOR = colors.HexColor("#E5E7EB")
-    GRAY_TEXT = colors.HexColor("#6B7280")
+    # New Color Palette (Converted from HSL to ReportLab HexColor)
+    PRIMARY_COLOR = colors.HexColor("#8F403C")  # hsl(3, 68%, 35%) - Deep Maroon
+    SECONDARY_COLOR = colors.HexColor(
+        "#F4F9FA"
+    )  # hsl(190, 45%, 95%) - Very Light Blue-Gray
+    DARK_TEXT = colors.HexColor("#333333")  # hsl(0 0 20) - Dark Gray
+    LIGHT_TEXT = colors.HexColor(
+        "#9CA3AF"
+    )  # Standard ReportLab lighter gray for secondary info
+    BORDER_COLOR = colors.HexColor(
+        "#E5E7EB"
+    )  # Light border (kept the original light gray)
 
-    # Typography Styles
+    # --- Typography Styles ---
     school_title_style = ParagraphStyle(
         "SchoolTitle",
         parent=styles["Heading1"],
         fontSize=24,
-        spaceAfter=6,
+        spaceAfter=4,  # Reduced space
         alignment=0,
-        textColor=DARK_TEXT,
+        textColor=PRIMARY_COLOR,  # Changed to primary color
         fontName="Helvetica-Bold",
         leading=28,
     )
@@ -63,8 +70,8 @@ def generate_student_profile_pdf(student_data, user_data):
         parent=styles["Normal"],
         fontSize=10,
         alignment=0,
-        textColor=GRAY_TEXT,
-        spaceAfter=6,
+        textColor=LIGHT_TEXT,
+        spaceAfter=4,  # Reduced space
         leading=14,
     )
 
@@ -73,10 +80,10 @@ def generate_student_profile_pdf(student_data, user_data):
         parent=styles["Heading2"],
         fontSize=14,
         alignment=0,
-        textColor=DARK_TEXT,
+        textColor=PRIMARY_COLOR,  # Changed to primary color
         fontName="Helvetica-Bold",
-        spaceAfter=10,
-        spaceBefore=6,
+        spaceAfter=8,
+        spaceBefore=15,  # Increased space before
     )
 
     student_name_style = ParagraphStyle(
@@ -95,11 +102,11 @@ def generate_student_profile_pdf(student_data, user_data):
         parent=styles["Normal"],
         fontSize=9,
         alignment=0,
-        textColor=GRAY_TEXT,
+        textColor=DARK_TEXT,  # Changed to DARK_TEXT for better visibility on secondary bg
         leading=13,
     )
 
-    # Header with School Info
+    # --- Header with School Info ---
     story.append(Paragraph("HBR Public School", school_title_style))
     story.append(
         Paragraph(
@@ -113,7 +120,7 @@ def generate_student_profile_pdf(student_data, user_data):
         )
     )
 
-    # Accent divider
+    # Accent divider (now using PRIMARY_COLOR)
     divider_data = [[""]]
     divider_table = Table(divider_data, colWidths=[6.5 * inch])
     divider_table.setStyle(
@@ -128,14 +135,15 @@ def generate_student_profile_pdf(student_data, user_data):
     story.append(divider_table)
     story.append(Spacer(1, 0.25 * inch))
 
-    # Profile Section with smaller rounded image
+    # --- Profile Image Handling (Kept Original Logic) ---
     if student_data.get("profile_photo"):
         try:
+            # Assuming settings.MEDIA_ROOT and student_data["profile_photo"] exist
             image_path = os.path.join(
                 settings.MEDIA_ROOT, str(student_data["profile_photo"])
             )
             if os.path.exists(image_path):
-                # Smaller circular profile image
+                # Placeholder for actual image creation logic - ReportLab doesn't handle image masking easily
                 profile_img = Image(image_path, width=1.2 * inch, height=1.2 * inch)
                 profile_img.hAlign = "CENTER"
             else:
@@ -143,7 +151,7 @@ def generate_student_profile_pdf(student_data, user_data):
                     '<para align="center" fontSize="8" textColor="#9CA3AF">No Photo</para>',
                     contact_style,
                 )
-        except:
+        except Exception:  # Catch broader exceptions during path/image processing
             profile_img = Paragraph(
                 '<para align="center" fontSize="8" textColor="#9CA3AF">No Photo</para>',
                 contact_style,
@@ -154,7 +162,7 @@ def generate_student_profile_pdf(student_data, user_data):
             contact_style,
         )
 
-    # Student info in profile card
+    # --- Profile Section Table ---
     student_info = [
         [
             profile_img,
@@ -178,7 +186,8 @@ def generate_student_profile_pdf(student_data, user_data):
     profile_table.setStyle(
         TableStyle(
             [
-                ("BACKGROUND", (0, 0), (-1, -1), LIGHT_BG),
+                # Changed background to the new secondary color
+                ("BACKGROUND", (0, 0), (-1, -1), SECONDARY_COLOR),
                 ("ALIGN", (0, 0), (0, -1), "CENTER"),
                 ("ALIGN", (1, 0), (1, -1), "LEFT"),
                 ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
@@ -192,11 +201,12 @@ def generate_student_profile_pdf(student_data, user_data):
         )
     )
     story.append(profile_table)
-    story.append(Spacer(1, 0.25 * inch))
+    story.append(Spacer(1, 0.3 * inch))
 
-    # Student Details Table
+    # --- Student Details Table ---
     story.append(Paragraph("Student Information", section_header_style))
 
+    # Detail data structure remains the same
     details_data = [
         [
             "SR Number",
@@ -237,6 +247,7 @@ def generate_student_profile_pdf(student_data, user_data):
                 ("ALIGN", (1, 0), (1, -1), "LEFT"),
                 ("ALIGN", (2, 0), (2, -1), "LEFT"),
                 ("ALIGN", (3, 0), (3, -1), "LEFT"),
+                # Bold the labels for better visual hierarchy
                 ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
                 ("FONTNAME", (2, 0), (2, -1), "Helvetica-Bold"),
                 ("FONTSIZE", (0, 0), (-1, -1), 9),
@@ -246,24 +257,25 @@ def generate_student_profile_pdf(student_data, user_data):
                 ("TOPPADDING", (0, 0), (-1, -1), 10),
                 ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
                 ("GRID", (0, 0), (-1, -1), 0.5, BORDER_COLOR),
-                ("ROWBACKGROUNDS", (0, 0), (-1, -1), [LIGHT_BG, colors.white]),
+                # Use the new secondary color for row banding
+                ("ROWBACKGROUNDS", (0, 0), (-1, -1), [SECONDARY_COLOR, colors.white]),
             ]
         )
     )
     story.append(details_table)
-    story.append(Spacer(1, 0.3 * inch))
+    story.append(Spacer(1, 0.4 * inch))
 
-    # Footer
+    # --- Footer ---
     footer_style = ParagraphStyle(
         "Footer",
         parent=styles["Normal"],
         fontSize=8,
-        alignment=1,
-        textColor=GRAY_TEXT,
+        alignment=1,  # Center alignment
+        textColor=LIGHT_TEXT,
         leading=12,
     )
 
-    story.append(divider_table)
+    story.append(divider_table)  # Re-use the primary-colored divider
     story.append(Spacer(1, 0.15 * inch))
 
     story.append(
@@ -278,6 +290,121 @@ def generate_student_profile_pdf(student_data, user_data):
             footer_style,
         )
     )
+
+    # Build PDF
+    doc.build(story)
+    buffer.seek(0)
+    return buffer
+
+
+def generate_certificate_pdf(student, certificate_type):
+    """
+    Generate a certificate PDF for a student.
+
+    Args:
+        student: Student model instance
+        certificate_type: CertificateType model instance
+
+    Returns:
+        BytesIO buffer containing the PDF
+    """
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=letter,
+        topMargin=1 * inch,
+        bottomMargin=1 * inch,
+        leftMargin=0.75 * inch,
+        rightMargin=0.75 * inch,
+    )
+    styles = getSampleStyleSheet()
+    story = []
+
+    # Color Palette
+    PRIMARY_COLOR = colors.HexColor("#8F403C")  # Deep Maroon
+    SECONDARY_COLOR = colors.HexColor("#F4F9FA")  # Light Blue-Gray
+    DARK_TEXT = colors.HexColor("#333333")
+    LIGHT_TEXT = colors.HexColor("#9CA3AF")
+
+    # Styles
+    school_title_style = ParagraphStyle(
+        "SchoolTitle",
+        parent=styles["Heading1"],
+        fontSize=28,
+        spaceAfter=10,
+        alignment=1,  # Center
+        textColor=PRIMARY_COLOR,
+        fontName="Helvetica-Bold",
+    )
+
+    certificate_title_style = ParagraphStyle(
+        "CertificateTitle",
+        parent=styles["Heading1"],
+        fontSize=24,
+        spaceAfter=20,
+        alignment=1,
+        textColor=PRIMARY_COLOR,
+        fontName="Helvetica-Bold",
+    )
+
+    body_style = ParagraphStyle(
+        "Body",
+        parent=styles["Normal"],
+        fontSize=14,
+        alignment=1,
+        textColor=DARK_TEXT,
+        leading=20,
+    )
+
+    student_name_style = ParagraphStyle(
+        "StudentName",
+        parent=styles["Heading1"],
+        fontSize=20,
+        alignment=1,
+        textColor=PRIMARY_COLOR,
+        fontName="Helvetica-Bold",
+        spaceAfter=10,
+    )
+
+    # Header
+    story.append(Paragraph("HBR Public School", school_title_style))
+    story.append(Spacer(1, 0.5 * inch))
+
+    # Certificate Title
+    story.append(Paragraph("Certificate of Achievement", certificate_title_style))
+    story.append(Spacer(1, 0.5 * inch))
+
+    # Body Text
+    story.append(Paragraph("This is to certify that", body_style))
+    story.append(Spacer(1, 0.25 * inch))
+
+    # Student Name
+    full_name = f"{student.user.first_name} {student.user.last_name}"
+    story.append(Paragraph(full_name, student_name_style))
+
+    # Certificate Type Description
+    story.append(
+        Paragraph("has successfully completed the requirements for", body_style)
+    )
+    story.append(Spacer(1, 0.25 * inch))
+    story.append(Paragraph(certificate_type.name, certificate_title_style))
+
+    if certificate_type.description:
+        story.append(Spacer(1, 0.25 * inch))
+        story.append(Paragraph(certificate_type.description, body_style))
+
+    # Date
+    from datetime import datetime
+
+    current_date = datetime.now().strftime("%d %B %Y")
+    story.append(Spacer(1, 0.5 * inch))
+    story.append(Paragraph(f"Issued on: {current_date}", body_style))
+
+    # Signature placeholder
+    story.append(Spacer(1, 1 * inch))
+    story.append(Paragraph("___________________________", body_style))
+    story.append(Paragraph("Principal", body_style))
+    story.append(Paragraph("HBR Public School", body_style))
 
     # Build PDF
     doc.build(story)

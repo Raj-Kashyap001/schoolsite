@@ -1,0 +1,48 @@
+{% extends 'dashboard/layout.html' %}
+
+{% block content %}
+  <div class="documents-container">
+    <h1>My Documents</h1>
+    {% if error %}
+      <p class="error">{{ error }}</p>
+    {% else %}
+      <div class="documents-table-section">
+        <h2>Uploaded Documents</h2>
+        {% if documents %}
+          <table class="documents-table">
+            <thead>
+              <tr>
+                <th>Preview</th>
+                <th>Document Name</th>
+                <th>Uploaded Date</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for document in documents %}
+                <tr>
+                  <td>
+                    {% if document.file.name|lower|slice:'-4:' == '.jpg' or document.file.name|lower|slice:'-5:' == '.jpeg' or document.file.name|lower|slice:'-4:' == '.png' or document.file.name|lower|slice:'-4:' == '.gif' or document.file.name|lower|slice:'-4:' == '.avif' %}
+                      <img src="{{ document.file.url }}" alt="{{ document.name }}" class="document-preview" />
+                    {% elif document.file.name|lower|slice:'-4:' == '.pdf' %}
+                      <i class="bx bx-file document-icon"></i>
+                    {% else %}
+                      <i class="bx bx-file document-icon"></i>
+                    {% endif %}
+                  </td>
+                  <td>{{ document.name }}</td>
+                  <td>{{ document.uploaded_at|date:'d/m/Y H:i' }}</td>
+                  <td>
+                    <a href="{{ document.file.url }}" target="_blank" class="btn btn-primary">Download</a>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% else %}
+          <p>No documents uploaded yet.</p>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+{% endblock %}

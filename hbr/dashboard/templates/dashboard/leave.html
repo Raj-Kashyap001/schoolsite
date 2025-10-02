@@ -1,0 +1,83 @@
+{% extends 'dashboard/layout.html' %}
+
+{% block content %}
+  <div class="leave-container">
+    <h1>Leave Applications</h1>
+    {% if error %}
+      <p class="error">{{ error }}</p>
+    {% else %}
+      <div class="apply-leave-section">
+        <button id="applyLeaveBtn" class="btn btn-primary">Apply for Leave</button>
+      </div>
+
+      <div class="leave-table-section">
+        <h2>Your Leave Requests</h2>
+        {% if leaves %}
+          <table class="leave-table">
+            <thead>
+              <tr>
+                <th>Apply Date</th>
+                <th>Reason</th>
+                <th>From</th>
+                <th>To</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for leave in leaves %}
+                <tr>
+                  <td>{{ leave.apply_date|date:'d/m/Y H:i' }}</td>
+                  <td>{{ leave.reason }}</td>
+                  <td>{{ leave.from_date|date:'d/m/Y' }}</td>
+                  <td>{{ leave.to_date|date:'d/m/Y' }}</td>
+                  <td class="status-{{ leave.status|lower }}">{{ leave.status }}</td>
+                  <td>
+                    {% if leave.status == 'PENDING' %}
+                      <button class="btn btn-outline edit-btn" data-id="{{ leave.id }}"><i class="bxr bx-pencil"></i></button>
+                      <button class="btn btn-inverted delete-btn" data-id="{{ leave.id }}"><i class="bxr bx-trash"></i></button>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% else %}
+          <p>No leave requests found.</p>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Apply Leave Modal -->
+  <div id="applyLeaveModal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <h2>Apply for Leave</h2>
+      <form id="applyLeaveForm">
+        {% csrf_token %}
+        <div class="form-group">
+          <label for="reason">Reason:</label>
+          <textarea id="reason" name="reason" required></textarea>
+        </div>
+        <div class="form-group">
+          <label for="from_date">From Date:</label>
+          <input type="date" id="from_date" name="from_date" required />
+        </div>
+        <div class="form-group">
+          <label for="to_date">To Date:</label>
+          <input type="date" id="to_date" name="to_date" required />
+        </div>
+        <button type="submit" class="btn btn-primary">Submit</button>
+      </form>
+    </div>
+  </div>
+{% endblock %}
+
+{% block inline_js %}
+  {% load static %}
+  <script>
+    const leaveUrl = "{% url 'leave' %}"
+  </script>
+  <script src="{% static 'js/apply_leave_module.js' %}"></script>
+{% endblock %}

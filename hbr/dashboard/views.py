@@ -5,7 +5,7 @@ from django.contrib import messages
 from base.views import get_user_role
 from .pdf_utils import generate_student_profile_pdf
 from .forms import StudentProfileForm
-from .models import Student
+from .models import Attendance, Document, Leave, Student, CertificateType, Certificate
 
 
 @login_required
@@ -73,7 +73,7 @@ def profile(request: HttpRequest):
     context = {"role": role, "user": user}
 
     if role == "Student":
-        from .models import Student
+        from .models import Student, Attendance
 
         try:
             student = Student.objects.get(user=user)
@@ -82,6 +82,136 @@ def profile(request: HttpRequest):
             context["student"] = None
 
     return render(request, "dashboard/profile.html", context)
+
+
+@login_required
+def attendance(request: HttpRequest):
+    role = get_user_role(request.user)
+    context = {"role": role, "attendance_events": []}
+
+    if role == "Student":
+        try:
+            student = Student.objects.get(user=request.user)
+            attendances = Attendance.objects.filter(student=student).order_by("date")
+
+            # Prepare events for fullcalendar
+            events = []
+            for att in attendances:
+                color = {
+                    "PRESENT": "#28a745",  # green
+                    "ABSENT": "#dc3545",  # red
+                    "LATE": "#ffc107",  # yellow
+                }.get(
+                    att.status, "#6c757d"
+                )  # default gray
+
+                events.append(
+                    {
+                        "title": att.status,
+                        "start": att.date.isoformat(),
+                        "color": color,
+                        "extendedProps": {
+                            "remarks": att.remarks,
+                            "teacher": str(att.teacher),
+                        },
+                    }
+                )
+
+            context["attendance_events"] = events  # type: ignore
+            context["student"] = student  # type: ignore
+        except Student.DoesNotExist:
+            context["error"] = "Student profile not found"
+
+    return render(request, "dashboard/attendance.html", context)
+
+
+@login_required
+def leave(request: HttpRequest):
+    role = get_user_role(request.user)
+    context = {"role": role}
+
+    if role == "Student":
+        try:
+            student = Student.objects.get(user=request.user)
+            if request.method == "GET" and request.GET.get("action") == "get":
+                leave_id = request.GET.get("leave_id")
+                try:
+                    leave = Leave.objects.get(id=leave_id, student=student)
+                    return JsonResponse(
+                        {
+                            "success": True,
+                            "leave": {
+                                "reason": leave.reason,
+                                "from_date": leave.from_date.isoformat(),
+                                "to_date": leave.to_date.isoformat(),
+                            },
+                        }
+                    )
+                except Leave.DoesNotExist:
+                    return JsonResponse({"success": False, "error": "Leave not found"})
+
+            if request.method == "POST":
+                action = request.POST.get("action")
+                if action == "create":
+                    reason = request.POST.get("reason")
+                    from_date = request.POST.get("from_date")
+                    to_date = request.POST.get("to_date")
+                    if reason and from_date and to_date:
+                        Leave.objects.create(
+                            student=student,
+                            reason=reason,
+                            from_date=from_date,
+                            to_date=to_date,
+                        )
+                        return JsonResponse({"success": True})
+                    else:
+                        return JsonResponse(
+                            {"success": False, "error": "All fields are required"}
+                        )
+                elif action == "edit":
+                    leave_id = request.POST.get("leave_id")
+                    reason = request.POST.get("reason")
+                    from_date = request.POST.get("from_date")
+                    to_date = request.POST.get("to_date")
+                    try:
+                        leave = Leave.objects.get(
+                            id=leave_id, student=student, status="PENDING"
+                        )
+                        leave.reason = reason  # type: ignore
+                        leave.from_date = from_date  # type: ignore
+                        leave.to_date = to_date  # type: ignore
+                        leave.save()
+                        return JsonResponse({"success": True})
+                    except Leave.DoesNotExist:
+                        return JsonResponse(
+                            {
+                                "success": False,
+                                "error": "Leave request not found or not editable",
+                            }
+                        )
+                elif action == "delete":
+                    leave_id = request.POST.get("leave_id")
+                    try:
+                        leave = Leave.objects.get(
+                            id=leave_id, student=student, status="PENDING"
+                        )
+                        leave.delete()
+                        return JsonResponse({"success": True})
+                    except Leave.DoesNotExist:
+                        return JsonResponse(
+                            {
+                                "success": False,
+                                "error": "Leave request not found or not deletable",
+                            }
+                        )
+
+            leaves = Leave.objects.filter(student=student).order_by("-apply_date")
+            context["leaves"] = leaves  # type: ignore
+            context["student"] = student  # type: ignore
+        except Student.DoesNotExist:
+            context["error"] = "Student profile not found"
+
+    return render(request, "dashboard/leave.html", context)
 
 
 @login_required
@@ -131,6 +261,78 @@ def download_profile_pdf(request: HttpRequest):
         f'attachment; filename="{user.username}_profile.pdf"'
     )
     return response
+
+
+@login_required
+def documents(request: HttpRequest):
+    role = get_user_role(request.user)
+    context = {"role": role}
+
+    if role == "Student":
+        try:
+            student = Student.objects.get(user=request.user)
+            documents = Document.objects.filter(student=student).order_by(
+                "-uploaded_at"
+            )
+            context["documents"] = documents  # type: ignore
+            context["student"] = student  # type: ignore
+        except Student.DoesNotExist:
+            context["error"] = "Student profile not found"
+
+    return render(request, "dashboard/documents.html", context)
+
+
+@login_required
+def certificates(request: HttpRequest):
+    role = get_user_role(request.user)
+    context = {"role": role}
+
+    if role == "Student":
+        try:
+            student = Student.objects.get(user=request.user)
+            if request.method == "POST":
+                certificate_type_id = request.POST.get("certificate_type")
+                if certificate_type_id:
+                    try:
+                        certificate_type = CertificateType.objects.get(
+                            id=certificate_type_id, is_active=True
+                        )
+                        # Check if certificate already exists (any status)
+                        if not Certificate.objects.filter(
+                            student=student, certificate_type=certificate_type
+                        ).exists():
+                            Certificate.objects.create(
+                                student=student,
+                                certificate_type=certificate_type,
+                                status="PENDING",
+                            )
+                            messages.success(
+                                request,
+                                f"{certificate_type.name} request submitted successfully!",
+                            )
+                        else:
+                            messages.warning(
+                                request, f"{certificate_type.name} already requested."
+                            )
+                    except CertificateType.DoesNotExist:
+                        messages.error(request, "Invalid certificate type.")
+
+            all_certificates = Certificate.objects.filter(student=student).order_by(
+                "-issued_date"
+            )
+            issued_certificates = all_certificates.filter(status="PENDING")
+            my_certificates = all_certificates.filter(status="APPROVED")
+            available_types = CertificateType.objects.filter(is_active=True).exclude(
+                id__in=all_certificates.values_list("certificate_type_id", flat=True)
+            )
+            context["issued_certificates"] = issued_certificates  # type: ignore
+            context["my_certificates"] = my_certificates  # type: ignore
+            context["available_types"] = available_types  # type: ignore
+            context["student"] = student  # type: ignore
+        except Student.DoesNotExist:
+            context["error"] = "Student profile not found"
+
+    return render(request, "dashboard/certificates.html", context)
 
 
 @login_required

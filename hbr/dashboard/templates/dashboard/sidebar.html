@@ -7,7 +7,11 @@
   {% with url_name=request.resolver_match.url_name %}
     <nav class="sidebar-nav">
       <a href="{% url 'dashboard' %}" class="{% if url_name == 'dashboard' %}active{% endif %}"><i class="bx bx-home"></i> Home</a>
-      <a href="{% url 'profile' %}" class="{% if url_name == 'profile' %}active{% endif %}"><i class="bx bx-user"></i> Profile</a>
+      <a href="{% url 'attendance' %}" class="{% if url_name == 'attendance' %}active{% endif %}"><i class="bx bx-calendar-alt"></i>My Attendance</a>
+      <a href="{% url 'leave' %}" class="{% if url_name == 'leave' %}active{% endif %}"><i class="bx bx-calendar-check"></i> Apply Leave</a>
+      <a href="{% url 'documents' %}" class="{% if url_name == 'documents' %}active{% endif %}"><i class="bx bx-folder"></i> My Documents</a>
+      <a href="{% url 'certificates' %}" class="{% if url_name == 'certificates' %}active{% endif %}"><i class="bxr bx-medal-star-alt-2"></i> My Certificates</a>
+      <a href="{% url 'profile' %}" class="{% if url_name == 'profile' %}active{% endif %}"><i class="bx bx-user"></i> My Profile</a>
       <a href="{% url 'settings' %}" class="{% if url_name == 'settings' %}active{% endif %}"><i class="bx bx-cog"></i> Settings</a>
     </nav>
   {% endwith %}
