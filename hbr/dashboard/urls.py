@@ -11,6 +11,41 @@ urlpatterns = [
         name="mark_student_attendance",
     ),
     path(
+        "attendance/import-csv/",
+        views.import_attendance_csv,
+        name="import_attendance_csv",
+    ),
+    path(
+        "attendance/export-csv/",
+        views.export_attendance_csv,
+        name="export_attendance_csv",
+    ),
+    path(
+        "attendance/template/",
+        views.download_attendance_template,
+        name="download_attendance_template",
+    ),
+    path(
+        "attendance/import-excel/",
+        views.import_attendance_excel,
+        name="import_attendance_excel",
+    ),
+    path(
+        "attendance/export-excel/",
+        views.export_attendance_excel,
+        name="export_attendance_excel",
+    ),
+    path(
+        "attendance/excel-template/",
+        views.download_attendance_excel_template,
+        name="download_attendance_excel_template",
+    ),
+    path(
+        "attendance/export-json/",
+        views.export_attendance_json,
+        name="export_attendance_json",
+    ),
+    path(
         "mark-teacher-attendance/",
         views.mark_teacher_attendance,
         name="mark_teacher_attendance",

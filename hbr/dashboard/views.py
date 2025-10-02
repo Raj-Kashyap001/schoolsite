@@ -3,6 +3,11 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db import models
+import csv
+import io
+import json
+import pandas as pd
+from datetime import date
 from base.views import get_user_role
 from .pdf_utils import (
     generate_student_profile_pdf,
@@ -290,6 +295,7 @@ def mark_student_attendance(request: HttpRequest):
         context["marked_students"] = marked_students  # type: ignore
         context["teacher"] = teacher  # type: ignore
         context["today"] = today  # type: ignore
+        context["has_marked_attendance"] = marked_students.exists()  # type: ignore
 
         if request.method == "POST":
             action = request.POST.get("action")
@@ -335,6 +341,618 @@ def mark_student_attendance(request: HttpRequest):
         context["error"] = "Teacher profile not found"
 
     return render(request, "dashboard/mark_student_attendance.html", context)
+
+
+@login_required
+def import_attendance_csv(request: HttpRequest):
+    """Import attendance data from CSV file"""
+    role = get_user_role(request.user)
+    if role != "Teacher":
+        return HttpResponse("Access denied", status=403)
+
+    if request.method != "POST" or not request.FILES.get("csv_file"):
+        return JsonResponse({"success": False, "error": "No file provided"})
+
+    try:
+        teacher = Teacher.objects.get(user=request.user)
+        csv_file = request.FILES["csv_file"]
+
+        # Read CSV file
+        if csv_file.name.endswith(".csv"):
+            # Handle CSV file
+            file_content = csv_file.read().decode("utf-8")
+            csv_reader = csv.DictReader(io.StringIO(file_content))
+        else:
+            return JsonResponse({"success": False, "error": "Please upload a CSV file"})
+
+        imported_count = 0
+        errors = []
+
+        for row_num, row in enumerate(csv_reader, start=2):  # Start at 2 for header row
+            try:
+                # Expected columns: student_name, roll_no, class, status, remarks, date
+                student_name = row.get("student_name", "").strip()
+                roll_no = row.get("roll_no", "").strip()
+                class_name = row.get("class", "").strip()
+                status = row.get("status", "").strip().upper()
+                remarks = row.get("remarks", "").strip()
+                date_str = row.get("date", "").strip()
+
+                # Validate required fields
+                if not all([student_name, roll_no, class_name, status, date_str]):
+                    errors.append(f"Row {row_num}: Missing required fields")
+                    continue
+
+                # Validate status
+                if status not in ["PRESENT", "ABSENT", "LATE"]:
+                    errors.append(f"Row {row_num}: Invalid status '{status}'")
+                    continue
+
+                # Parse date (handle multiple formats)
+                attendance_date = None
+                try:
+                    # Try different date formats
+                    date_formats = [
+                        "%d-%m-%y",  # DD-MM-YY
+                        "%d-%m-%Y",  # DD-MM-YYYY
+                        "%d/%m/%y",  # DD/MM/YY
+                        "%d/%m/%Y",  # DD/MM/YYYY
+                        "%Y-%m-%d",  # YYYY-MM-DD (ISO format)
+                    ]
+
+                    for fmt in date_formats:
+                        try:
+                            from datetime import datetime
+
+                            parsed_date = datetime.strptime(date_str, fmt).date()
+                            attendance_date = parsed_date
+                            break
+                        except ValueError:
+                            continue
+
+                    if attendance_date is None:
+                        raise ValueError("No valid format found")
+
+                except ValueError:
+                    errors.append(
+                        f"Row {row_num}: Invalid date format '{date_str}' (expected DD-MM-YY, DD-MM-YYYY, DD/MM/YY, DD/MM/YYYY, or YYYY-MM-DD)"
+                    )
+                    continue
+
+                # Find student
+                try:
+                    student = Student.objects.get(
+                        roll_no=roll_no,
+                        classroom__grade=class_name,
+                        user__first_name__icontains=student_name.split()[0],
+                    )
+                except Student.DoesNotExist:
+                    errors.append(
+                        f"Row {row_num}: Student not found - {student_name} (Roll: {roll_no}, Class: {class_name})"
+                    )
+                    continue
+                except Student.MultipleObjectsReturned:
+                    errors.append(
+                        f"Row {row_num}: Multiple students found - {student_name} (Roll: {roll_no}, Class: {class_name})"
+                    )
+                    continue
+
+                # Check if student is in teacher's classroom
+                if not teacher.classroom.filter(id=student.classroom.id).exists():
+                    errors.append(
+                        f"Row {row_num}: Student {student_name} is not in your assigned classes"
+                    )
+                    continue
+
+                # Check if attendance already exists for this date
+                existing_attendance = Attendance.objects.filter(
+                    student=student, date=attendance_date
+                ).first()
+
+                if existing_attendance:
+                    errors.append(
+                        f"Row {row_num}: Attendance already marked for {student_name} on {attendance_date} - skipping"
+                    )
+                    continue
+
+                # Create new attendance record
+                Attendance.objects.create(
+                    student=student,
+                    teacher=teacher,
+                    date=attendance_date,
+                    status=status,
+                    remarks=remarks,
+                )
+
+                imported_count += 1
+
+            except Exception as e:
+                errors.append(f"Row {row_num}: {str(e)}")
+
+        response_data = {
+            "success": True,
+            "imported_count": imported_count,
+            "errors": errors[:10],  # Limit errors to first 10
+        }
+
+        if errors:
+            response_data["message"] = (
+                f"Imported {imported_count} records with {len(errors)} errors"
+            )
+
+        return JsonResponse(response_data)
+
+    except Teacher.DoesNotExist:
+        return JsonResponse({"success": False, "error": "Teacher profile not found"})
+    except Exception as e:
+        return JsonResponse(
+            {"success": False, "error": f"Error processing file: {str(e)}"}
+        )
+
+
+@login_required
+def export_attendance_csv(request: HttpRequest):
+    """Export attendance data to CSV file"""
+    role = get_user_role(request.user)
+    if role != "Teacher":
+        return HttpResponse("Access denied", status=403)
+
+    try:
+        teacher = Teacher.objects.get(user=request.user)
+
+        # Get date parameter - export all marked data from the specified date
+        from_date = request.GET.get("from_date")
+
+        # Build query for attendance records
+        attendance_query = Attendance.objects.filter(teacher=teacher)
+
+        if from_date:
+            attendance_query = attendance_query.filter(date__gte=from_date)
+
+        attendance_records = attendance_query.select_related(
+            "student", "student__user", "student__classroom"
+        ).order_by("date", "student__roll_no")
+
+        # Create CSV response
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="attendance_export.csv"'
+
+        writer = csv.writer(response)
+
+        # Write title header for teacher exports
+        if from_date:
+            today_date = date.fromisoformat(from_date)
+            writer.writerow(
+                [
+                    f'Attendance for Class - {today_date.strftime("%Y-%m-%d")} by {teacher.user.get_full_name()}'
+                ]
+            )
+            writer.writerow([])  # Empty row for spacing
+
+        # Write column headers
+        writer.writerow(
+            ["Date", "Student Name", "Roll No", "Class", "Status", "Remarks"]
+        )
+
+        # Write data
+        for attendance in attendance_records:
+            writer.writerow(
+                [
+                    attendance.date.strftime("%Y-%m-%d"),
+                    attendance.student.user.get_full_name(),
+                    attendance.student.roll_no,
+                    str(attendance.student.classroom),
+                    attendance.status,
+                    attendance.remarks or "",
+                ]
+            )
+
+        return response
+
+    except Teacher.DoesNotExist:
+        return HttpResponse("Teacher profile not found", status=404)
+
+
+@login_required
+def import_attendance_excel(request: HttpRequest):
+    """Import attendance data from Excel file"""
+    role = get_user_role(request.user)
+    if role != "Teacher":
+        return HttpResponse("Access denied", status=403)
+
+    if request.method != "POST" or not request.FILES.get("excel_file"):
+        return JsonResponse({"success": False, "error": "No file provided"})
+
+    try:
+        teacher = Teacher.objects.get(user=request.user)
+        excel_file = request.FILES["excel_file"]
+
+        # Read Excel file
+        if excel_file.name.endswith((".xlsx", ".xls")):
+            # Handle Excel file
+            df = pd.read_excel(excel_file)
+        else:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": "Please upload an Excel file (.xlsx or .xls)",
+                }
+            )
+
+        imported_count = 0
+        errors = []
+
+        for row_num, row in df.iterrows():
+            try:
+                # Expected columns: student_name, roll_no, class, status, remarks, date
+                student_name = str(row.get("student_name", "")).strip()
+                roll_no = str(row.get("roll_no", "")).strip()
+                class_name = str(row.get("class", "")).strip()
+                status = str(row.get("status", "")).strip().upper()
+                remarks = str(row.get("remarks", "")).strip()
+                date_str = str(row.get("date", "")).strip()
+
+                # Validate required fields
+                if not all([student_name, roll_no, class_name, status, date_str]):
+                    errors.append(f"Row {row_num + 2}: Missing required fields")
+                    continue
+
+                # Validate status
+                if status not in ["PRESENT", "ABSENT", "LATE"]:
+                    errors.append(f"Row {row_num + 2}: Invalid status '{status}'")
+                    continue
+
+                # Parse date (handle multiple formats)
+                attendance_date = None
+                try:
+                    # Handle pandas datetime objects that come as strings like '2025-10-02 00:00:00'
+                    if (
+                        isinstance(date_str, str)
+                        and " " in date_str
+                        and ":" in date_str
+                    ):
+                        # Extract date part from datetime string
+                        date_str = date_str.split(" ")[0]
+
+                    # Try different date formats
+                    date_formats = [
+                        "%d-%m-%y",  # DD-MM-YY
+                        "%d-%m-%Y",  # DD-MM-YYYY
+                        "%d/%m/%y",  # DD/MM/YY
+                        "%d/%m/%Y",  # DD/MM/YYYY
+                        "%Y-%m-%d",  # YYYY-MM-DD (ISO format)
+                    ]
+
+                    for fmt in date_formats:
+                        try:
+                            from datetime import datetime
+
+                            parsed_date = datetime.strptime(date_str, fmt).date()
+                            attendance_date = parsed_date
+                            break
+                        except ValueError:
+                            continue
+
+                    if attendance_date is None:
+                        raise ValueError("No valid format found")
+
+                except ValueError:
+                    errors.append(
+                        f"Row {row_num + 2}: Invalid date format '{date_str}' (expected DD-MM-YY, DD-MM-YYYY, DD/MM/YY, DD/MM/YYYY, or YYYY-MM-DD)"
+                    )
+                    continue
+
+                # Find student
+                try:
+                    student = Student.objects.get(
+                        roll_no=roll_no,
+                        classroom__grade=class_name,
+                        user__first_name__icontains=student_name.split()[0],
+                    )
+                except Student.DoesNotExist:
+                    errors.append(
+                        f"Row {row_num + 2}: Student not found - {student_name} (Roll: {roll_no}, Class: {class_name})"
+                    )
+                    continue
+                except Student.MultipleObjectsReturned:
+                    errors.append(
+                        f"Row {row_num + 2}: Multiple students found - {student_name} (Roll: {roll_no}, Class: {class_name})"
+                    )
+                    continue
+
+                # Check if student is in teacher's classroom
+                if not teacher.classroom.filter(id=student.classroom.id).exists():
+                    errors.append(
+                        f"Row {row_num + 2}: Student {student_name} is not in your assigned classes"
+                    )
+                    continue
+
+                # Check if attendance already exists for this date
+                existing_attendance = Attendance.objects.filter(
+                    student=student, date=attendance_date
+                ).first()
+
+                if existing_attendance:
+                    errors.append(
+                        f"Row {row_num + 2}: Attendance already marked for {student_name} on {attendance_date} - skipping"
+                    )
+                    continue
+
+                # Create new attendance record
+                Attendance.objects.create(
+                    student=student,
+                    teacher=teacher,
+                    date=attendance_date,
+                    status=status,
+                    remarks=remarks,
+                )
+
+                imported_count += 1
+
+            except Exception as e:
+                errors.append(f"Row {row_num + 2}: {str(e)}")
+
+        response_data = {
+            "success": True,
+            "imported_count": imported_count,
+            "errors": errors[:10],  # Limit errors to first 10
+        }
+
+        if errors:
+            response_data["message"] = (
+                f"Imported {imported_count} records with {len(errors)} errors"
+            )
+
+        return JsonResponse(response_data)
+
+    except Teacher.DoesNotExist:
+        return JsonResponse({"success": False, "error": "Teacher profile not found"})
+    except Exception as e:
+        return JsonResponse(
+            {"success": False, "error": f"Error processing file: {str(e)}"}
+        )
+
+
+@login_required
+def export_attendance_json(request: HttpRequest):
+    """Export attendance data to JSON file"""
+    role = get_user_role(request.user)
+    if role != "Teacher":
+        return HttpResponse("Access denied", status=403)
+
+    try:
+        teacher = Teacher.objects.get(user=request.user)
+
+        # Get date parameter - export all marked data from the specified date
+        from_date = request.GET.get("from_date")
+
+        # Build query for attendance records
+        attendance_query = Attendance.objects.filter(teacher=teacher)
+
+        if from_date:
+            attendance_query = attendance_query.filter(date__gte=from_date)
+
+        attendance_records = attendance_query.select_related(
+            "student", "student__user", "student__classroom"
+        ).order_by("date", "student__roll_no")
+
+        # Prepare data for JSON
+        data = {
+            "export_info": {
+                "exported_by": teacher.user.get_full_name(),
+                "export_date": date.today().strftime("%Y-%m-%d"),
+                "from_date": from_date,
+                "total_records": attendance_records.count(),
+            },
+            "attendance_records": [],
+        }
+
+        for attendance in attendance_records:
+            record = {
+                "date": attendance.date.strftime("%Y-%m-%d"),
+                "student_name": attendance.student.user.get_full_name(),
+                "roll_no": attendance.student.roll_no,
+                "class": str(attendance.student.classroom),
+                "status": attendance.status,
+                "remarks": attendance.remarks or "",
+                "teacher": teacher.user.get_full_name(),
+            }
+            data["attendance_records"].append(record)
+
+        # Create JSON response
+        response = HttpResponse(
+            json.dumps(data, indent=2, ensure_ascii=False),
+            content_type="application/json",
+        )
+        response["Content-Disposition"] = (
+            'attachment; filename="attendance_export.json"'
+        )
+
+        return response
+
+    except Teacher.DoesNotExist:
+        return HttpResponse("Teacher profile not found", status=404)
+
+
+@login_required
+def export_attendance_excel(request: HttpRequest):
+    """Export attendance data to Excel file"""
+    role = get_user_role(request.user)
+    if role != "Teacher":
+        return HttpResponse("Access denied", status=403)
+
+    try:
+        teacher = Teacher.objects.get(user=request.user)
+
+        # Get date parameter - export all marked data from the specified date
+        from_date = request.GET.get("from_date")
+
+        # Build query for attendance records
+        attendance_query = Attendance.objects.filter(teacher=teacher)
+
+        if from_date:
+            attendance_query = attendance_query.filter(date__gte=from_date)
+
+        attendance_records = attendance_query.select_related(
+            "student", "student__user", "student__classroom"
+        ).order_by("date", "student__roll_no")
+
+        # Prepare data for DataFrame
+        data = []
+        for attendance in attendance_records:
+            data.append(
+                {
+                    "Date": attendance.date.strftime("%Y-%m-%d"),
+                    "Student Name": attendance.student.user.get_full_name(),
+                    "Roll No": attendance.student.roll_no,
+                    "Class": str(attendance.student.classroom),
+                    "Status": attendance.status,
+                    "Remarks": attendance.remarks or "",
+                }
+            )
+
+        # Create DataFrame
+        df = pd.DataFrame(data)
+
+        # Create Excel response
+        response = HttpResponse(
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        response["Content-Disposition"] = (
+            'attachment; filename="attendance_export.xlsx"'
+        )
+
+        # Write to Excel
+        with pd.ExcelWriter(response, engine="openpyxl") as writer:
+            df.to_excel(writer, sheet_name="Attendance", index=False)
+
+            # Get the workbook and worksheet
+            workbook = writer.book
+            worksheet = writer.sheets["Attendance"]
+
+            # Auto-adjust column widths
+            for column in worksheet.columns:
+                max_length = 0
+                column_letter = column[0].column_letter
+                for cell in column:
+                    try:
+                        if len(str(cell.value)) > max_length:
+                            max_length = len(str(cell.value))
+                    except:
+                        pass
+                adjusted_width = max_length + 2
+                worksheet.column_dimensions[column_letter].width = adjusted_width
+
+        return response
+
+    except Teacher.DoesNotExist:
+        return HttpResponse("Teacher profile not found", status=404)
+
+
+@login_required
+def download_attendance_template(request: HttpRequest):
+    """Download CSV template for attendance import"""
+    role = get_user_role(request.user)
+    if role != "Teacher":
+        return HttpResponse("Access denied", status=403)
+
+    # Create CSV response
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = 'attachment; filename="attendance_template.csv"'
+
+    writer = csv.writer(response)
+
+    # Write header with instructions
+    writer.writerow(["# Attendance Import Template"])
+    writer.writerow(["# Required columns: student_name, roll_no, class, status, date"])
+    writer.writerow(["# Optional columns: remarks"])
+    writer.writerow(["# Status values: PRESENT, ABSENT, LATE"])
+    writer.writerow(
+        [
+            "# Date format: DD-MM-YY, DD-MM-YYYY, DD/MM/YY, DD/MM/YYYY, or YYYY-MM-DD (e.g., 15-01-24, 15-01-2024, 15/01/24, 15/01/2024, or 2024-01-15)"
+        ]
+    )
+    writer.writerow(["# First row should be headers"])
+    writer.writerow([])  # Empty row
+
+    # Write column headers
+    writer.writerow(["student_name", "roll_no", "class", "status", "date", "remarks"])
+
+    # Write sample data rows
+    writer.writerow(["John Doe", "1", "10th A", "PRESENT", "15-01-24", "On time"])
+    writer.writerow(["Jane Smith", "2", "10th A", "ABSENT", "15-01-24", "Sick leave"])
+    writer.writerow(["Bob Johnson", "3", "10th A", "LATE", "15-01-24", "Traffic delay"])
+
+    return response
+
+
+@login_required
+def download_attendance_excel_template(request: HttpRequest):
+    """Download Excel template for attendance import"""
+    role = get_user_role(request.user)
+    if role != "Teacher":
+        return HttpResponse("Access denied", status=403)
+
+    # Create Excel response
+    response = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    response["Content-Disposition"] = (
+        'attachment; filename="attendance_excel_template.xlsx"'
+    )
+
+    # Create sample data
+    data = {
+        "student_name": ["John Doe", "Jane Smith", "Bob Johnson"],
+        "roll_no": ["1", "2", "3"],
+        "class": ["10th A", "10th A", "10th A"],
+        "status": ["PRESENT", "ABSENT", "LATE"],
+        "date": ["15-01-24", "15-01-24", "15-01-24"],
+        "remarks": ["On time", "Sick leave", "Traffic delay"],
+    }
+
+    df = pd.DataFrame(data)
+
+    # Write to Excel
+    with pd.ExcelWriter(response, engine="openpyxl") as writer:
+        df.to_excel(writer, sheet_name="Template", index=False)
+
+        # Get the workbook and worksheet
+        workbook = writer.book
+        worksheet = writer.sheets["Template"]
+
+        # Add instructions sheet
+        instructions_sheet = workbook.create_sheet("Instructions")
+        instructions_sheet["A1"] = "Attendance Import Template Instructions"
+        instructions_sheet["A2"] = ""
+        instructions_sheet["A3"] = (
+            "Required columns: student_name, roll_no, class, status, date"
+        )
+        instructions_sheet["A4"] = "Optional column: remarks"
+        instructions_sheet["A5"] = "Status values: PRESENT, ABSENT, LATE"
+        instructions_sheet["A6"] = (
+            "Date format: DD-MM-YY, DD-MM-YYYY, DD/MM/YY, DD/MM/YYYY, or YYYY-MM-DD (e.g., 15-01-24, 15-01-2024, 15/01/24, 15/01/2024, or 2024-01-15)"
+        )
+        instructions_sheet["A7"] = "First row should be headers"
+        instructions_sheet["A8"] = ""
+        instructions_sheet["A9"] = (
+            "Note: Delete this instructions sheet before importing"
+        )
+
+        # Auto-adjust column widths for template sheet
+        for column in worksheet.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = max_length + 2
+            worksheet.column_dimensions[column_letter].width = adjusted_width
+
+    return response
 
 
 @login_required

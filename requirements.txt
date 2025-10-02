@@ -3,3 +3,5 @@ psycopg2
 django-browser-reload
 Pillow
 reportlab
+pandas
+openpyxl
