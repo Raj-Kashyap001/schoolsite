@@ -6,96 +6,145 @@
     <h1>{{ user.first_name }} {{ user.last_name }}'s Profile</h1>
 
     <div class="profile-cards">
-      <!-- Student Profile Card -->
-      <div class="profile-card student-profile">
-        <h2><i class="bx bx-user"></i> Student Info</h2>
-        {% if role == 'Student' and student %}
-          <div class="profile-photo-section">
-            {% if student.profile_photo %}
-              <img src="{{ student.profile_photo.url }}" alt="Profile Photo" class="profile-photo" />
-            {% else %}
-              <div class="no-photo">No Photo</div>
-            {% endif %}
-          </div>
-          <div class="student-details">
-            <p>
-              <strong>SR No:</strong> {{ student.sr_no }}
-            </p>
-            <p>
-              <strong>Roll No:</strong> {{ student.roll_no }}
-            </p>
-            <p>
-              <strong>Admission No:</strong> {{ student.admission_no }}
-            </p>
-            <p>
-              <strong>Father's Name:</strong> {{ student.father_name }}
-            </p>
-            <p>
-              <strong>Mother's Name:</strong> {{ student.mother_name }}
-            </p>
-            <p>
-              <strong>Date of Birth:</strong> {{ student.dob }}
-            </p>
-            <p>
-              <strong>Mobile No:</strong> {{ student.mobile_no }}
-            </p>
-            <p>
-              <strong>Category:</strong> {{ student.category }}
-            </p>
-            <p>
-              <strong>Gender:</strong> {{ student.gender }}
-            </p>
-            <p>
-              <strong>Classroom:</strong> {{ student.classroom }}
-            </p>
-            {% if student.stream %}
-              <p>
-                <strong>Stream:</strong> {{ student.stream.get_name_display }}
-              </p>
-            {% endif %}
-            {% if student.subjects.all %}
-              <p>
-                <strong>Subjects:</strong> {{ student.subjects.all|join:', ' }}
-              </p>
-            {% endif %}
-            {% if student.current_address %}
-              <p>
-                <strong>Current Address:</strong> {{ student.current_address }}
-              </p>
-            {% endif %}
-            {% if student.permanent_address %}
-              <p>
-                <strong>Permanent Address:</strong> {{ student.permanent_address }}
-              </p>
-            {% endif %}
-            {% if student.weight %}
-              <p>
-                <strong>Weight:</strong> {{ student.weight }} kg
-              </p>
-            {% endif %}
-            {% if student.height %}
-              <p>
-                <strong>Height:</strong> {{ student.height }} cm
-              </p>
-            {% endif %}
-          </div>
-          <div class="profile-actions">
-            <button class="btn btn-primary" id="change-photo-btn">
-              <i class="bx bx-image-portrait"></i>
+      <!-- Profile Card -->
+      <div class="profile-card profile-info">
+        {% if role == 'Student' %}
+          <h2><i class="bx bx-user"></i> Student Info</h2>
+          {% if student %}
+            <div class="profile-photo-section">
               {% if student.profile_photo %}
-                Change
+                <div class="profile-photo-container">
+                  <img src="{{ student.profile_photo.url }}" alt="Profile Photo" class="profile-photo" style="width: 120px; object-fit: cover; display:block; object-position: center; aspect-ratio: 1; margin-bottom: 1rem;" />
+                </div>
               {% else %}
-                Upload
-              {% endif %}Profile Image
-            </button>
-            <input type="file" id="profile-photo-input" accept="image/*" style="display: none;" />
-            <a href="{% url 'download_profile_pdf' %}" class="btn btn-outline">
-              <i class="bx-bxr bx-arrow-down-stroke-circle"></i>
-              Download Profile
-            </a>
-          </div>
-        {% else %}
-          <p>No student information found.</p>
+                <div class="no-photo">No Photo</div>
+              {% endif %}
+            </div>
+            <div class="profile-details">
+              <p>
+                <strong>SR No:</strong> {{ student.sr_no }}
+              </p>
+              <p>
+                <strong>Roll No:</strong> {{ student.roll_no }}
+              </p>
+              <p>
+                <strong>Admission No:</strong> {{ student.admission_no }}
+              </p>
+              <p>
+                <strong>Father's Name:</strong> {{ student.father_name }}
+              </p>
+              <p>
+                <strong>Mother's Name:</strong> {{ student.mother_name }}
+              </p>
+              <p>
+                <strong>Date of Birth:</strong> {{ student.dob }}
+              </p>
+              <p>
+                <strong>Mobile No:</strong> {{ student.mobile_no }}
+              </p>
+              <p>
+                <strong>Category:</strong> {{ student.category }}
+              </p>
+              <p>
+                <strong>Gender:</strong> {{ student.gender }}
+              </p>
+              <p>
+                <strong>Classroom:</strong> {{ student.classroom }}
+              </p>
+              {% if student.stream %}
+                <p>
+                  <strong>Stream:</strong> {{ student.stream.get_name_display }}
+                </p>
+              {% endif %}
+              {% if student.subjects.all %}
+                <p>
+                  <strong>Subjects:</strong> {{ student.subjects.all|join:', ' }}
+                </p>
+              {% endif %}
+              {% if student.current_address %}
+                <p>
+                  <strong>Current Address:</strong> {{ student.current_address }}
+                </p>
+              {% endif %}
+              {% if student.permanent_address %}
+                <p>
+                  <strong>Permanent Address:</strong> {{ student.permanent_address }}
+                </p>
+              {% endif %}
+              {% if student.weight %}
+                <p>
+                  <strong>Weight:</strong> {{ student.weight }} kg
+                </p>
+              {% endif %}
+              {% if student.height %}
+                <p>
+                  <strong>Height:</strong> {{ student.height }} cm
+                </p>
+              {% endif %}
+            </div>
+            <div class="profile-actions">
+              <button class="btn btn-primary" id="change-photo-btn">
+                <i class="bx bx-image-portrait"></i>
+                {% if student.profile_photo %}
+                  Change
+                {% else %}
+                  Upload
+                {% endif %}Profile Image
+              </button>
+              <input type="file" id="profile-photo-input" accept="image/*" style="display: none;" />
+              <a href="{% url 'download_profile_pdf' %}" class="btn btn-outline">
+                <i class="bx-bxr bx-arrow-down-stroke-circle"></i>
+                Download Profile
+              </a>
+            </div>
+          {% else %}
+            <p>No student information found.</p>
+          {% endif %}
+        {% elif role == 'Teacher' %}
+          <h2><i class="bx bx-user"></i> Teacher Info</h2>
+          {% if teacher %}
+            <div class="profile-photo-section">
+              {% if teacher.profile_photo %}
+                <div class="profile-photo-container">
+                  <img src="{{ teacher.profile_photo.url }}" alt="Profile Photo" class="profile-photo" style="width: 120px; object-fit: cover; display:block; object-position: center; aspect-ratio: 1; margin-bottom: 1rem;" />
+                </div>
+              {% else %}
+                <div class="no-photo">No Photo</div>
+              {% endif %}
+            </div>
+            <div class="profile-details">
+              <p>
+                <strong>Subject:</strong> {{ teacher.subject }}
+              </p>
+              <p>
+                <strong>Qualification:</strong> {{ teacher.qualification|default:'Not specified' }}
+              </p>
+              <p>
+                <strong>Mobile No:</strong> {{ teacher.mobile_no|default:'Not provided' }}
+              </p>
+              <p>
+                <strong>Assigned Classes:</strong>
+                {% if teacher.classroom.all %}
+                  {{ teacher.classroom.all|join:', ' }}
+                {% else %}
+                  No classes assigned
+                {% endif %}
+              </p>
+            </div>
+            <div class="profile-actions">
+              <button class="btn btn-primary" id="change-photo-btn">
+                <i class="bx bx-image-portrait"></i>
+                {% if teacher.profile_photo %}
+                  Change
+                {% else %}
+                  Upload
+                {% endif %}Profile Image
+              </button>
+              <input type="file" id="profile-photo-input" accept="image/*" style="display: none;" />
+            </div>
+          {% else %}
+            <p>No teacher information found.</p>
+          {% endif %}
         {% endif %}
       </div>
 
@@ -115,9 +164,6 @@
           </p>
           <p>
             <strong>Email:</strong> {{ user.email }}
-          </p>
-          <p>
-            <strong>Role:</strong> {{ role }}
           </p>
           <p>
             <strong>Last Login:</strong> {{ user.last_login|date:'M d, Y H:i' }}

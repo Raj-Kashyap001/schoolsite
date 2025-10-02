@@ -1,105 +1,119 @@
 {% extends 'dashboard/layout.html' %}
 {% load static %}
 
-{% block content %}
-  <div class="attendance-container">
-    <h1>Mark Teacher Attendance</h1>
-    <form id="attendanceForm" method="post">
-      {% csrf_token %}
-      <div class="form-group">
-        <label for="attendance_date">Date:</label>
-        <input type="date" id="attendance_date" name="date" required value="{{ today|date:'Y-m-d' }}" />
-      </div>
-
-      <div class="teachers-list">
-        <h3>All Teachers:</h3>
-        {% for teacher in teachers %}
-          <div class="teacher-item">
-            <div class="teacher-info">
-              <span class="teacher-name">{{ teacher.user.get_full_name }}</span>
-              <span class="teacher-subject">{{ teacher.subject }}</span>
-            </div>
-            <div class="attendance-options">
-              <label><input type="radio" name="status_{{ teacher.id }}" value="PRESENT" checked />Present</label>
-              <label><input type="radio" name="status_{{ teacher.id }}" value="ABSENT" />Absent</label>
-              <label><input type="radio" name="status_{{ teacher.id }}" value="LATE" />Late</label>
-            </div>
-            <div class="remarks">
-              <input type="text" name="remarks_{{ teacher.id }}" placeholder="Remarks (optional)" />
-            </div>
-          </div>
-        {% endfor %}
-      </div>
-
-      <button type="submit" class="btn btn-primary">Submit Attendance</button>
-    </form>
-  </div>
+{% block extra_head %}
+  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
 {% endblock %}
 
-{% block extra_css %}
-  <style>
-    .attendance-container {
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 20px;
-    }
+{% block content %}
+  <div class="attendance-container attendance-marking">
+    <h1>Marking Teacher Attendance for {{ today|date:'F j, Y' }}</h1>
+    <form id="attendanceForm" method="post">
+      {% csrf_token %}
+
+      <div class="toolbar">
+        <div class="search-filter">
+          <input type="text" id="searchInput" placeholder="Search teachers..." />
+          <select id="statusFilter">
+            <option value="">All Status</option>
+            <option value="PRESENT">Present</option>
+            <option value="ABSENT">Absent</option>
+            <option value="LATE">Late</option>
+          </select>
+        </div>
+        <div class="actions">
+          <button type="button" class="btn btn-outline" id="importCsv"><i class="bx bx-upload"></i> Import CSV</button>
+          <button type="button" class="btn btn-outline" id="importExcel"><i class="bx bx-upload"></i> Import Excel</button>
+          <button type="button" class="btn btn-outline" id="exportCsv"><i class="bx bx-download"></i> Export CSV</button>
+          <button type="button" class="btn btn-outline" id="exportExcel"><i class="bx bx-download"></i> Export Excel</button>
+          <button type="button" class="btn btn-outline" id="exportJson"><i class="bx bx-download"></i> Export JSON</button>
+        </div>
+      </div>
+
+      <table class="attendance-table">
+        <thead>
+          <tr>
+            <th>Teacher Name</th>
+            <th>Subject</th>
+            <th>Status</th>
+            <th>Remarks</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for teacher in teachers %}
+            <tr class="teacher-row" data-name="{{ teacher.user.get_full_name|lower }}" data-subject="{{ teacher.subject|lower }}">
+              <td>{{ teacher.user.get_full_name }}</td>
+              <td>{{ teacher.subject }}</td>
+              <td>
+                <div class="status-options">
+                  <label class="status-present"><input type="radio" name="status_{{ teacher.id }}" value="PRESENT" checked />Present</label>
+                  <label class="status-absent"><input type="radio" name="status_{{ teacher.id }}" value="ABSENT" />Absent</label>
+                  <label class="status-late"><input type="radio" name="status_{{ teacher.id }}" value="LATE" />Late</label>
+                </div>
+              </td>
+              <td>
+                <input type="text" name="remarks_{{ teacher.id }}" placeholder="Remarks" />
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Submit Attendance</button>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const searchInput = document.getElementById('searchInput')
+      const statusFilter = document.getElementById('statusFilter')
+      const rows = document.querySelectorAll('.teacher-row')
     
-    .teachers-list {
-      margin-top: 20px;
-    }
+      function filterRows() {
+        const searchTerm = searchInput.value.toLowerCase()
+        const statusValue = statusFilter.value
     
-    .teacher-item {
-      display: flex;
-      align-items: center;
-      padding: 15px;
-      border: 1px solid #ddd;
-      margin-bottom: 10px;
-      border-radius: 5px;
-      background: #f9f9f9;
-    }
+        rows.forEach((row) => {
+          const name = row.dataset.name
+          const subject = row.dataset.subject
+          const matchesSearch = name.includes(searchTerm) || subject.includes(searchTerm)
     
-    .teacher-info {
-      flex: 1;
-    }
+          let matchesStatus = true
+          if (statusValue) {
+            const checkedRadio = row.querySelector('input[type="radio"]:checked')
+            matchesStatus = checkedRadio && checkedRadio.value === statusValue
+          }
     
-    .teacher-name {
-      font-weight: bold;
-      display: block;
-    }
+          row.style.display = matchesSearch && matchesStatus ? '' : 'none'
+        })
+      }
     
-    .teacher-subject {
-      color: #666;
-      font-size: 0.9em;
-    }
+      searchInput.addEventListener('input', filterRows)
+      statusFilter.addEventListener('change', filterRows)
     
-    .attendance-options {
-      display: flex;
-      gap: 15px;
-      margin-right: 20px;
-    }
+      // Toolbar buttons
+      document.getElementById('importCsv').addEventListener('click', () => {
+        alert('CSV Import functionality - Please select a CSV file')
+        // In real implementation, trigger file input
+      })
     
-    .remarks {
-      min-width: 200px;
-    }
+      document.getElementById('importExcel').addEventListener('click', () => {
+        alert('Excel Import functionality - Please select an Excel file')
+      })
     
-    .remarks input {
-      width: 100%;
-      padding: 5px;
-      border: 1px solid #ccc;
-      border-radius: 3px;
-    }
+      document.getElementById('exportCsv').addEventListener('click', () => {
+        alert('CSV Export functionality - Download will start')
+      })
     
-    .btn {
-      padding: 10px 20px;
-      background: #007bff;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
+      document.getElementById('exportExcel').addEventListener('click', () => {
+        alert('Excel Export functionality - Download will start')
+      })
     
-    .btn:hover {
-      background: #0056b3;
-    }
-  </style>
+      document.getElementById('exportJson').addEventListener('click', () => {
+        alert('JSON Export functionality - Download will start')
+      })
+    })
+  </script>
 {% endblock %}

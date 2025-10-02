@@ -2,108 +2,134 @@
 {% load static %}
 
 {% block content %}
-  <div class="attendance-container">
-    <h1>Mark Student Attendance</h1>
+  <div class="attendance-container attendance-marking">
+    <h1>Marking Student Attendance for -{{ ' ' }}{% now 'DATE_FORMAT' %}</h1>
     {% if error %}
       <p class="error">{{ error }}</p>
     {% else %}
+      <!-- Teacher Info Section -->
+      <div class="teacher-info">
+        <h3>{{ teacher.user.get_full_name }}</h3>
+
+        <p>
+          <strong>Assigned Classes:</strong>
+          {% if teacher.classroom.all %}
+            {{ teacher.classroom.all|join:', ' }}
+          {% else %}
+            No classes assigned
+          {% endif %}
+        </p>
+      </div>
+
       <form id="attendanceForm" method="post">
         {% csrf_token %}
-        <div class="form-group">
-          <label for="attendance_date">Date:</label>
-          <input type="date" id="attendance_date" name="date" required value="{{ today|date:'Y-m-d' }}" />
+
+        <div class="toolbar">
+          <div class="search-filter">
+            <input type="text" id="searchInput" placeholder="Search students..." />
+            <select id="statusFilter">
+              <option value="">All Status</option>
+              <option value="PRESENT">Present</option>
+              <option value="ABSENT">Absent</option>
+              <option value="LATE">Late</option>
+            </select>
+          </div>
+          <div class="actions">
+            <button type="button" class="btn btn-outline" id="importCsv"><i class="bx bx-file"></i> Import CSV</button>
+            <button type="button" class="btn btn-outline" id="importExcel"><i class="bx bx-table-rows"></i> Import Excel</button>
+            <button type="button" class="btn btn-outline" id="exportCsv"><i class="bx bx-file"></i> Export CSV</button>
+            <button type="button" class="btn btn-outline" id="exportExcel"><i class="bx bx-table-rows"></i> Export Excel</button>
+            <button type="button" class="btn btn-outline" id="exportJson"><i class="bx bx-bracket-curly"></i> Export JSON</button>
+          </div>
         </div>
 
-        <div class="students-list">
-          <h3>Students in your classes:</h3>
-          {% for student in students %}
-            <div class="student-item">
-              <div class="student-info">
-                <span class="student-name">{{ student.user.get_full_name }} ({{ student.roll_no }})</span>
-                <span class="student-class">{{ student.classroom }}</span>
-              </div>
-              <div class="attendance-options">
-                <label><input type="radio" name="status_{{ student.id }}" value="PRESENT" checked />Present</label>
-                <label><input type="radio" name="status_{{ student.id }}" value="ABSENT" />Absent</label>
-                <label><input type="radio" name="status_{{ student.id }}" value="LATE" />Late</label>
-              </div>
-              <div class="remarks">
-                <input type="text" name="remarks_{{ student.id }}" placeholder="Remarks (optional)" />
-              </div>
-            </div>
-          {% endfor %}
-        </div>
+        <table class="attendance-table">
+          <thead>
+            <tr>
+              <th>Student Name</th>
+              <th>Roll No</th>
+              <th>Class</th>
+              <th>Status</th>
+              <th>Remarks</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for student in students %}
+              <tr class="student-row" data-name="{{ student.user.get_full_name|lower }}" data-roll="{{ student.roll_no|lower }}" data-class="{{ student.classroom|lower }}">
+                <td>{{ student.user.get_full_name }}</td>
+                <td>{{ student.roll_no }}</td>
+                <td>{{ student.classroom }}</td>
+                <td>
+                  <div class="status-options">
+                    <label class="status-present"><input type="radio" name="status_{{ student.id }}" value="PRESENT" checked />Present</label>
+                    <label class="status-absent"><input type="radio" name="status_{{ student.id }}" value="ABSENT" />Absent</label>
+                    <label class="status-late"><input type="radio" name="status_{{ student.id }}" value="LATE" />Late</label>
+                  </div>
+                </td>
+                <td>
+                  <input type="text" name="remarks_{{ student.id }}" placeholder="Remarks" />
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
 
-        <button type="submit" class="btn btn-primary">Submit Attendance</button>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Submit Attendance</button>
+        </div>
       </form>
     {% endif %}
   </div>
-{% endblock %}
 
-{% block extra_css %}
-  <style>
-    .attendance-container {
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 20px;
-    }
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const searchInput = document.getElementById('searchInput')
+      const statusFilter = document.getElementById('statusFilter')
+      const rows = document.querySelectorAll('.student-row')
     
-    .students-list {
-      margin-top: 20px;
-    }
+      function filterRows() {
+        const searchTerm = searchInput.value.toLowerCase()
+        const statusValue = statusFilter.value
     
-    .student-item {
-      display: flex;
-      align-items: center;
-      padding: 15px;
-      border: 1px solid #ddd;
-      margin-bottom: 10px;
-      border-radius: 5px;
-      background: #f9f9f9;
-    }
+        rows.forEach((row) => {
+          const name = row.dataset.name
+          const roll = row.dataset.roll
+          const className = row.dataset.class
+          const matchesSearch = name.includes(searchTerm) || roll.includes(searchTerm) || className.includes(searchTerm)
     
-    .student-info {
-      flex: 1;
-    }
+          let matchesStatus = true
+          if (statusValue) {
+            const checkedRadio = row.querySelector('input[type="radio"]:checked')
+            matchesStatus = checkedRadio && checkedRadio.value === statusValue
+          }
     
-    .student-name {
-      font-weight: bold;
-      display: block;
-    }
+          row.style.display = matchesSearch && matchesStatus ? '' : 'none'
+        })
+      }
     
-    .student-class {
-      color: #666;
-      font-size: 0.9em;
-    }
+      searchInput.addEventListener('input', filterRows)
+      statusFilter.addEventListener('change', filterRows)
     
-    .attendance-options {
-      display: flex;
-      gap: 15px;
-      margin-right: 20px;
-    }
+      // Toolbar buttons
+      document.getElementById('importCsv').addEventListener('click', () => {
+        alert('CSV Import functionality - Please select a CSV file')
+      })
     
-    .remarks {
-      min-width: 200px;
-    }
+      document.getElementById('importExcel').addEventListener('click', () => {
+        alert('Excel Import functionality - Please select an Excel file')
+      })
     
-    .remarks input {
-      width: 100%;
-      padding: 5px;
-      border: 1px solid #ccc;
-      border-radius: 3px;
-    }
+      document.getElementById('exportCsv').addEventListener('click', () => {
+        alert('CSV Export functionality - Download will start')
+      })
     
-    .btn {
-      padding: 10px 20px;
-      background: #007bff;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
+      document.getElementById('exportExcel').addEventListener('click', () => {
+        alert('Excel Export functionality - Download will start')
+      })
     
-    .btn:hover {
-      background: #0056b3;
-    }
-  </style>
+      document.getElementById('exportJson').addEventListener('click', () => {
+        alert('JSON Export functionality - Download will start')
+      })
+    })
+  </script>
 {% endblock %}

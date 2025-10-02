@@ -65,54 +65,90 @@ def profile(request: HttpRequest):
         and request.headers.get("X-Requested-With") == "XMLHttpRequest"
     ):
         # Handle AJAX photo upload
-        if role != "Student":
+        if role not in ["Student", "Teacher"]:
             return JsonResponse({"success": False, "error": "Access denied"})
 
-        try:
-            from .models import Student
-
-            student = Student.objects.get(user=user)
-        except Student.DoesNotExist:  # type: ignore
-            return JsonResponse(
-                {"success": False, "error": "Student profile not found"}
-            )
-
-        if "profile_photo" in request.FILES:
-            # Delete old image if it exists
-            if student.profile_photo:
-                import os
-                from django.conf import settings
-
-                old_image_path = os.path.join(
-                    settings.MEDIA_ROOT, str(student.profile_photo)
+        if role == "Student":
+            try:
+                student = Student.objects.get(user=user)
+            except Student.DoesNotExist:  # type: ignore
+                return JsonResponse(
+                    {"success": False, "error": "Student profile not found"}
                 )
-                if os.path.exists(old_image_path):
-                    try:
-                        os.remove(old_image_path)
-                    except OSError:
-                        pass  # Ignore if file doesn't exist or can't be deleted
 
-            form = StudentProfileForm(request.POST, request.FILES, instance=student)
-            if form.is_valid():
-                form.save()
+            if "profile_photo" in request.FILES:
+                # Delete old image if it exists
+                if student.profile_photo:
+                    import os
+                    from django.conf import settings
+
+                    old_image_path = os.path.join(
+                        settings.MEDIA_ROOT, str(student.profile_photo)
+                    )
+                    if os.path.exists(old_image_path):
+                        try:
+                            os.remove(old_image_path)
+                        except OSError:
+                            pass  # Ignore if file doesn't exist or can't be deleted
+
+                form = StudentProfileForm(request.POST, request.FILES, instance=student)
+                if form.is_valid():
+                    form.save()
+                    return JsonResponse(
+                        {
+                            "success": True,
+                            "photo_url": (
+                                student.profile_photo.url
+                                if student.profile_photo
+                                else None
+                            ),
+                        }
+                    )
+                else:
+                    return JsonResponse({"success": False, "error": "Invalid file"})
+
+        elif role == "Teacher":
+            try:
+                teacher = Teacher.objects.get(user=user)
+            except Teacher.DoesNotExist:  # type: ignore
+                return JsonResponse(
+                    {"success": False, "error": "Teacher profile not found"}
+                )
+
+            if "profile_photo" in request.FILES:
+                # Delete old image if it exists
+                if teacher.profile_photo:
+                    import os
+                    from django.conf import settings
+
+                    old_image_path = os.path.join(
+                        settings.MEDIA_ROOT, str(teacher.profile_photo)
+                    )
+                    if os.path.exists(old_image_path):
+                        try:
+                            os.remove(old_image_path)
+                        except OSError:
+                            pass  # Ignore if file doesn't exist or can't be deleted
+
+                # Simple file handling for teacher profile photo
+                teacher.profile_photo = request.FILES["profile_photo"]
+                teacher.save()
                 return JsonResponse(
                     {
                         "success": True,
                         "photo_url": (
-                            student.profile_photo.url if student.profile_photo else None
+                            teacher.profile_photo.url if teacher.profile_photo else None
                         ),
                     }
                 )
             else:
-                return JsonResponse({"success": False, "error": "Invalid file"})
+                return JsonResponse({"success": False, "error": "No file uploaded"})
 
-        return JsonResponse({"success": False, "error": "No file uploaded"})
+        return JsonResponse({"success": False, "error": "Invalid request"})
 
     context = {"role": role, "user": user, "current_session": get_current_session()}
 
     if role == "Student":
-        from .models import Student, Attendance
-
         try:
             student = Student.objects.get(user=user)
             context["student"] = student
@@ -128,6 +164,13 @@ def profile(request: HttpRequest):
             context["individual_notices"] = individual_notices  # type: ignore
         except Student.DoesNotExist:
             context["student"] = None
+
+    elif role == "Teacher":
+        try:
+            teacher = Teacher.objects.get(user=user)
+            context["teacher"] = teacher
+        except Teacher.DoesNotExist:
+            context["teacher"] = None
 
     return render(request, "dashboard/profile.html", context)
 
@@ -421,8 +464,6 @@ def download_profile_pdf(request: HttpRequest):
         return HttpResponse("Access denied", status=403)
 
     try:
-        from .models import Student
-
         student = Student.objects.get(user=user)
     except Student.DoesNotExist:  # type: ignore
         return HttpResponse("Student profile not found", status=404)
