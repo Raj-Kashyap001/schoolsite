@@ -1064,9 +1064,39 @@ html::-webkit-scrollbar-thumb {
     color: #856404;
   }
 
+  .attendance-sections {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .attendance-section h3 {
+    color: var(--color-primary);
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+  }
+
   .form-actions {
     text-align: center;
     margin-top: 1.5rem;
+  }
+
+  .undo-btn {
+    background: var(--color-primary);
+    color: var(--color-white);
+    border: none;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+
+    &:hover {
+      background: color-mix(
+        in srgb,
+        var(--color-primary),
+        var(--color-black) 20%
+      );
+    }
   }
 }
 

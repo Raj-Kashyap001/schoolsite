@@ -43,39 +43,80 @@
           </div>
         </div>
 
-        <table class="attendance-table">
-          <thead>
-            <tr>
-              <th>Student Name</th>
-              <th>Roll No</th>
-              <th>Class</th>
-              <th>Status</th>
-              <th>Remarks</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for student in students %}
-              <tr class="student-row" data-name="{{ student.user.get_full_name|lower }}" data-roll="{{ student.roll_no|lower }}" data-class="{{ student.classroom|lower }}">
-                <td>{{ student.user.get_full_name }}</td>
-                <td>{{ student.roll_no }}</td>
-                <td>{{ student.classroom }}</td>
-                <td>
-                  <div class="status-options">
-                    <label class="status-present"><input type="radio" name="status_{{ student.id }}" value="PRESENT" checked />Present</label>
-                    <label class="status-absent"><input type="radio" name="status_{{ student.id }}" value="ABSENT" />Absent</label>
-                    <label class="status-late"><input type="radio" name="status_{{ student.id }}" value="LATE" />Late</label>
-                  </div>
-                </td>
-                <td>
-                  <input type="text" name="remarks_{{ student.id }}" placeholder="Remarks" />
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+        <div class="attendance-sections">
+          <div class="attendance-section">
+            <h3>Pending Attendance</h3>
+            <table class="attendance-table" id="pendingTable">
+              <thead>
+                <tr>
+                  <th>Student Name</th>
+                  <th>Roll No</th>
+                  <th>Class</th>
+                  <th>Status</th>
+                  <th>Remarks</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for student in students %}
+                  <tr class="student-row" data-name="{{ student.user.get_full_name|lower }}" data-roll="{{ student.roll_no|lower }}" data-class="{{ student.classroom|lower }}">
+                    <td>{{ student.user.get_full_name }}</td>
+                    <td>{{ student.roll_no }}</td>
+                    <td>{{ student.classroom }}</td>
+                    <td>
+                      <div class="status-options">
+                        <label class="status-present"><input type="radio" name="status_{{ student.id }}" value="PRESENT" />Present</label>
+                        <label class="status-absent"><input type="radio" name="status_{{ student.id }}" value="ABSENT" />Absent</label>
+                        <label class="status-late"><input type="radio" name="status_{{ student.id }}" value="LATE" />Late</label>
+                      </div>
+                    </td>
+                    <td>
+                      <input type="text" name="remarks_{{ student.id }}" class="remarks_input" placeholder="Remarks" style="padding: 6px 10px; width: 100%;" />
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="attendance-section">
+            <h3>Marked Attendance</h3>
+            <table class="attendance-table" id="markedTable">
+              <thead>
+                <tr>
+                  <th>Student Name</th>
+                  <th>Roll No</th>
+                  <th>Class</th>
+                  <th>Status</th>
+                  <th>Remarks</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for student in marked_students %}
+                  {% for attendance in student.attendance_set.all %}
+                    {% if attendance.date == today %}
+                      <tr class="student-row">
+                        <td>{{ student.user.get_full_name }}</td>
+                        <td>{{ student.roll_no }}</td>
+                        <td>{{ student.classroom }}</td>
+                        <td>
+                          <span class="status-{{ attendance.status|lower }}">{{ attendance.status|title }}</span>
+                        </td>
+                        <td>{{ attendance.remarks }}</td>
+                        <td>
+                          <button type="button" class="btn btn-outline undo-btn" data-student-id="{{ student.id }}">Undo</button>
+                        </td>
+                      </tr>
+                    {% endif %}
+                  {% endfor %}
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
 
         <div class="form-actions">
-          <button type="submit" class="btn btn-primary">Submit Attendance</button>
+          <button type="submit" class="btn btn-primary">Commit Attendance</button>
         </div>
       </form>
     {% endif %}
@@ -85,11 +126,14 @@
     document.addEventListener('DOMContentLoaded', function () {
       const searchInput = document.getElementById('searchInput')
       const statusFilter = document.getElementById('statusFilter')
-      const rows = document.querySelectorAll('.student-row')
+      const pendingTable = document.getElementById('pendingTable').querySelector('tbody')
+      const markedTable = document.getElementById('markedTable').querySelector('tbody')
+      const commitBtn = document.querySelector('.btn-primary')
     
       function filterRows() {
         const searchTerm = searchInput.value.toLowerCase()
         const statusValue = statusFilter.value
+        const rows = pendingTable.querySelectorAll('.student-row')
     
         rows.forEach((row) => {
           const name = row.dataset.name
@@ -109,6 +153,30 @@
     
       searchInput.addEventListener('input', filterRows)
       statusFilter.addEventListener('change', filterRows)
+    
+      // Undo functionality
+      document.querySelectorAll('.undo-btn').forEach((btn) => {
+        btn.addEventListener('click', function () {
+          const studentId = this.getAttribute('data-student-id')
+          const formData = new FormData()
+          formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value)
+          formData.append('action', 'undo')
+          formData.append('student_id', studentId)
+    
+          fetch(window.location.href, {
+            method: 'POST',
+            body: formData
+          })
+            .then((response) => {
+              if (response.ok) {
+                location.reload()
+              }
+            })
+            .catch((error) => {
+              console.error('Error:', error)
+            })
+        })
+      })
     
       // Toolbar buttons
       document.getElementById('importCsv').addEventListener('click', () => {

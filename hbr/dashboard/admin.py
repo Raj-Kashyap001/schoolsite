@@ -2,6 +2,7 @@ from django.contrib import admin
 from .models import (
     AcademicSession,
     Attendance,
+    Notice,
     Certificate,
     CertificateType,
     Classroom,
@@ -72,5 +73,6 @@ admin.site.register(
         Teacher,
         TeacherAttendance,
         Term,
+        Notice,
     ]
 )

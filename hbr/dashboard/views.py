@@ -263,28 +263,46 @@ def mark_student_attendance(request: HttpRequest):
     if role != "Teacher":
         return HttpResponse("Access denied", status=403)
 
+    from datetime import date
+
+    today = date.today()
+
     context = {"role": role, "current_session": get_current_session()}
 
     try:
         teacher = Teacher.objects.get(user=request.user)
-        # Get students in teacher's classrooms
+        # Get students in teacher's classrooms who don't have attendance marked for today
         students = (
             Student.objects.filter(classroom__in=teacher.classroom.all())
+            .exclude(attendance__date=today)
+            .distinct()
+            .order_by("sr_no")
+        )
+        # Get students who already have attendance marked for today
+        marked_students = (
+            Student.objects.filter(
+                classroom__in=teacher.classroom.all(), attendance__date=today
+            )
             .distinct()
             .order_by("sr_no")
         )
         context["students"] = students  # type: ignore
+        context["marked_students"] = marked_students  # type: ignore
         context["teacher"] = teacher  # type: ignore
+        context["today"] = today  # type: ignore
 
         if request.method == "POST":
-            date = request.POST.get("date")
-            if not date:
-                messages.error(request, "Date is required")
-                return render(
-                    request, "dashboard/mark_student_attendance.html", context
-                )
+            action = request.POST.get("action")
+            if action == "undo":
+                student_id = request.POST.get("student_id")
+                Attendance.objects.filter(student_id=student_id, date=today).delete()
+                messages.success(request, "Attendance undone for student")
+                return redirect("mark_student_attendance")
 
+            # Commit attendance
+            date = today
             attendance_count = 0
+
             for student in students:
                 status = request.POST.get(f"status_{student.id}")  # type: ignore
                 remarks = request.POST.get(f"remarks_{student.id}", "")  # type: ignore
