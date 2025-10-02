@@ -7,6 +7,7 @@ from .models import (
     Document,
     CertificateType,
     Certificate,
+    Payment,
 )
 
 
@@ -45,5 +46,5 @@ class CertificateAdmin(admin.ModelAdmin):
 # Register your models here.
 
 admin.site.register(
-    [Student, Classroom, Teacher, Attendance, Document, CertificateType]
+    [Student, Classroom, Teacher, Attendance, Document, CertificateType, Payment]
 )

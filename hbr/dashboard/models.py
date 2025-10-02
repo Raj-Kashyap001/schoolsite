@@ -149,3 +149,23 @@ class Certificate(models.Model):
 
     class Meta:
         unique_together = ("student", "certificate_type")
+
+
+class Payment(models.Model):
+    class Status(models.TextChoices):
+        PAID = "PAID"
+        UNPAID = "UNPAID"
+        FAILED = "FAILED"
+
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    description = models.CharField(max_length=255)
+    status = models.CharField(choices=Status.choices, default=Status.UNPAID)
+    payment_date = models.DateTimeField(null=True, blank=True)
+    payment_link = models.URLField(blank=True)
+    transaction_id = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.student} - {self.description} - {self.amount} - {self.status}"

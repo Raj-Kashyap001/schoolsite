@@ -1,0 +1,52 @@
+{% extends 'dashboard/layout.html' %}
+{% load static %}
+
+{% block content %}
+  <div class="payments-container">
+    <h1>My Payments</h1>
+    {% if error %}
+      <p class="error">{{ error }}</p>
+    {% else %}
+      <table class="payments-table">
+        <thead>
+          <tr>
+            <th>Description</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for payment in payments %}
+            <tr>
+              <td>{{ payment.description }}</td>
+              <td>₹{{ payment.amount }}</td>
+              <td>
+                <span class="status status-{{ payment.status|lower }}">{{ payment.status }}</span>
+              </td>
+              <td>{{ payment.created_at|date:'d/m/Y' }}</td>
+              <td>
+                {% if payment.status == 'UNPAID' %}
+                  <a href="{{ payment.payment_link }}" target="_blank" class="btn btn-pay">Pay</a>
+                {% elif payment.status == 'PAID' %}
+                  <a href="{% url 'download_receipt' payment.id %}" class="btn btn-download">Download Receipt</a>
+                {% elif payment.status == 'FAILED' %}
+                  <a href="mailto:admin@mail.com?subject=Payment Rejection&body=Payment ID: {{ payment.id }}%0ADescription: {{ payment.description }}%0AAmount: ₹{{ payment.amount }}%0AStatus: {{ payment.status }}" class="btn btn-reject">Contact Admin</a>
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="5">No payments found.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+  </div>
+{% endblock %}
+
+{% block inline_js %}
+
+{% endblock %}

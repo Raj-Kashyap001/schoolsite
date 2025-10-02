@@ -1163,3 +1163,96 @@ html::-webkit-scrollbar-thumb {
     color: var(--color-black);
   }
 }
+
+@layer payments_page {
+  .payments-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+
+    h1 {
+      text-align: center;
+      margin-bottom: 2rem;
+      color: var(--color-black);
+      font-size: 2.5rem;
+    }
+  }
+
+  .payments-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--color-white);
+    box-shadow: 0 1px 6px hsl(0 0 0 /0.1);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .payments-table th,
+  .payments-table td {
+    padding: 0.8rem;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+  }
+
+  .payments-table th {
+    background: var(--color-secondary);
+    color: var(--color-black);
+    font-weight: 600;
+  }
+
+  .status-paid {
+    color: #28a745;
+    font-weight: 600;
+  }
+
+  .status-unpaid {
+    color: #ffc107;
+    font-weight: 600;
+  }
+
+  .status-failed {
+    color: #dc3545;
+    font-weight: 600;
+  }
+
+  .btn {
+    padding: 0.4rem 0.8rem;
+    text-decoration: none;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    border: none;
+    transition: all 0.3s ease;
+
+    &.btn-pay {
+      background: #007bff;
+      color: var(--color-white);
+
+      &:hover {
+        background: color-mix(in srgb, #007bff, var(--color-black) 20%);
+      }
+    }
+
+    &.btn-download {
+      background: #28a745;
+      color: var(--color-white);
+
+      &:hover {
+        background: color-mix(in srgb, #28a745, var(--color-black) 20%);
+      }
+    }
+
+    &.btn-reject {
+      background: #dc3545;
+      color: var(--color-white);
+
+      &:hover {
+        background: color-mix(in srgb, #dc3545, var(--color-black) 20%);
+      }
+    }
+  }
+}

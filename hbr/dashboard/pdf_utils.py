@@ -297,6 +297,112 @@ def generate_student_profile_pdf(student_data, user_data):
     return buffer
 
 
+def generate_payment_receipt_pdf(payment):
+    """
+    Generate a payment receipt PDF.
+
+    Args:
+        payment: Payment model instance
+
+    Returns:
+        BytesIO buffer containing the PDF
+    """
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=letter,
+        topMargin=1 * inch,
+        bottomMargin=1 * inch,
+        leftMargin=0.75 * inch,
+        rightMargin=0.75 * inch,
+    )
+    styles = getSampleStyleSheet()
+    story = []
+
+    # Color Palette
+    PRIMARY_COLOR = colors.HexColor("#8F403C")  # Deep Maroon
+    SECONDARY_COLOR = colors.HexColor("#F4F9FA")  # Light Blue-Gray
+    DARK_TEXT = colors.HexColor("#333333")
+    LIGHT_TEXT = colors.HexColor("#9CA3AF")
+
+    # Styles
+    school_title_style = ParagraphStyle(
+        "SchoolTitle",
+        parent=styles["Heading1"],
+        fontSize=28,
+        spaceAfter=10,
+        alignment=1,  # Center
+        textColor=PRIMARY_COLOR,
+        fontName="Helvetica-Bold",
+    )
+
+    receipt_title_style = ParagraphStyle(
+        "ReceiptTitle",
+        parent=styles["Heading1"],
+        fontSize=24,
+        spaceAfter=20,
+        alignment=1,
+        textColor=PRIMARY_COLOR,
+        fontName="Helvetica-Bold",
+    )
+
+    body_style = ParagraphStyle(
+        "Body",
+        parent=styles["Normal"],
+        fontSize=14,
+        alignment=0,
+        textColor=DARK_TEXT,
+        leading=20,
+    )
+
+    # Header
+    story.append(Paragraph("HBR Public School", school_title_style))
+    story.append(Spacer(1, 0.5 * inch))
+
+    # Receipt Title
+    story.append(Paragraph("Payment Receipt", receipt_title_style))
+    story.append(Spacer(1, 0.5 * inch))
+
+    # Receipt Details
+    story.append(Paragraph(f"<b>Receipt No:</b> {payment.id}", body_style))
+    story.append(
+        Paragraph(f"<b>Student:</b> {payment.student.user.get_full_name()}", body_style)
+    )
+    story.append(Paragraph(f"<b>Roll No:</b> {payment.student.roll_no}", body_style))
+    story.append(Paragraph(f"<b>Description:</b> {payment.description}", body_style))
+    story.append(Paragraph(f"<b>Amount:</b> ₹{payment.amount}", body_style))
+    story.append(Paragraph(f"<b>Status:</b> {payment.status}", body_style))
+    if payment.payment_date:
+        story.append(
+            Paragraph(
+                f"<b>Payment Date:</b> {payment.payment_date.strftime('%d %B %Y')}",
+                body_style,
+            )
+        )
+    if payment.transaction_id:
+        story.append(
+            Paragraph(f"<b>Transaction ID:</b> {payment.transaction_id}", body_style)
+        )
+
+    # Date
+    from datetime import datetime
+
+    current_date = datetime.now().strftime("%d %B %Y")
+    story.append(Spacer(1, 0.5 * inch))
+    story.append(Paragraph(f"Issued on: {current_date}", body_style))
+
+    # Signature placeholder
+    story.append(Spacer(1, 1 * inch))
+    story.append(Paragraph("___________________________", body_style))
+    story.append(Paragraph("Accounts Department", body_style))
+    story.append(Paragraph("HBR Public School", body_style))
+
+    # Build PDF
+    doc.build(story)
+    buffer.seek(0)
+    return buffer
+
+
 def generate_certificate_pdf(student, certificate_type):
     """
     Generate a certificate PDF for a student.

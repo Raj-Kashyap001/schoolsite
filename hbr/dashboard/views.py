@@ -3,9 +3,17 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from base.views import get_user_role
-from .pdf_utils import generate_student_profile_pdf
+from .pdf_utils import generate_student_profile_pdf, generate_payment_receipt_pdf
 from .forms import StudentProfileForm
-from .models import Attendance, Document, Leave, Student, CertificateType, Certificate
+from .models import (
+    Attendance,
+    Document,
+    Leave,
+    Student,
+    CertificateType,
+    Certificate,
+    Payment,
+)
 
 
 @login_required
@@ -342,3 +350,43 @@ def settings(request: HttpRequest):
 
     context = {"role": role, "user": user}
     return render(request, "dashboard/settings.html", context)
+
+
+@login_required
+def payments(request: HttpRequest):
+    role = get_user_role(request.user)
+    context = {"role": role}
+
+    if role == "Student":
+        try:
+            student = Student.objects.get(user=request.user)
+            payments = Payment.objects.filter(student=student).order_by("-created_at")
+            context["payments"] = payments  # type: ignore
+            context["student"] = student  # type: ignore
+        except Student.DoesNotExist:
+            context["error"] = "Student profile not found"
+
+    return render(request, "dashboard/payments.html", context)
+
+
+@login_required
+def download_receipt(request: HttpRequest, payment_id: int):
+    user = request.user
+    role = get_user_role(user)
+
+    if role != "Student":
+        return HttpResponse("Access denied", status=403)
+
+    try:
+        student = Student.objects.get(user=user)
+        payment = Payment.objects.get(id=payment_id, student=student, status="PAID")
+    except (Student.DoesNotExist, Payment.DoesNotExist):
+        return HttpResponse("Payment not found or not paid", status=404)
+
+    # Generate PDF
+    buffer = generate_payment_receipt_pdf(payment)
+
+    # Return PDF response
+    response = HttpResponse(buffer, content_type="application/pdf")
+    response["Content-Disposition"] = f'attachment; filename="receipt_{payment.id}.pdf"'  # type: ignore
+    return response

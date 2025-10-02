@@ -20,6 +20,9 @@
             {% elif request.resolver_match.url_name == 'settings' %}
               <span class="separator">/</span>
               <span>Settings</span>
+            {% elif request.resolver_match.url_name == 'payments' %}
+              <span class="separator">/</span>
+              <span>Payments</span>
             {% endif %}
           </div>
         </div>
