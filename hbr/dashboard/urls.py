@@ -26,6 +26,16 @@ urlpatterns = [
         views.download_exam_timetable,
         name="download_exam_timetable",
     ),
+    path(
+        "exams/admit-card/<int:exam_id>/",
+        views.download_admit_card,
+        name="download_admit_card",
+    ),
     path("exams/results/<int:term_id>/", views.get_exam_results, name="exam_results"),
-    path("settings/", views.settings, name="settings"),
+    path("notice-board/", views.notice_board, name="notice_board"),
+    path(
+        "notice-board/download/<int:notice_id>/",
+        views.download_notice_attachment,
+        name="download_notice_attachment",
+    ),
 ]

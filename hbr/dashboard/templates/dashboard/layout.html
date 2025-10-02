@@ -12,19 +12,7 @@
       <nav class="dashboard-navbar">
         <div class="navbar-left">
           <button class="sidebar-toggle-mobile" id="sidebarToggleMobile"><i class="bx bx-sidebar"></i></button>
-          <div class="breadcrumb">
-            <a href="{% url 'dashboard' %}">Dashboard</a>
-            {% if request.resolver_match.url_name == 'profile' %}
-              <span class="separator">/</span>
-              <span>Profile</span>
-            {% elif request.resolver_match.url_name == 'settings' %}
-              <span class="separator">/</span>
-              <span>Settings</span>
-            {% elif request.resolver_match.url_name == 'payments' %}
-              <span class="separator">/</span>
-              <span>Payments</span>
-            {% endif %}
-          </div>
+          <h1 class="page-title">{{ role }} Dashboard</h1>
         </div>
 
         <div class="navbar-right">

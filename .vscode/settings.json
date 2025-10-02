@@ -8,5 +8,6 @@
     "fullcalendar",
     "onclick",
     "Requset"
-  ]
+  ],
+  "python.analysis.extraPaths": ["./hbr"]
 }

@@ -2,8 +2,14 @@ from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.db import models
 from base.views import get_user_role
-from .pdf_utils import generate_student_profile_pdf, generate_payment_receipt_pdf
+from .pdf_utils import (
+    generate_student_profile_pdf,
+    generate_payment_receipt_pdf,
+    generate_exam_timetable_pdf,
+    generate_admit_card_pdf,
+)
 from .forms import StudentProfileForm
 from .models import (
     AcademicSession,
@@ -13,6 +19,7 @@ from .models import (
     ExamResult,
     ExamSchedule,
     Leave,
+    Notice,
     Student,
     Term,
     CertificateType,
@@ -21,12 +28,28 @@ from .models import (
 )
 
 
+def get_current_session():
+    """Helper function to get the current academic session"""
+    from datetime import date
+
+    today = date.today()
+    current_session = AcademicSession.objects.filter(
+        start_date__lte=today, end_date__gte=today
+    ).first()
+
+    # If no current session, get the latest one
+    if not current_session:
+        current_session = AcademicSession.objects.order_by("-end_date").first()
+
+    return current_session
+
+
 @login_required
 def dashboard_home(request: HttpRequest):
     user = request.user
     role = get_user_role(user)
 
-    context = {"role": role}
+    context = {"role": role, "current_session": get_current_session()}
     return render(request, "dashboard/index.html", context)
 
 
@@ -83,7 +106,7 @@ def profile(request: HttpRequest):
 
         return JsonResponse({"success": False, "error": "No file uploaded"})
 
-    context = {"role": role, "user": user}
+    context = {"role": role, "user": user, "current_session": get_current_session()}
 
     if role == "Student":
         from .models import Student, Attendance
@@ -91,6 +114,16 @@ def profile(request: HttpRequest):
         try:
             student = Student.objects.get(user=user)
             context["student"] = student
+
+            # Get student-specific notices (individual notices targeted to this student)
+            individual_notices = Notice.objects.filter(
+                is_active=True,
+                notice_type=Notice.NoticeType.INDIVIDUAL,
+                target_students=student,
+            ).order_by("-created_at")[
+                :5
+            ]  # Show latest 5
+            context["individual_notices"] = individual_notices  # type: ignore
         except Student.DoesNotExist:
             context["student"] = None
 
@@ -100,7 +133,11 @@ def profile(request: HttpRequest):
 @login_required
 def attendance(request: HttpRequest):
     role = get_user_role(request.user)
-    context = {"role": role, "attendance_events": []}
+    context = {
+        "role": role,
+        "attendance_events": [],
+        "current_session": get_current_session(),
+    }
 
     if role == "Student":
         try:
@@ -141,7 +178,7 @@ def attendance(request: HttpRequest):
 @login_required
 def leave(request: HttpRequest):
     role = get_user_role(request.user)
-    context = {"role": role}
+    context = {"role": role, "current_session": get_current_session()}
 
     if role == "Student":
         try:
@@ -289,7 +326,7 @@ def download_profile_pdf(request: HttpRequest):
 @login_required
 def documents(request: HttpRequest):
     role = get_user_role(request.user)
-    context = {"role": role}
+    context = {"role": role, "current_session": get_current_session()}
 
     if role == "Student":
         try:
@@ -308,7 +345,7 @@ def documents(request: HttpRequest):
 @login_required
 def certificates(request: HttpRequest):
     role = get_user_role(request.user)
-    context = {"role": role}
+    context = {"role": role, "current_session": get_current_session()}
 
     if role == "Student":
         try:
@@ -359,18 +396,38 @@ def certificates(request: HttpRequest):
 
 
 @login_required
-def settings(request: HttpRequest):
-    user = request.user
-    role = get_user_role(user)
+def notice_board(request: HttpRequest):
+    role = get_user_role(request.user)
+    context = {"role": role, "current_session": get_current_session()}
 
-    context = {"role": role, "user": user}
-    return render(request, "dashboard/settings.html", context)
+    if role == "Student":
+        try:
+            student = Student.objects.get(user=request.user)
+            # Get all active notices that are either announcements or targeted to this student
+            notices = (
+                Notice.objects.filter(is_active=True)
+                .filter(
+                    models.Q(notice_type=Notice.NoticeType.ANNOUNCEMENT)
+                    | models.Q(
+                        notice_type=Notice.NoticeType.INDIVIDUAL,
+                        target_students=student,
+                    )
+                )
+                .order_by("-created_at")
+                .distinct()
+            )
+            context["notices"] = notices  # type: ignore
+            context["student"] = student  # type: ignore
+        except Student.DoesNotExist:
+            context["error"] = "Student profile not found"
+
+    return render(request, "dashboard/notice_board.html", context)
 
 
 @login_required
 def payments(request: HttpRequest):
     role = get_user_role(request.user)
-    context = {"role": role}
+    context = {"role": role, "current_session": get_current_session()}
 
     if role == "Student":
         try:
@@ -410,19 +467,49 @@ def download_receipt(request: HttpRequest, payment_id: int):
 @login_required
 def exams(request: HttpRequest):
     role = get_user_role(request.user)
-    context = {"role": role}
+    context = {"role": role, "current_session": get_current_session()}
 
     if role == "Student":
         try:
             student = Student.objects.get(user=request.user)
 
-            # Get current term - assuming the latest term
-            current_term = Term.objects.order_by("-end_date").first()
+            # Get current term based on current date
+            from datetime import date
+
+            today = date.today()
+            current_term = Term.objects.filter(
+                start_date__lte=today, end_date__gte=today
+            ).first()
+
+            # If no current term, get the next upcoming term
+            if not current_term:
+                current_term = (
+                    Term.objects.filter(start_date__gt=today)
+                    .order_by("start_date")
+                    .first()
+                )
+
+            # If still no term, fall back to latest term
+            if not current_term:
+                current_term = Term.objects.order_by("-end_date").first()
+
             if current_term:
-                # Upcoming exam schedules for current term
-                upcoming_exams = Exam.objects.filter(
-                    term=current_term
-                ).prefetch_related("examschedule_set")
+                # Get all upcoming exams in a single query
+                from datetime import date
+
+                today = date.today()
+
+                upcoming_exams = (
+                    Exam.objects.filter(
+                        # Exams from current term OR exams from past terms with future schedules
+                        models.Q(term=current_term)
+                        | models.Q(
+                            term__end_date__lt=today, examschedule__date__gte=today
+                        )
+                    )
+                    .prefetch_related("examschedule_set")
+                    .distinct()
+                )
 
                 # Exam results for current term
                 current_results = ExamResult.objects.filter(
@@ -484,18 +571,60 @@ def download_exam_timetable(request: HttpRequest, exam_id: int):
         exam = Exam.objects.get(id=exam_id)
         schedule = ExamSchedule.objects.filter(exam=exam).order_by("date", "time")
 
-        # Generate simple text timetable
-        content = f"Timetable for {exam.name}\n\n"
-        for item in schedule:
-            content += f"Date: {item.date}\nTime: {item.time}\nSubject: {item.subject}\nRoom: {item.room or 'N/A'}\n\n"
+        # Prepare schedule data for PDF
+        schedule_data = [
+            {
+                "date": item.date.strftime("%d/%m/%Y"),
+                "time": item.time.strftime("%H:%M"),
+                "subject": item.subject,
+                "room": item.room,
+            }
+            for item in schedule
+        ]
 
-        response = HttpResponse(content, content_type="text/plain")
+        # Get student info
+        student = Student.objects.get(user=request.user)
+
+        # Generate PDF
+        buffer = generate_exam_timetable_pdf(exam, schedule_data, student)
+
+        # Return PDF response
+        response = HttpResponse(buffer, content_type="application/pdf")
         response["Content-Disposition"] = (
-            f'attachment; filename="{exam.name}_timetable.txt"'
+            f'attachment; filename="{exam.name}_timetable.pdf"'
         )
         return response
     except Exam.DoesNotExist:
         return HttpResponse("Exam not found", status=404)
+
+
+@login_required
+def download_admit_card(request: HttpRequest, exam_id: int):
+    role = get_user_role(request.user)
+    if role != "Student":
+        return HttpResponse("Access denied", status=403)
+
+    try:
+        exam = Exam.objects.get(
+            id=exam_id, is_yearly_final=True, admit_card_available=True
+        )
+        student = Student.objects.get(user=request.user)
+
+        # Generate admit card PDF (for now, we'll use a simple admit card format)
+        buffer = generate_admit_card_pdf(exam, student)
+
+        # Return PDF response
+        response = HttpResponse(buffer, content_type="application/pdf")
+        response["Content-Disposition"] = (
+            f'attachment; filename="admit_card_{exam.name}_{student.roll_no}.pdf"'
+        )
+        return response
+    except Exam.DoesNotExist:
+        return HttpResponse("Admit card not available for this exam", status=404)
+    except Student.DoesNotExist:
+        return HttpResponse("Student profile not found", status=404)
+    except Student.DoesNotExist:
+        return HttpResponse("Student profile not found", status=404)
 
 
 @login_required
@@ -525,3 +654,26 @@ def get_exam_results(request: HttpRequest, term_id: int):
         return JsonResponse({"results": results_data})
     except (Student.DoesNotExist, Term.DoesNotExist):
         return JsonResponse({"error": "Not found"}, status=404)
+
+
+@login_required
+def download_notice_attachment(request: HttpRequest, notice_id: int):
+    role = get_user_role(request.user)
+    if role != "Student":
+        return HttpResponse("Access denied", status=403)
+
+    try:
+        notice = Notice.objects.get(id=notice_id, is_active=True)
+        if not notice.attachment:
+            return HttpResponse("No attachment found", status=404)
+
+        # Return the file
+        response = HttpResponse(
+            notice.attachment, content_type="application/octet-stream"
+        )
+        response["Content-Disposition"] = (
+            f'attachment; filename="{notice.attachment.name.split("/")[-1]}"'
+        )
+        return response
+    except Notice.DoesNotExist:
+        return HttpResponse("Notice not found", status=404)

@@ -227,10 +227,18 @@ class Term(models.Model):
         unique_together = ("academic_session", "name")
 
 
+def exam_admit_card_path(instance, filename):
+    return f"exams/{instance.term.academic_session.year}/{instance.term.name}/{instance.name}/admit_cards/{filename}"
+
+
 class Exam(models.Model):
     term = models.ForeignKey(Term, on_delete=models.CASCADE)
     name = models.CharField(max_length=100)  # e.g., "Asst. 1st", "Int. 1st"
     description = models.TextField(blank=True)
+    is_yearly_final = models.BooleanField(default=False)  # For yearly final exams
+    admit_card_available = models.BooleanField(
+        default=False
+    )  # Whether admit card is available for download
 
     def __str__(self):
         return f"{self.name} - {self.term}"
@@ -270,3 +278,39 @@ class ExamResult(models.Model):
 
     class Meta:
         unique_together = ("student", "exam", "subject")
+
+
+def notice_attachment_path(instance, filename):
+    return f"notices/{filename}"
+
+
+class Notice(models.Model):
+    class NoticeType(models.TextChoices):
+        ANNOUNCEMENT = "ANNOUNCEMENT", "Announcement"  # Global notice for all students
+        INDIVIDUAL = "INDIVIDUAL", "Individual"  # Specific to individual students
+
+    title = models.CharField(max_length=255)
+    content = models.TextField()
+    notice_type = models.CharField(
+        max_length=20, choices=NoticeType.choices, default=NoticeType.ANNOUNCEMENT
+    )
+    attachment = models.FileField(
+        upload_to=notice_attachment_path, blank=True, null=True
+    )
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+
+    # For individual notices, specify which student(s) it applies to
+    target_students = models.ManyToManyField(
+        "Student",
+        related_name="individual_notices",
+        blank=True,
+        help_text="For individual notices, select which students this applies to",
+    )
+
+    def __str__(self):
+        return f"{self.title} ({self.notice_type})"
+
+    class Meta:
+        ordering = ["-created_at"]

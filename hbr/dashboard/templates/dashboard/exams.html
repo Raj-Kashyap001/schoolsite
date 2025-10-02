@@ -21,6 +21,7 @@
                 <th>SN</th>
                 <th>Exam</th>
                 <th>Description</th>
+                <th>Admit Card</th>
                 <th>Action</th>
               </tr>
             </thead>
@@ -30,6 +31,17 @@
                   <td>{{ forloop.counter }}</td>
                   <td>{{ exam.name }}</td>
                   <td>{{ exam.description|default:'N/A' }}</td>
+                  <td>
+                    {% if exam.is_yearly_final %}
+                      {% if exam.admit_card_available %}
+                        <button class="btn btn-primary btn-sm" onclick="downloadAdmitCard({{ exam.id }})"><i class="bx bx-download"></i> Download</button>
+                      {% else %}
+                        <span class="admit-card-message">Admit card will be available soon</span>
+                      {% endif %}
+                    {% else %}
+                      <span class="text-muted">N/A</span>
+                    {% endif %}
+                  </td>
                   <td>
                     <button class="btn btn-primary" onclick="openTimetableModal({{ exam.id }})">View</button>
                     <button class="btn btn-outline" onclick="downloadTimetable({{ exam.id }})">Download</button>
@@ -143,11 +155,11 @@
           tbody.innerHTML = ''
           data.schedule.forEach((item) => {
             const row = `<tr>
-                      <td>${item.date}</td>
-                      <td>${item.time}</td>
-                      <td>${item.subject}</td>
-                      <td>${item.room || 'N/A'}</td>
-                    </tr>`
+                                  <td>${item.date}</td>
+                                  <td>${item.time}</td>
+                                  <td>${item.subject}</td>
+                                  <td>${item.room || 'N/A'}</td>
+                                </tr>`
             tbody.innerHTML += row
           })
           document.getElementById('timetableModal').style.display = 'block'
@@ -156,6 +168,10 @@
     
     function downloadTimetable(examId) {
       window.open(`/dashboard/exams/download/${examId}/`, '_blank')
+    }
+    
+    function downloadAdmitCard(examId) {
+      window.open(`/dashboard/exams/admit-card/${examId}/`, '_blank')
     }
     
     function openQueryModal() {
@@ -177,11 +193,11 @@
             let html = '<table class="results-table"><thead><tr><th>Exam</th><th>Subject</th><th>Marks</th><th>Grade</th></tr></thead><tbody>'
             data.results.forEach((result) => {
               html += `<tr>
-                        <td>${result.exam_name}</td>
-                        <td>${result.subject}</td>
-                        <td>${result.marks_obtained || 'N/A'}</td>
-                        <td>${result.grade || 'N/A'}</td>
-                      </tr>`
+                                    <td>${result.exam_name}</td>
+                                    <td>${result.subject}</td>
+                                    <td>${result.marks_obtained || 'N/A'}</td>
+                                    <td>${result.grade || 'N/A'}</td>
+                                  </tr>`
             })
             html += '</tbody></table>'
             resultsDiv.innerHTML = html

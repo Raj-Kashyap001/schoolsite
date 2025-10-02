@@ -129,21 +129,51 @@
 
         <!-- Notifications Card -->
         <div class="profile-card notifications">
-          <h2><i class="bx bx-bell"></i> Notifications</h2>
-          <table class="notifications-table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Message</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td colspan="3" class="no-notifications">No new notices available</td>
-              </tr>
-            </tbody>
-          </table>
+          <h2><i class="bx bx-bell"></i> My Notifications</h2>
+          {% if individual_notices %}
+            <table class="notifications-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Title</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for notice in individual_notices %}
+                  <tr>
+                    <td>{{ notice.created_at|date:'M d, Y' }}</td>
+                    <td>{{ notice.title }}</td>
+                    <td>
+                      {% if notice.attachment %}
+                        <a href="{% url 'download_notice_attachment' notice.id %}" class="btn btn-primary btn-sm"><i class="bx bx-download"></i> Download</a>
+                      {% else %}
+                        <span class="text-muted">No attachment</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            <div style="margin-top: 1rem; text-align: center;">
+              <a href="{% url 'notice_board' %}" class="btn btn-outline"><i class="bx bx-bell"></i> View All Notices</a>
+            </div>
+          {% else %}
+            <table class="notifications-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Title</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td colspan="3" class="no-notifications">No personal notices available</td>
+                </tr>
+              </tbody>
+            </table>
+          {% endif %}
         </div>
       </div>
     </div>

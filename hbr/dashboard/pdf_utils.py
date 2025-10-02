@@ -14,6 +14,7 @@ from reportlab.graphics.shapes import Drawing, Circle
 from io import BytesIO
 import os
 from django.conf import settings
+from .models import ExamSchedule
 
 
 def generate_student_profile_pdf(student_data, user_data):
@@ -324,6 +325,449 @@ def generate_student_profile_pdf(student_data, user_data):
             footer_style,
         )
     )
+
+    # Build PDF
+    doc.build(story)
+    buffer.seek(0)
+    return buffer
+
+
+def generate_admit_card_pdf(exam, student):
+    """
+    Generate an admit card PDF for a student.
+
+    Args:
+        exam: Exam model instance
+        student: Student model instance
+
+    Returns:
+        BytesIO buffer containing the PDF
+    """
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=letter,
+        topMargin=0.6 * inch,
+        bottomMargin=0.6 * inch,
+        leftMargin=0.75 * inch,
+        rightMargin=0.75 * inch,
+    )
+    styles = getSampleStyleSheet()
+    story = []
+
+    # Color Palette
+    PRIMARY_COLOR = colors.HexColor("#8F403C")  # Deep Maroon
+    SECONDARY_COLOR = colors.HexColor("#F4F9FA")  # Light Blue-Gray
+    DARK_TEXT = colors.HexColor("#333333")
+    LIGHT_TEXT = colors.HexColor("#9CA3AF")
+    BORDER_COLOR = colors.HexColor("#E5E7EB")
+
+    # Styles
+    school_title_style = ParagraphStyle(
+        "SchoolTitle",
+        parent=styles["Heading1"],
+        fontSize=24,
+        spaceAfter=4,
+        alignment=0,
+        textColor=PRIMARY_COLOR,
+        fontName="Helvetica-Bold",
+        leading=28,
+    )
+
+    school_subtitle_style = ParagraphStyle(
+        "SchoolSubtitle",
+        parent=styles["Normal"],
+        fontSize=10,
+        alignment=0,
+        textColor=LIGHT_TEXT,
+        spaceAfter=4,
+        leading=14,
+    )
+
+    admit_card_title_style = ParagraphStyle(
+        "AdmitCardTitle",
+        parent=styles["Heading1"],
+        fontSize=20,
+        alignment=1,
+        textColor=PRIMARY_COLOR,
+        fontName="Helvetica-Bold",
+        spaceAfter=20,
+    )
+
+    body_style = ParagraphStyle(
+        "Body",
+        parent=styles["Normal"],
+        fontSize=12,
+        alignment=0,
+        textColor=DARK_TEXT,
+        leading=16,
+    )
+
+    # Header
+    story.append(Paragraph("HBR Public School", school_title_style))
+    story.append(
+        Paragraph(
+            "123 Education Street, Knowledge City - 400001", school_subtitle_style
+        )
+    )
+    story.append(
+        Paragraph(
+            "Phone: +91-22-1234-5678 | Email: info@stmaryshigh.edu",
+            school_subtitle_style,
+        )
+    )
+
+    # Divider
+    divider_data = [[""]]
+    divider_table = Table(divider_data, colWidths=[6.5 * inch])
+    divider_table.setStyle(
+        TableStyle(
+            [
+                ("LINEABOVE", (0, 0), (-1, -1), 2, PRIMARY_COLOR),
+                ("TOPPADDING", (0, 0), (-1, -1), 0),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+            ]
+        )
+    )
+    story.append(divider_table)
+    story.append(Spacer(1, 0.25 * inch))
+
+    # Admit Card Title
+    story.append(Paragraph("ADMIT CARD", admit_card_title_style))
+    story.append(Paragraph(f"Exam: {exam.name}", admit_card_title_style))
+    story.append(Spacer(1, 0.3 * inch))
+
+    # Profile Photo Handling
+    if student.profile_photo:
+        try:
+            # Load profile photo
+            image_path = os.path.join(settings.MEDIA_ROOT, str(student.profile_photo))
+            if os.path.exists(image_path):
+                profile_img = Image(image_path, width=1 * inch, height=1 * inch)
+                profile_img.hAlign = "CENTER"
+            else:
+                profile_img = Paragraph(
+                    '<para align="center" fontSize="8" textColor="#9CA3AF">No Photo</para>',
+                    body_style,
+                )
+        except Exception:
+            profile_img = Paragraph(
+                '<para align="center" fontSize="8" textColor="#9CA3AF">No Photo</para>',
+                body_style,
+            )
+    else:
+        profile_img = Paragraph(
+            '<para align="center" fontSize="8" textColor="#9CA3AF">No Photo</para>',
+            body_style,
+        )
+
+    # Student Information Table with Photo
+    student_info = [
+        [
+            profile_img,
+            Paragraph(
+                f"<b>{student.user.get_full_name()}</b><br/>"
+                f"Roll No: {student.roll_no}<br/>"
+                f"Class: {student.classroom}",
+                body_style,
+            ),
+        ],
+        [
+            "",
+            Paragraph(
+                f"Father's Name: {student.father_name}<br/>"
+                f"Mother's Name: {student.mother_name}<br/>"
+                f"Date of Birth: {student.dob.strftime('%d/%m/%Y') if student.dob else 'N/A'}",
+                body_style,
+            ),
+        ],
+    ]
+
+    student_table = Table(student_info, colWidths=[1.2 * inch, 5.3 * inch])
+    student_table.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, -1), colors.white),
+                ("TEXTCOLOR", (0, 0), (-1, -1), DARK_TEXT),
+                ("ALIGN", (0, 0), (0, -1), "CENTER"),
+                ("ALIGN", (1, 0), (1, -1), "LEFT"),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("FONTSIZE", (0, 0), (-1, -1), 10),
+                ("TOPPADDING", (0, 0), (-1, -1), 12),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 12),
+                ("LEFTPADDING", (0, 0), (-1, -1), 12),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 12),
+                ("GRID", (0, 0), (-1, -1), 0.5, BORDER_COLOR),
+                ("SPAN", (0, 0), (0, 1)),  # Profile photo spans both rows
+            ]
+        )
+    )
+    story.append(student_table)
+    story.append(Spacer(1, 0.3 * inch))
+
+    # Exam Schedule
+    story.append(Paragraph("Exam Schedule:", body_style))
+    story.append(Spacer(1, 0.1 * inch))
+
+    schedule = ExamSchedule.objects.filter(exam=exam).order_by("date", "time")
+    if schedule:
+        schedule_data = [["Date", "Time", "Subject", "Room"]]
+        for item in schedule:
+            schedule_data.append(
+                [
+                    item.date.strftime("%d/%m/%Y"),
+                    item.time.strftime("%H:%M"),
+                    item.subject,
+                    item.room or "N/A",
+                ]
+            )
+
+        schedule_table = Table(
+            schedule_data, colWidths=[1.5 * inch, 1.2 * inch, 2.5 * inch, 1.3 * inch]
+        )
+        schedule_table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), SECONDARY_COLOR),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), DARK_TEXT),
+                    ("ALIGN", (0, 0), (-1, 0), "CENTER"),
+                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                    ("FONTSIZE", (0, 0), (-1, 0), 10),
+                    ("TOPPADDING", (0, 0), (-1, 0), 8),
+                    ("BOTTOMPADDING", (0, 0), (-1, 0), 8),
+                    ("BACKGROUND", (0, 1), (-1, -1), colors.white),
+                    ("TEXTCOLOR", (0, 1), (-1, -1), DARK_TEXT),
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("FONTSIZE", (0, 1), (-1, -1), 9),
+                    ("TOPPADDING", (0, 1), (-1, -1), 6),
+                    ("BOTTOMPADDING", (0, 1), (-1, -1), 6),
+                    ("GRID", (0, 0), (-1, -1), 0.5, BORDER_COLOR),
+                ]
+            )
+        )
+        story.append(schedule_table)
+    else:
+        story.append(Paragraph("No schedule information available.", body_style))
+
+    # Instructions
+    story.append(Spacer(1, 0.3 * inch))
+    story.append(Paragraph("Important Instructions:", body_style))
+    story.append(Spacer(1, 0.1 * inch))
+
+    instructions = [
+        "1. Bring this admit card to the examination hall.",
+        "2. Arrive at the examination center 30 minutes before the exam time.",
+        "3. Carry a valid photo ID along with this admit card.",
+        "4. Electronic devices are not allowed in the examination hall.",
+        "5. Follow all examination rules and regulations.",
+    ]
+
+    for instruction in instructions:
+        story.append(Paragraph(instruction, body_style))
+
+    # Footer
+    story.append(Spacer(1, 0.5 * inch))
+    story.append(divider_table)
+    story.append(Spacer(1, 0.15 * inch))
+
+    footer_style = ParagraphStyle(
+        "Footer",
+        parent=styles["Normal"],
+        fontSize=8,
+        alignment=1,
+        textColor=LIGHT_TEXT,
+        leading=12,
+    )
+
+    from datetime import datetime
+
+    current_date = datetime.now().strftime("%d %B %Y")
+    story.append(Paragraph(f"Issued on: {current_date}", footer_style))
+    story.append(Paragraph("HBR Public School - Examination Department", footer_style))
+
+    # Build PDF
+    doc.build(story)
+    buffer.seek(0)
+    return buffer
+
+
+def generate_exam_timetable_pdf(exam, schedule_data, student=None):
+    """
+    Generate an exam timetable PDF.
+
+    Args:
+        exam: Exam model instance
+        schedule_data: List of schedule dictionaries
+        student: Student model instance (optional)
+
+    Returns:
+        BytesIO buffer containing the PDF
+    """
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=letter,
+        topMargin=0.6 * inch,
+        bottomMargin=0.6 * inch,
+        leftMargin=0.75 * inch,
+        rightMargin=0.75 * inch,
+    )
+    styles = getSampleStyleSheet()
+    story = []
+
+    # Color Palette
+    PRIMARY_COLOR = colors.HexColor("#8F403C")  # Deep Maroon
+    SECONDARY_COLOR = colors.HexColor("#F4F9FA")  # Light Blue-Gray
+    DARK_TEXT = colors.HexColor("#333333")
+    LIGHT_TEXT = colors.HexColor("#9CA3AF")
+    BORDER_COLOR = colors.HexColor("#E5E7EB")
+
+    # Styles
+    school_title_style = ParagraphStyle(
+        "SchoolTitle",
+        parent=styles["Heading1"],
+        fontSize=24,
+        spaceAfter=4,
+        alignment=0,
+        textColor=PRIMARY_COLOR,
+        fontName="Helvetica-Bold",
+        leading=28,
+    )
+
+    school_subtitle_style = ParagraphStyle(
+        "SchoolSubtitle",
+        parent=styles["Normal"],
+        fontSize=10,
+        alignment=0,
+        textColor=LIGHT_TEXT,
+        spaceAfter=4,
+        leading=14,
+    )
+
+    exam_title_style = ParagraphStyle(
+        "ExamTitle",
+        parent=styles["Heading1"],
+        fontSize=20,
+        alignment=1,
+        textColor=PRIMARY_COLOR,
+        fontName="Helvetica-Bold",
+        spaceAfter=20,
+    )
+
+    body_style = ParagraphStyle(
+        "Body",
+        parent=styles["Normal"],
+        fontSize=12,
+        alignment=0,
+        textColor=DARK_TEXT,
+        leading=16,
+    )
+
+    # Header
+    story.append(Paragraph("HBR Public School", school_title_style))
+    story.append(
+        Paragraph(
+            "123 Education Street, Knowledge City - 400001", school_subtitle_style
+        )
+    )
+    story.append(
+        Paragraph(
+            "Phone: +91-22-1234-5678 | Email: info@stmaryshigh.edu",
+            school_subtitle_style,
+        )
+    )
+
+    # Divider
+    divider_data = [[""]]
+    divider_table = Table(divider_data, colWidths=[6.5 * inch])
+    divider_table.setStyle(
+        TableStyle(
+            [
+                ("LINEABOVE", (0, 0), (-1, -1), 2, PRIMARY_COLOR),
+                ("TOPPADDING", (0, 0), (-1, -1), 0),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+            ]
+        )
+    )
+    story.append(divider_table)
+    story.append(Spacer(1, 0.25 * inch))
+
+    # Exam Title
+    story.append(Paragraph(f"Exam Timetable - {exam.name}", exam_title_style))
+
+    # Term and Session Info
+    story.append(Paragraph(f"Term: {exam.term.name}", body_style))
+    story.append(
+        Paragraph(f"Academic Session: {exam.term.academic_session.year}", body_style)
+    )
+
+    if student:
+        story.append(Paragraph(f"Student: {student.user.get_full_name()}", body_style))
+        story.append(Paragraph(f"Roll No: {student.roll_no}", body_style))
+
+    story.append(Spacer(1, 0.3 * inch))
+
+    # Schedule Table
+    if schedule_data:
+        # Table headers
+        table_data = [["Date", "Time", "Subject", "Room"]]
+
+        # Add schedule data
+        for item in schedule_data:
+            table_data.append(
+                [item["date"], item["time"], item["subject"], item["room"] or "N/A"]
+            )
+
+        # Create table
+        schedule_table = Table(
+            table_data, colWidths=[1.5 * inch, 1.2 * inch, 2.5 * inch, 1.3 * inch]
+        )
+        schedule_table.setStyle(
+            TableStyle(
+                [
+                    # Header styling
+                    ("BACKGROUND", (0, 0), (-1, 0), SECONDARY_COLOR),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), DARK_TEXT),
+                    ("ALIGN", (0, 0), (-1, 0), "CENTER"),
+                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                    ("FONTSIZE", (0, 0), (-1, 0), 12),
+                    ("TOPPADDING", (0, 0), (-1, 0), 12),
+                    ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
+                    # Data styling
+                    ("BACKGROUND", (0, 1), (-1, -1), colors.white),
+                    ("TEXTCOLOR", (0, 1), (-1, -1), DARK_TEXT),
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("FONTSIZE", (0, 1), (-1, -1), 10),
+                    ("TOPPADDING", (0, 1), (-1, -1), 8),
+                    ("BOTTOMPADDING", (0, 1), (-1, -1), 8),
+                    # Grid
+                    ("GRID", (0, 0), (-1, -1), 0.5, BORDER_COLOR),
+                ]
+            )
+        )
+        story.append(schedule_table)
+    else:
+        story.append(Paragraph("No schedule information available.", body_style))
+
+    # Footer
+    story.append(Spacer(1, 0.5 * inch))
+    story.append(divider_table)
+    story.append(Spacer(1, 0.15 * inch))
+
+    footer_style = ParagraphStyle(
+        "Footer",
+        parent=styles["Normal"],
+        fontSize=8,
+        alignment=1,
+        textColor=LIGHT_TEXT,
+        leading=12,
+    )
+
+    from datetime import datetime
+
+    current_date = datetime.now().strftime("%d %B %Y")
+    story.append(Paragraph(f"Generated on: {current_date}", footer_style))
+    story.append(Paragraph("HBR Public School - Examination Department", footer_style))
 
     # Build PDF
     doc.build(story)

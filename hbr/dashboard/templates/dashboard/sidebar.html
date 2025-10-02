@@ -1,7 +1,17 @@
 <aside class="sidebar" id="sidebar">
   <button class="sidebar-close-btn" id="sidebarCloseBtn"><i class="bx bx-x"></i></button>
   <div class="sidebar-header">
-    <h2>{{ role }} Dashboard</h2>
+    <div class="school-info">
+      {% load static %}
+      <img src="{% static 'images/school-logo.png' %}" alt="HBR School Logo" class="school-logo" />
+      <h1>HBR School Dashboard</h1>
+      {% if current_session %}
+        <p class="current-session">{{ current_session.year }}</p>
+      {% endif %}
+    </div>
+    <div class="sidebar-actions">
+      <a href="/" class="view-site-btn" target="_blank"><i class="bx bx-globe"></i> Visit Homepage</a>
+    </div>
   </div>
 
   {% with url_name=request.resolver_match.url_name %}
@@ -14,7 +24,7 @@
       <a href="{% url 'payments' %}" class="{% if url_name == 'payments' %}active{% endif %}"><i class="bx bx-wallet"></i> My Payments</a>
       <a href="{% url 'exams' %}" class="{% if url_name == 'exams' %}active{% endif %}"><i class="bx bx-book"></i> My Exams</a>
       <a href="{% url 'profile' %}" class="{% if url_name == 'profile' %}active{% endif %}"><i class="bx bx-user"></i> My Profile</a>
-      <a href="{% url 'settings' %}" class="{% if url_name == 'settings' %}active{% endif %}"><i class="bx bx-cog"></i> Settings</a>
+      <a href="{% url 'notice_board' %}" class="{% if url_name == 'notice_board' %}active{% endif %}"><i class="bx bx-bell"></i> Notice Board</a>
     </nav>
   {% endwith %}
 </aside>
