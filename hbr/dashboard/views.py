@@ -1,5 +1,5 @@
 from django.http import HttpRequest, HttpResponse, JsonResponse
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db import models
@@ -21,6 +21,8 @@ from .models import (
     Leave,
     Notice,
     Student,
+    Teacher,
+    TeacherAttendance,
     Term,
     CertificateType,
     Certificate,
@@ -172,7 +174,153 @@ def attendance(request: HttpRequest):
         except Student.DoesNotExist:
             context["error"] = "Student profile not found"
 
+    elif role == "Teacher":
+        try:
+            teacher = Teacher.objects.get(user=request.user)
+            attendances = TeacherAttendance.objects.filter(teacher=teacher).order_by(
+                "date"
+            )
+
+            # Prepare events for fullcalendar
+            events = []
+            for att in attendances:
+                color = {
+                    "PRESENT": "#28a745",  # green
+                    "ABSENT": "#dc3545",  # red
+                    "LATE": "#ffc107",  # yellow
+                }.get(
+                    att.status, "#6c757d"
+                )  # default gray
+
+                events.append(
+                    {
+                        "title": att.status,
+                        "start": att.date.isoformat(),
+                        "color": color,
+                        "extendedProps": {
+                            "remarks": att.remarks,
+                            "marked_by": (
+                                str(att.marked_by) if att.marked_by else "System"
+                            ),
+                        },
+                    }
+                )
+
+            context["attendance_events"] = events  # type: ignore
+            context["teacher"] = teacher  # type: ignore
+        except Teacher.DoesNotExist:
+            context["error"] = "Teacher profile not found"
+
     return render(request, "dashboard/attendance.html", context)
+
+
+@login_required
+def mark_student_attendance(request: HttpRequest):
+    role = get_user_role(request.user)
+    if role != "Teacher":
+        return HttpResponse("Access denied", status=403)
+
+    context = {"role": role, "current_session": get_current_session()}
+
+    try:
+        teacher = Teacher.objects.get(user=request.user)
+        # Get students in teacher's classrooms
+        students = (
+            Student.objects.filter(classroom__in=teacher.classroom.all())
+            .distinct()
+            .order_by("sr_no")
+        )
+        context["students"] = students  # type: ignore
+        context["teacher"] = teacher  # type: ignore
+
+        if request.method == "POST":
+            date = request.POST.get("date")
+            if not date:
+                messages.error(request, "Date is required")
+                return render(
+                    request, "dashboard/mark_student_attendance.html", context
+                )
+
+            attendance_count = 0
+            for student in students:
+                status = request.POST.get(f"status_{student.id}")  # type: ignore
+                remarks = request.POST.get(f"remarks_{student.id}", "")  # type: ignore
+
+                if status:
+                    # Check if attendance already exists for this date
+                    attendance, created = Attendance.objects.get_or_create(
+                        student=student,
+                        date=date,
+                        defaults={
+                            "teacher": teacher,
+                            "status": status,
+                            "remarks": remarks,
+                        },
+                    )
+                    if not created:
+                        # Update existing attendance
+                        attendance.status = status
+                        attendance.remarks = remarks
+                        attendance.teacher = teacher
+                        attendance.save()
+                    attendance_count += 1
+
+            messages.success(
+                request, f"Attendance marked for {attendance_count} students"
+            )
+            return redirect("mark_student_attendance")
+
+    except Teacher.DoesNotExist:
+        context["error"] = "Teacher profile not found"
+
+    return render(request, "dashboard/mark_student_attendance.html", context)
+
+
+@login_required
+def mark_teacher_attendance(request: HttpRequest):
+    role = get_user_role(request.user)
+    if role != "Admin":
+        return HttpResponse("Access denied", status=403)
+
+    context = {"role": role, "current_session": get_current_session()}
+
+    teachers = Teacher.objects.all().order_by("user__first_name", "user__last_name")
+    context["teachers"] = teachers  # type: ignore
+
+    if request.method == "POST":
+        date = request.POST.get("date")
+        if not date:
+            messages.error(request, "Date is required")
+            return render(request, "dashboard/mark_teacher_attendance.html", context)
+
+        attendance_count = 0
+        for teacher in teachers:
+            status = request.POST.get(f"status_{teacher.id}")  # type: ignore
+            remarks = request.POST.get(f"remarks_{teacher.id}", "")  # type: ignore
+
+            if status:
+                # Check if attendance already exists for this date
+                attendance, created = TeacherAttendance.objects.get_or_create(
+                    teacher=teacher,
+                    date=date,
+                    defaults={
+                        "status": status,
+                        "remarks": remarks,
+                        "marked_by": request.user,
+                    },
+                )
+                if not created:
+                    # Update existing attendance
+                    attendance.status = status
+                    attendance.remarks = remarks
+                    attendance.marked_by = request.user  # type: ignore
+                    attendance.save()
+                attendance_count += 1
+
+        messages.success(request, f"Attendance marked for {attendance_count} teachers")
+        return redirect("mark_teacher_attendance")
+
+    return render(request, "dashboard/mark_teacher_attendance.html", context)
 
 
 @login_required

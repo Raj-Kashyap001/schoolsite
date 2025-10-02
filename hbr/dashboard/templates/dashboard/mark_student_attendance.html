@@ -1,0 +1,109 @@
+{% extends 'dashboard/layout.html' %}
+{% load static %}
+
+{% block content %}
+  <div class="attendance-container">
+    <h1>Mark Student Attendance</h1>
+    {% if error %}
+      <p class="error">{{ error }}</p>
+    {% else %}
+      <form id="attendanceForm" method="post">
+        {% csrf_token %}
+        <div class="form-group">
+          <label for="attendance_date">Date:</label>
+          <input type="date" id="attendance_date" name="date" required value="{{ today|date:'Y-m-d' }}" />
+        </div>
+
+        <div class="students-list">
+          <h3>Students in your classes:</h3>
+          {% for student in students %}
+            <div class="student-item">
+              <div class="student-info">
+                <span class="student-name">{{ student.user.get_full_name }} ({{ student.roll_no }})</span>
+                <span class="student-class">{{ student.classroom }}</span>
+              </div>
+              <div class="attendance-options">
+                <label><input type="radio" name="status_{{ student.id }}" value="PRESENT" checked />Present</label>
+                <label><input type="radio" name="status_{{ student.id }}" value="ABSENT" />Absent</label>
+                <label><input type="radio" name="status_{{ student.id }}" value="LATE" />Late</label>
+              </div>
+              <div class="remarks">
+                <input type="text" name="remarks_{{ student.id }}" placeholder="Remarks (optional)" />
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+
+        <button type="submit" class="btn btn-primary">Submit Attendance</button>
+      </form>
+    {% endif %}
+  </div>
+{% endblock %}
+
+{% block extra_css %}
+  <style>
+    .attendance-container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    .students-list {
+      margin-top: 20px;
+    }
+    
+    .student-item {
+      display: flex;
+      align-items: center;
+      padding: 15px;
+      border: 1px solid #ddd;
+      margin-bottom: 10px;
+      border-radius: 5px;
+      background: #f9f9f9;
+    }
+    
+    .student-info {
+      flex: 1;
+    }
+    
+    .student-name {
+      font-weight: bold;
+      display: block;
+    }
+    
+    .student-class {
+      color: #666;
+      font-size: 0.9em;
+    }
+    
+    .attendance-options {
+      display: flex;
+      gap: 15px;
+      margin-right: 20px;
+    }
+    
+    .remarks {
+      min-width: 200px;
+    }
+    
+    .remarks input {
+      width: 100%;
+      padding: 5px;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+    }
+    
+    .btn {
+      padding: 10px 20px;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    
+    .btn:hover {
+      background: #0056b3;
+    }
+  </style>
+{% endblock %}

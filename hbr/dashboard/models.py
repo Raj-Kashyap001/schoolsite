@@ -119,6 +119,27 @@ class Attendance(models.Model):
         return f"{self.student} - {self.date} - {self.status}"
 
 
+class TeacherAttendance(models.Model):
+    class Status(models.TextChoices):
+        PRESENT = "PRESENT"
+        ABSENT = "ABSENT"
+        LATE = "LATE"
+
+    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE)
+    date = models.DateField()
+    status = models.CharField(choices=Status.choices, default=Status.PRESENT)
+    remarks = models.TextField(blank=True)
+    marked_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True
+    )
+
+    class Meta:
+        unique_together = ("teacher", "date")
+
+    def __str__(self):
+        return f"{self.teacher} - {self.date} - {self.status}"
+
+
 class Leave(models.Model):
     class Status(models.TextChoices):
         PENDING = "PENDING"

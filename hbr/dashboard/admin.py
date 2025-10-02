@@ -15,6 +15,7 @@ from .models import (
     Student,
     Subject,
     Teacher,
+    TeacherAttendance,
     Term,
 )
 
@@ -69,6 +70,7 @@ admin.site.register(
         Student,
         Subject,
         Teacher,
+        TeacherAttendance,
         Term,
     ]
 )

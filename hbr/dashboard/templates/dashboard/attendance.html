@@ -23,11 +23,18 @@
     document.addEventListener('DOMContentLoaded', function () {
       var calendarEl = document.getElementById('calendar')
       var eventsData = JSON.parse(document.getElementById('attendance-events').textContent)
+      var role = '{{ role }}'
       var calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'dayGridMonth',
         events: eventsData,
         eventClick: function (info) {
-          alert('Date: ' + info.event.start.toDateString() + '\nStatus: ' + info.event.title + '\nRemarks: ' + (info.event.extendedProps.remarks || 'None') + '\nTeacher: ' + info.event.extendedProps.teacher)
+          var details = 'Date: ' + info.event.start.toDateString() + '\nStatus: ' + info.event.title + '\nRemarks: ' + (info.event.extendedProps.remarks || 'None')
+          if (role === 'Student') {
+            details += '\nTeacher: ' + info.event.extendedProps.teacher
+          } else if (role === 'Teacher') {
+            details += '\nMarked by: ' + info.event.extendedProps.marked_by
+          }
+          alert(details)
         }
       })
       calendar.render()

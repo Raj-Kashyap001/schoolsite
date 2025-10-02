@@ -5,6 +5,16 @@ urlpatterns = [
     path("", views.dashboard_home, name="dashboard"),
     path("profile/", views.profile, name="profile"),
     path("attendance/", views.attendance, name="attendance"),
+    path(
+        "mark-student-attendance/",
+        views.mark_student_attendance,
+        name="mark_student_attendance",
+    ),
+    path(
+        "mark-teacher-attendance/",
+        views.mark_teacher_attendance,
+        name="mark_teacher_attendance",
+    ),
     path("leave/", views.leave, name="leave"),
     path("documents/", views.documents, name="documents"),
     path("certificates/", views.certificates, name="certificates"),

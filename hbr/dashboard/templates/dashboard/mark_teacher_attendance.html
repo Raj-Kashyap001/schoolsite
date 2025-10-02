@@ -1,0 +1,105 @@
+{% extends 'dashboard/layout.html' %}
+{% load static %}
+
+{% block content %}
+  <div class="attendance-container">
+    <h1>Mark Teacher Attendance</h1>
+    <form id="attendanceForm" method="post">
+      {% csrf_token %}
+      <div class="form-group">
+        <label for="attendance_date">Date:</label>
+        <input type="date" id="attendance_date" name="date" required value="{{ today|date:'Y-m-d' }}" />
+      </div>
+
+      <div class="teachers-list">
+        <h3>All Teachers:</h3>
+        {% for teacher in teachers %}
+          <div class="teacher-item">
+            <div class="teacher-info">
+              <span class="teacher-name">{{ teacher.user.get_full_name }}</span>
+              <span class="teacher-subject">{{ teacher.subject }}</span>
+            </div>
+            <div class="attendance-options">
+              <label><input type="radio" name="status_{{ teacher.id }}" value="PRESENT" checked />Present</label>
+              <label><input type="radio" name="status_{{ teacher.id }}" value="ABSENT" />Absent</label>
+              <label><input type="radio" name="status_{{ teacher.id }}" value="LATE" />Late</label>
+            </div>
+            <div class="remarks">
+              <input type="text" name="remarks_{{ teacher.id }}" placeholder="Remarks (optional)" />
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+
+      <button type="submit" class="btn btn-primary">Submit Attendance</button>
+    </form>
+  </div>
+{% endblock %}
+
+{% block extra_css %}
+  <style>
+    .attendance-container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    .teachers-list {
+      margin-top: 20px;
+    }
+    
+    .teacher-item {
+      display: flex;
+      align-items: center;
+      padding: 15px;
+      border: 1px solid #ddd;
+      margin-bottom: 10px;
+      border-radius: 5px;
+      background: #f9f9f9;
+    }
+    
+    .teacher-info {
+      flex: 1;
+    }
+    
+    .teacher-name {
+      font-weight: bold;
+      display: block;
+    }
+    
+    .teacher-subject {
+      color: #666;
+      font-size: 0.9em;
+    }
+    
+    .attendance-options {
+      display: flex;
+      gap: 15px;
+      margin-right: 20px;
+    }
+    
+    .remarks {
+      min-width: 200px;
+    }
+    
+    .remarks input {
+      width: 100%;
+      padding: 5px;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+    }
+    
+    .btn {
+      padding: 10px 20px;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    
+    .btn:hover {
+      background: #0056b3;
+    }
+  </style>
+{% endblock %}
