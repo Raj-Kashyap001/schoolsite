@@ -791,7 +791,7 @@ html::-webkit-scrollbar-thumb {
 
     .profile-actions {
       margin-top: 1.5rem;
-      padding-top: 1rem;
+      padding-block: 1rem;
       border-top: 1px solid #eee;
       display: flex;
       gap: 0.75rem;

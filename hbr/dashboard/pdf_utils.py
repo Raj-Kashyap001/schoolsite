@@ -14,7 +14,7 @@ from reportlab.graphics.shapes import Drawing, Circle
 from io import BytesIO
 import os
 from django.conf import settings
-from .models import ExamSchedule
+from academics.models import ExamSchedule
 
 
 def generate_student_profile_pdf(student_data, user_data):

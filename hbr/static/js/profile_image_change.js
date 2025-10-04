@@ -24,9 +24,9 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         // Show loading state
-        changePhotoBtn.disabled = true;
-        changePhotoBtn.innerHTML =
-          '<i class="bx bx-loader-alt bx-spin"></i> Uploading...';
+        //changePhotoBtn.disabled = true;
+        //changePhotoBtn.innerHTML =
+        // '<i class="bx bx-loader-alt bx-spin"></i> Uploading...';
 
         // Create FormData
         const formData = new FormData();
@@ -37,7 +37,7 @@ document.addEventListener("DOMContentLoaded", function () {
         );
 
         // Upload via AJAX
-        fetch("/dashboard/profile/", {
+        fetch(window.profileUrl, {
           method: "POST",
           body: formData,
           headers: {
@@ -53,7 +53,7 @@ document.addEventListener("DOMContentLoaded", function () {
               );
               if (photoSection) {
                 photoSection.innerHTML = `
-                    <img src="${data.photo_url}" alt="Profile Photo" class="profile-photo" />
+                    <img src="${data.photo_url}" alt="Profile Photo" class="profile-photo" style="width: 120px; object-fit: cover; display:block; object-position: center; aspect-ratio: 1; margin-bottom: 1rem;" />
                   `;
               }
 

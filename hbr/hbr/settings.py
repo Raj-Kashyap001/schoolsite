@@ -40,6 +40,12 @@ INSTALLED_APPS = [
     "django_browser_reload",
     "base.apps.BaseConfig",
     "dashboard.apps.DashboardConfig",
+    "students.apps.StudentsConfig",
+    "teachers.apps.TeachersConfig",
+    "attendance.apps.AttendanceConfig",
+    "academics.apps.AcademicsConfig",
+    "leave.apps.LeaveConfig",
+    "notices.apps.NoticesConfig",
 ]
 
 MIDDLEWARE = [
@@ -65,6 +71,8 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "base.context_processors.current_session",
+                "base.context_processors.user_role",
             ],
         },
     },

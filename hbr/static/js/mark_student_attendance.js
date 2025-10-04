@@ -189,7 +189,7 @@ document.addEventListener("DOMContentLoaded", function () {
           <li>First row should be headers</li>
         </ul>
         <div style="margin-top: 15px;">
-          <a href="/dashboard/attendance/template/" class="btn btn-outline" style="font-size: 14px; padding: 8px 12px;">
+          <a href="/attendance/template/" class="btn btn-outline" style="font-size: 14px; padding: 8px 12px;">
             <i class="bx bx-download"></i> Download CSV Template
           </a>
         </div>
@@ -269,7 +269,7 @@ document.addEventListener("DOMContentLoaded", function () {
           <li>First row should be headers</li>
         </ul>
         <div style="margin-top: 15px;">
-          <a href="/dashboard/attendance/excel-template/" class="btn btn-outline" style="font-size: 14px; padding: 8px 12px;">
+          <a href="/attendance/excel-template/" class="btn btn-outline" style="font-size: 14px; padding: 8px 12px;">
             <i class="bx bx-download"></i> Download Excel Template
           </a>
         </div>
@@ -335,7 +335,7 @@ document.addEventListener("DOMContentLoaded", function () {
       '<i class="bx bx-loader-alt bx-spin"></i> Importing...';
     importBtn.disabled = true;
 
-    fetch("/dashboard/attendance/import-csv/", {
+    fetch("/attendance/import-csv/", {
       method: "POST",
       body: formData,
     })
@@ -402,7 +402,7 @@ document.addEventListener("DOMContentLoaded", function () {
       '<i class="bx bx-loader-alt bx-spin"></i> Importing...';
     importBtn.disabled = true;
 
-    fetch("/dashboard/attendance/import-excel/", {
+    fetch("/attendance/import-excel/", {
       method: "POST",
       body: formData,
     })
@@ -457,7 +457,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // Teacher CSV Export Handler (direct export for current date)
   function handleTeacherCsvExport() {
     const today = new Date().toISOString().split("T")[0]; // Get current date in YYYY-MM-DD format
-    const url = `/dashboard/attendance/export-csv/?from_date=${today}`;
+    const url = `/attendance/export-csv/?from_date=${today}`;
     window.open(url, "_blank");
   }
 
@@ -503,7 +503,7 @@ document.addEventListener("DOMContentLoaded", function () {
       const fromDate = modal.querySelector("#fromDate").value;
 
       // Build URL with parameters
-      let url = "/dashboard/attendance/export-csv/?";
+      let url = "/attendance/export-csv/?";
       const params = [];
       if (fromDate) params.push(`from_date=${fromDate}`);
       url += params.join("&");
@@ -517,7 +517,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // Teacher Excel Export Handler (direct export for current date)
   function handleTeacherExcelExport() {
     const today = new Date().toISOString().split("T")[0]; // Get current date in YYYY-MM-DD format
-    const url = `/dashboard/attendance/export-excel/?from_date=${today}`;
+    const url = `/attendance/export-excel/?from_date=${today}`;
     window.open(url, "_blank");
   }
 
@@ -563,7 +563,7 @@ document.addEventListener("DOMContentLoaded", function () {
       const fromDate = modal.querySelector("#fromDate").value;
 
       // Build URL with parameters
-      let url = "/dashboard/attendance/export-excel/?";
+      let url = "/attendance/export-excel/?";
       const params = [];
       if (fromDate) params.push(`from_date=${fromDate}`);
       url += params.join("&");
@@ -577,7 +577,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // Teacher JSON Export Handler (direct export for current date)
   function handleTeacherJsonExport() {
     const today = new Date().toISOString().split("T")[0]; // Get current date in YYYY-MM-DD format
-    const url = `/dashboard/attendance/export-json/?from_date=${today}`;
+    const url = `/attendance/export-json/?from_date=${today}`;
     window.open(url, "_blank");
   }
 
@@ -623,7 +623,7 @@ document.addEventListener("DOMContentLoaded", function () {
       const fromDate = modal.querySelector("#fromDate").value;
 
       // Build URL with parameters
-      let url = "/dashboard/attendance/export-json/?";
+      let url = "/attendance/export-json/?";
       const params = [];
       if (fromDate) params.push(`from_date=${fromDate}`);
       url += params.join("&");

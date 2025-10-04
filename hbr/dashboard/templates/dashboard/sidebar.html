@@ -1,6 +1,7 @@
 <aside class="sidebar" id="sidebar">
   <button class="sidebar-close-btn" id="sidebarCloseBtn"><i class="bx bx-x"></i></button>
   <div class="sidebar-header">
+    {% comment %}TODO: Fix the mess{% endcomment %}
     <div class="school-info">
       {% load static %}
       <img src="{% static 'images/school-logo.png' %}" alt="HBR School Logo" class="school-logo" />
@@ -17,25 +18,29 @@
   {% with url_name=request.resolver_match.url_name %}
     <nav class="sidebar-nav">
       <a href="{% url 'dashboard' %}" class="{% if url_name == 'dashboard' %}active{% endif %}"><i class="bx bx-home"></i> Home</a>
-      <a href="{% url 'attendance' %}" class="{% if url_name == 'attendance' %}active{% endif %}"><i class="bx bx-calendar-alt"></i>Attendance</a>
+      <a href="{% url 'attendance:attendance' %}" class="{% if url_name == 'attendance' %}active{% endif %}"><i class="bx bx-calendar-alt"></i>Attendance</a>
       {% if role == 'Teacher' %}
-        <a href="{% url 'mark_student_attendance' %}" class="{% if url_name == 'mark_student_attendance' %}active{% endif %}"><i class="bx bx-check-circle"></i>Mark Student Attendance</a>
+        <a href="{% url 'attendance:mark_student_attendance' %}" class="{% if url_name == 'mark_student_attendance' %}active{% endif %}"><i class="bx bx-check-circle"></i>Mark Student Attendance</a>
         {% comment %} <a href="{% url 'mark_exam_results' %}" class="{% if url_name == 'mark_exam_results' %}active{% endif %}"><i class="bx bx-edit"></i>Mark Exam Results</a> {% endcomment %}
       {% endif %}
       {% if role == 'Admin' %}
-        <a href="{% url 'mark_teacher_attendance' %}" class="{% if url_name == 'mark_teacher_attendance' %}active{% endif %}"><i class="bx bx-user-check"></i>Mark Teacher Attendance</a>
+        <a href="{% url 'attendance:mark_teacher_attendance' %}" class="{% if url_name == 'mark_teacher_attendance' %}active{% endif %}"><i class="bx bx-user-check"></i>Mark Teacher Attendance</a>
       {% endif %}
-      <a href="{% url 'leave' %}" class="{% if url_name == 'leave' %}active{% endif %}"><i class="bx bx-calendar-check"></i> Apply Leave</a>
+      <a href="{% url 'leave:leave' %}" class="{% if url_name == 'leave' %}active{% endif %}"><i class="bx bx-calendar-check"></i> Apply Leave</a>
       {% if role == 'Student' %}
-        <a href="{% url 'documents' %}" class="{% if url_name == 'documents' %}active{% endif %}"><i class="bx bx-folder"></i> My Documents</a>
-        <a href="{% url 'certificates' %}" class="{% if url_name == 'certificates' %}active{% endif %}"><i class="bxr bx-medal-star-alt-2"></i> My Certificates</a>
+        <a href="{% url 'students:documents' %}" class="{% if url_name == 'documents' %}active{% endif %}"><i class="bx bx-folder"></i> My Documents</a>
+        <a href="{% url 'students:certificates' %}" class="{% if url_name == 'certificates' %}active{% endif %}"><i class="bxr bx-medal-star-alt-2"></i> My Certificates</a>
       {% endif %}
-      <a href="{% url 'payments' %}" class="{% if url_name == 'payments' %}active{% endif %}"><i class="bx bx-wallet"></i>Payments</a>
+      <a href="{% url 'students:payments' %}" class="{% if url_name == 'payments' %}active{% endif %}"><i class="bx bx-wallet"></i>Payments</a>
       {% if role == 'Student' %}
-        <a href="{% url 'exams' %}" class="{% if url_name == 'exams' %}active{% endif %}"><i class="bx bx-book"></i> My Exams</a>
+        <a href="{% url 'academics:exams' %}" class="{% if url_name == 'exams' %}active{% endif %}"><i class="bx bx-book"></i> My Exams</a>
       {% endif %}
-      <a href="{% url 'profile' %}" class="{% if url_name == 'profile' %}active{% endif %}"><i class="bx bx-user"></i> My Profile</a>
-      <a href="{% url 'notice_board' %}" class="{% if url_name == 'notice_board' %}active{% endif %}"><i class="bx bx-bell"></i> Notice Board</a>
+      {% if role == 'Student' %}
+        <a href="{% url 'students:profile' %}" class="{% if url_name == 'profile' %}active{% endif %}"><i class="bx bx-user"></i> My Profile</a>
+      {% elif role == 'Teacher' %}
+        <a href="{% url 'teachers:profile' %}" class="{% if url_name == 'profile' %}active{% endif %}"><i class="bx bx-user"></i> My Profile</a>
+      {% endif %}
+      <a href="{% url 'notices:notice_board' %}" class="{% if url_name == 'notice_board' %}active{% endif %}"><i class="bx bx-bell"></i> Notice Board</a>
     </nav>
   {% endwith %}
 </aside>

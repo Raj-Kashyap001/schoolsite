@@ -1,0 +1,138 @@
+{% extends 'dashboard/layout.html' %}
+
+{% block content %}
+  <div class="profile-container">
+    {% csrf_token %}
+    <h1>{{ user.first_name }} {{ user.last_name }}'s Profile</h1>
+
+    <div class="profile-cards">
+      <!-- Profile Card -->
+      <div class="profile-card profile-info">
+        <h2><i class="bx bx-user"></i> Teacher Info</h2>
+        {% if teacher %}
+          <div class="profile-photo-section">
+            {% if teacher.profile_photo %}
+              <div class="profile-photo-container">
+                <img src="{{ teacher.profile_photo.url }}" alt="Profile Photo" class="profile-photo" style="width: 120px; object-fit: cover; display:block; object-position: center; aspect-ratio: 1; margin-bottom: 1rem;" />
+              </div>
+            {% else %}
+              <div class="no-photo">No Photo</div>
+            {% endif %}
+          </div>
+          <div class="profile-details">
+            <p>
+              <strong>Subject:</strong> {{ teacher.subject }}
+            </p>
+            <p>
+              <strong>Qualification:</strong> {{ teacher.qualification|default:'Not specified' }}
+            </p>
+            <p>
+              <strong>Mobile No:</strong> {{ teacher.mobile_no|default:'Not provided' }}
+            </p>
+            <p>
+              <strong>Assigned Classes:</strong>
+              {% if teacher.classroom.all %}
+                {{ teacher.classroom.all|join:', ' }}
+              {% else %}
+                No classes assigned
+              {% endif %}
+            </p>
+          </div>
+          <div class="profile-actions">
+            <button class="btn btn-primary" id="change-photo-btn">
+              <i class="bx bx-image-portrait"></i>
+              {% if teacher.profile_photo %}
+                Change
+              {% else %}
+                Upload
+              {% endif %}Profile Image
+            </button>
+            <input type="file" id="profile-photo-input" accept="image/*" style="display: none;" />
+          </div>
+        {% else %}
+          <p>No teacher information found.</p>
+        {% endif %}
+      </div>
+
+      <!-- Right Column: Account Info and Notifications -->
+      <div class="right-column">
+        <!-- Account Info Card -->
+        <div class="profile-card account-info">
+          <h2><i class="bx bx-info-circle"></i> Account Information</h2>
+          <p>
+            <strong>Username:</strong> {{ user.username }}
+          </p>
+          <p>
+            <strong>First Name:</strong> {{ user.first_name }}
+          </p>
+          <p>
+            <strong>Last Name:</strong> {{ user.last_name }}
+          </p>
+          <p>
+            <strong>Email:</strong> {{ user.email }}
+          </p>
+          <p>
+            <strong>Last Login:</strong> {{ user.last_login|date:'M d, Y H:i' }}
+          </p>
+          <p>
+            <strong>Date Joined:</strong> {{ user.date_joined|date:'M d, Y' }}
+          </p>
+        </div>
+
+        <!-- Notifications Card -->
+        <div class="profile-card notifications">
+          <h2><i class="bx bx-bell"></i> My Notifications</h2>
+          {% if individual_notices %}
+            <table class="notifications-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Title</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for notice in individual_notices %}
+                  <tr>
+                    <td>{{ notice.created_at|date:'M d, Y' }}</td>
+                    <td>{{ notice.title }}</td>
+                    <td>
+                      {% if notice.attachment %}
+                        <a href="{% url 'notices:download_notice_attachment' notice.id %}" class="btn btn-primary btn-sm"><i class="bx bx-download"></i> Download</a>
+                      {% else %}
+                        <span class="text-muted">No attachment</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            <div style="margin-top: 1rem; text-align: center;">
+              <a href="{% url 'notices:notice_board' %}" class="btn btn-outline"><i class="bx bx-bell"></i> View All Notices</a>
+            </div>
+          {% else %}
+            <table class="notifications-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Title</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td colspan="3" class="no-notifications">No personal notices available</td>
+                </tr>
+              </tbody>
+            </table>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% load static %}
+  <script>
+    window.profileUrl = '/teachers/profile/'
+  </script>
+  <script src="{% static 'js/profile_image_change.js' %}?v=5"></script>
+{% endblock %}

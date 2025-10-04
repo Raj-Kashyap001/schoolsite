@@ -1,0 +1,42 @@
+{% extends 'dashboard/layout.html' %}
+
+{% block content %}
+  <div class="notice-board-container">
+    <h1>Notice Board</h1>
+    <p>Stay updated with the latest notifications from the administration.</p>
+
+    {% if notices %}
+      <div class="notices-list">
+        {% for notice in notices %}
+          <div class="notice-card">
+            <div class="notice-header">
+              <div>
+                <h3>{{ notice.title }}</h3>
+                <span class="notice-type-badge {% if notice.notice_type == 'ANNOUNCEMENT' %}
+                    announcement
+                  {% else %}
+                    individual
+                  {% endif %}">
+                  {{ notice.get_notice_type_display }}
+                </span>
+              </div>
+              <span class="notice-date">{{ notice.created_at|date:'M d, Y' }}</span>
+            </div>
+            <div class="notice-content">
+              <p>{{ notice.content }}</p>
+            </div>
+            {% if notice.attachment %}
+              <div class="notice-attachment">
+                <a href="{% url 'download_notice_attachment' notice.id %}" class="download-btn"><i class="bx bx-download"></i> Download Attachment</a>
+              </div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="no-notices">
+        <p>No notices available at the moment.</p>
+      </div>
+    {% endif %}
+  </div>
+{% endblock %}
