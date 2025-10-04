@@ -99,19 +99,37 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Toolbar buttons
   document.getElementById("importCsv").addEventListener("click", () => {
-    showImportModal();
+    // Check if user is teacher or admin - both can import
+    const userRole =
+      document.querySelector("body").dataset.userRole || "Teacher";
+    if (userRole === "Teacher" || userRole === "Admin") {
+      showImportModal();
+    } else {
+      alert(
+        "Access denied. Only teachers and admins can import attendance data."
+      );
+    }
   });
 
   document.getElementById("importExcel").addEventListener("click", () => {
-    showExcelImportModal();
+    // Check if user is teacher or admin - both can import
+    const userRole =
+      document.querySelector("body").dataset.userRole || "Teacher";
+    if (userRole === "Teacher" || userRole === "Admin") {
+      showExcelImportModal();
+    } else {
+      alert(
+        "Access denied. Only teachers and admins can import attendance data."
+      );
+    }
   });
 
   document.getElementById("exportCsv").addEventListener("click", () => {
-    // Check if user is teacher - if yes, export current date data directly
-    // Otherwise show modal for admin
+    // Check if user is teacher or admin - if yes, export current date data directly
+    // Otherwise show modal for other roles
     const userRole =
       document.querySelector("body").dataset.userRole || "Teacher";
-    if (userRole === "Teacher") {
+    if (userRole === "Teacher" || userRole === "Admin") {
       handleTeacherCsvExport();
     } else {
       handleCsvExport();
@@ -119,11 +137,11 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
   document.getElementById("exportExcel").addEventListener("click", () => {
-    // Check if user is teacher - if yes, export current date data directly
-    // Otherwise show modal for admin
+    // Check if user is teacher or admin - if yes, export current date data directly
+    // Otherwise show modal for other roles
     const userRole =
       document.querySelector("body").dataset.userRole || "Teacher";
-    if (userRole === "Teacher") {
+    if (userRole === "Teacher" || userRole === "Admin") {
       handleTeacherExcelExport();
     } else {
       handleExcelExport();

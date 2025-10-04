@@ -2,7 +2,8 @@ from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.db import models
+from django.contrib.contenttypes.models import ContentType
+from django.utils import timezone
 import csv
 import io
 import json
@@ -347,7 +348,7 @@ def mark_student_attendance(request: HttpRequest):
 def import_attendance_csv(request: HttpRequest):
     """Import attendance data from CSV file"""
     role = get_user_role(request.user)
-    if role != "Teacher":
+    if role not in ["Teacher", "Admin"]:
         return HttpResponse("Access denied", status=403)
 
     if request.method != "POST" or not request.FILES.get("csv_file"):
@@ -494,7 +495,7 @@ def import_attendance_csv(request: HttpRequest):
 def export_attendance_csv(request: HttpRequest):
     """Export attendance data to CSV file"""
     role = get_user_role(request.user)
-    if role != "Teacher":
+    if role not in ["Teacher", "Admin"]:
         return HttpResponse("Access denied", status=403)
 
     try:
@@ -557,7 +558,7 @@ def export_attendance_csv(request: HttpRequest):
 def import_attendance_excel(request: HttpRequest):
     """Import attendance data from Excel file"""
     role = get_user_role(request.user)
-    if role != "Teacher":
+    if role not in ["Teacher", "Admin"]:
         return HttpResponse("Access denied", status=403)
 
     if request.method != "POST" or not request.FILES.get("excel_file"):
@@ -717,7 +718,7 @@ def import_attendance_excel(request: HttpRequest):
 def export_attendance_json(request: HttpRequest):
     """Export attendance data to JSON file"""
     role = get_user_role(request.user)
-    if role != "Teacher":
+    if role not in ["Teacher", "Admin"]:
         return HttpResponse("Access denied", status=403)
 
     try:
@@ -778,7 +779,7 @@ def export_attendance_json(request: HttpRequest):
 def export_attendance_excel(request: HttpRequest):
     """Export attendance data to Excel file"""
     role = get_user_role(request.user)
-    if role != "Teacher":
+    if role not in ["Teacher", "Admin"]:
         return HttpResponse("Access denied", status=403)
 
     try:
@@ -853,7 +854,7 @@ def export_attendance_excel(request: HttpRequest):
 def download_attendance_template(request: HttpRequest):
     """Download CSV template for attendance import"""
     role = get_user_role(request.user)
-    if role != "Teacher":
+    if role not in ["Teacher", "Admin"]:
         return HttpResponse("Access denied", status=403)
 
     # Create CSV response
@@ -890,7 +891,7 @@ def download_attendance_template(request: HttpRequest):
 def download_attendance_excel_template(request: HttpRequest):
     """Download Excel template for attendance import"""
     role = get_user_role(request.user)
-    if role != "Teacher":
+    if role not in ["Teacher", "Admin"]:
         return HttpResponse("Access denied", status=403)
 
     # Create Excel response
@@ -1007,86 +1008,263 @@ def leave(request: HttpRequest):
     role = get_user_role(request.user)
     context = {"role": role, "current_session": get_current_session()}
 
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if role == "Student":
+            try:
+                student = Student.objects.get(user=request.user)
+            except Student.DoesNotExist:
+                return JsonResponse(
+                    {"success": False, "error": "Student profile not found"}
+                )
+
+            if action == "create" or not action:
+                reason = request.POST.get("reason")
+                from_date = request.POST.get("from_date")
+                to_date = request.POST.get("to_date")
+                if not all([reason, from_date, to_date]):
+                    return JsonResponse(
+                        {"success": False, "error": "All fields are required"}
+                    )
+                try:
+                    Leave.objects.create(
+                        student=student,
+                        reason=reason,
+                        from_date=from_date,
+                        to_date=to_date,
+                    )
+                    return JsonResponse({"success": True})
+                except Exception as e:
+                    return JsonResponse(
+                        {"success": False, "error": f"Error creating leave: {str(e)}"}
+                    )
+            elif action == "edit":
+                leave_id = request.POST.get("leave_id")
+                reason = request.POST.get("reason")
+                from_date = request.POST.get("from_date")
+                to_date = request.POST.get("to_date")
+                if not all([leave_id, reason, from_date, to_date]):
+                    return JsonResponse(
+                        {"success": False, "error": "All fields are required"}
+                    )
+                try:
+                    leave = Leave.objects.get(
+                        id=leave_id, student=student, status="PENDING"
+                    )
+                    leave.reason = reason
+                    leave.from_date = from_date
+                    leave.to_date = to_date
+                    leave.save()
+                    return JsonResponse({"success": True})
+                except Leave.DoesNotExist:
+                    return JsonResponse(
+                        {"success": False, "error": "Leave not found or not editable"}
+                    )
+                except Exception as e:
+                    return JsonResponse(
+                        {"success": False, "error": f"Error updating leave: {str(e)}"}
+                    )
+            elif action == "delete":
+                leave_id = request.POST.get("leave_id")
+                if not leave_id:
+                    return JsonResponse(
+                        {"success": False, "error": "Leave ID required"}
+                    )
+                try:
+                    leave = Leave.objects.get(
+                        id=leave_id, student=student, status="PENDING"
+                    )
+                    leave.delete()
+                    return JsonResponse({"success": True})
+                except Leave.DoesNotExist:
+                    return JsonResponse(
+                        {"success": False, "error": "Leave not found or not deletable"}
+                    )
+                except Exception as e:
+                    return JsonResponse(
+                        {"success": False, "error": f"Error deleting leave: {str(e)}"}
+                    )
+            else:
+                return JsonResponse({"success": False, "error": "Invalid action"})
+
+        elif role == "Teacher":
+            try:
+                teacher = Teacher.objects.get(user=request.user)
+            except Teacher.DoesNotExist:
+                return JsonResponse(
+                    {"success": False, "error": "Teacher profile not found"}
+                )
+
+            if action == "create" or not action:
+                reason = request.POST.get("reason")
+                from_date = request.POST.get("from_date")
+                to_date = request.POST.get("to_date")
+                if not all([reason, from_date, to_date]):
+                    return JsonResponse(
+                        {"success": False, "error": "All fields are required"}
+                    )
+                try:
+                    Leave.objects.create(
+                        teacher=teacher,
+                        reason=reason,
+                        from_date=from_date,
+                        to_date=to_date,
+                    )
+                    return JsonResponse({"success": True})
+                except Exception as e:
+                    return JsonResponse(
+                        {"success": False, "error": f"Error creating leave: {str(e)}"}
+                    )
+            elif action == "edit":
+                leave_id = request.POST.get("leave_id")
+                reason = request.POST.get("reason")
+                from_date = request.POST.get("from_date")
+                to_date = request.POST.get("to_date")
+                if not all([leave_id, reason, from_date, to_date]):
+                    return JsonResponse(
+                        {"success": False, "error": "All fields are required"}
+                    )
+                try:
+                    leave = Leave.objects.get(
+                        id=leave_id, teacher=teacher, status="PENDING"
+                    )
+                    leave.reason = reason
+                    leave.from_date = from_date
+                    leave.to_date = to_date
+                    leave.save()
+                    return JsonResponse({"success": True})
+                except Leave.DoesNotExist:
+                    return JsonResponse(
+                        {"success": False, "error": "Leave not found or not editable"}
+                    )
+                except Exception as e:
+                    return JsonResponse(
+                        {"success": False, "error": f"Error updating leave: {str(e)}"}
+                    )
+            elif action == "delete":
+                leave_id = request.POST.get("leave_id")
+                if not leave_id:
+                    return JsonResponse(
+                        {"success": False, "error": "Leave ID required"}
+                    )
+                try:
+                    leave = Leave.objects.get(
+                        id=leave_id, teacher=teacher, status="PENDING"
+                    )
+                    leave.delete()
+                    return JsonResponse({"success": True})
+                except Leave.DoesNotExist:
+                    return JsonResponse(
+                        {"success": False, "error": "Leave not found or not deletable"}
+                    )
+                except Exception as e:
+                    return JsonResponse(
+                        {"success": False, "error": f"Error deleting leave: {str(e)}"}
+                    )
+            else:
+                return JsonResponse({"success": False, "error": "Invalid action"})
+
+        elif role == "Admin":
+            if action == "approve":
+                leave_id = request.POST.get("leave_id")
+                if not leave_id:
+                    return JsonResponse(
+                        {"success": False, "error": "Leave ID required"}
+                    )
+                try:
+                    leave = Leave.objects.get(id=leave_id, status="PENDING")
+                    leave.status = "APPROVED"
+                    leave.approved_on = timezone.now()
+                    leave.approved_by = request.user
+                    leave.save()
+                    return JsonResponse({"success": True})
+                except Leave.DoesNotExist:
+                    return JsonResponse({"success": False, "error": "Leave not found"})
+                except Exception as e:
+                    return JsonResponse(
+                        {"success": False, "error": f"Error approving leave: {str(e)}"}
+                    )
+            elif action == "reject":
+                leave_id = request.POST.get("leave_id")
+                if not leave_id:
+                    return JsonResponse(
+                        {"success": False, "error": "Leave ID required"}
+                    )
+                try:
+                    leave = Leave.objects.get(id=leave_id, status="PENDING")
+                    leave.status = "REJECTED"
+                    leave.approved_on = timezone.now()
+                    leave.approved_by = request.user
+                    leave.save()
+                    return JsonResponse({"success": True})
+                except Leave.DoesNotExist:
+                    return JsonResponse({"success": False, "error": "Leave not found"})
+                except Exception as e:
+                    return JsonResponse(
+                        {"success": False, "error": f"Error rejecting leave: {str(e)}"}
+                    )
+            else:
+                return JsonResponse({"success": False, "error": "Invalid action"})
+        else:
+            return JsonResponse({"success": False, "error": "Invalid role"})
+
+    elif request.method == "GET" and request.GET.get("action") == "get":
+        leave_id = request.GET.get("leave_id")
+        if not leave_id:
+            return JsonResponse({"success": False, "error": "Leave ID required"})
+
+        if role == "Student":
+            try:
+                student = Student.objects.get(user=request.user)
+                leave = Leave.objects.get(id=leave_id, student=student)
+            except (Student.DoesNotExist, Leave.DoesNotExist):
+                return JsonResponse({"success": False, "error": "Leave not found"})
+        elif role == "Teacher":
+            try:
+                teacher = Teacher.objects.get(user=request.user)
+                leave = Leave.objects.get(id=leave_id, teacher=teacher)
+            except (Teacher.DoesNotExist, Leave.DoesNotExist):
+                return JsonResponse({"success": False, "error": "Leave not found"})
+        else:
+            return JsonResponse({"success": False, "error": "Access denied"})
+
+        return JsonResponse(
+            {
+                "success": True,
+                "leave": {
+                    "reason": leave.reason,
+                    "from_date": leave.from_date.isoformat(),
+                    "to_date": leave.to_date.isoformat(),
+                },
+            }
+        )
+
+    # Render template for GET requests
     if role == "Student":
         try:
             student = Student.objects.get(user=request.user)
-            if request.method == "GET" and request.GET.get("action") == "get":
-                leave_id = request.GET.get("leave_id")
-                try:
-                    leave = Leave.objects.get(id=leave_id, student=student)
-                    return JsonResponse(
-                        {
-                            "success": True,
-                            "leave": {
-                                "reason": leave.reason,
-                                "from_date": leave.from_date.isoformat(),
-                                "to_date": leave.to_date.isoformat(),
-                            },
-                        }
-                    )
-                except Leave.DoesNotExist:
-                    return JsonResponse({"success": False, "error": "Leave not found"})
-
-            if request.method == "POST":
-                action = request.POST.get("action")
-                if action == "create":
-                    reason = request.POST.get("reason")
-                    from_date = request.POST.get("from_date")
-                    to_date = request.POST.get("to_date")
-                    if reason and from_date and to_date:
-                        Leave.objects.create(
-                            student=student,
-                            reason=reason,
-                            from_date=from_date,
-                            to_date=to_date,
-                        )
-                        return JsonResponse({"success": True})
-                    else:
-                        return JsonResponse(
-                            {"success": False, "error": "All fields are required"}
-                        )
-                elif action == "edit":
-                    leave_id = request.POST.get("leave_id")
-                    reason = request.POST.get("reason")
-                    from_date = request.POST.get("from_date")
-                    to_date = request.POST.get("to_date")
-                    try:
-                        leave = Leave.objects.get(
-                            id=leave_id, student=student, status="PENDING"
-                        )
-                        leave.reason = reason  # type: ignore
-                        leave.from_date = from_date  # type: ignore
-                        leave.to_date = to_date  # type: ignore
-                        leave.save()
-                        return JsonResponse({"success": True})
-                    except Leave.DoesNotExist:
-                        return JsonResponse(
-                            {
-                                "success": False,
-                                "error": "Leave request not found or not editable",
-                            }
-                        )
-                elif action == "delete":
-                    leave_id = request.POST.get("leave_id")
-                    try:
-                        leave = Leave.objects.get(
-                            id=leave_id, student=student, status="PENDING"
-                        )
-                        leave.delete()
-                        return JsonResponse({"success": True})
-                    except Leave.DoesNotExist:
-                        return JsonResponse(
-                            {
-                                "success": False,
-                                "error": "Leave request not found or not deletable",
-                            }
-                        )
-
             leaves = Leave.objects.filter(student=student).order_by("-apply_date")
-            context["leaves"] = leaves  # type: ignore
-            context["student"] = student  # type: ignore
+            context["leaves"] = leaves
+            context["student"] = student
         except Student.DoesNotExist:
             context["error"] = "Student profile not found"
+
+    elif role == "Teacher":
+        try:
+            teacher = Teacher.objects.get(user=request.user)
+            leaves = Leave.objects.filter(teacher=teacher).order_by("-apply_date")
+            context["leaves"] = leaves
+            context["teacher"] = teacher
+        except Teacher.DoesNotExist:
+            context["error"] = "Teacher profile not found"
+
+    elif role == "Admin":
+        all_teacher_leaves = (
+            Leave.objects.filter(teacher__isnull=False)
+            .select_related("teacher", "approved_by")
+            .order_by("-apply_date")
+        )
+        context["all_teacher_leaves"] = all_teacher_leaves
 
     return render(request, "dashboard/leave.html", context)
 

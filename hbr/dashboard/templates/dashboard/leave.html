@@ -6,46 +6,91 @@
     {% if error %}
       <p class="error">{{ error }}</p>
     {% else %}
-      <div class="apply-leave-section">
-        <button id="applyLeaveBtn" class="btn btn-primary">Apply for Leave</button>
-      </div>
-
-      <div class="leave-table-section">
-        <h2>Your Leave Requests</h2>
-        {% if leaves %}
-          <table class="leave-table">
-            <thead>
-              <tr>
-                <th>Apply Date</th>
-                <th>Reason</th>
-                <th>From</th>
-                <th>To</th>
-                <th>Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for leave in leaves %}
+      {% if role == 'Admin' %}
+        <!-- Admin View - Manage Teacher Leaves -->
+        <div class="admin-leave-section">
+          <h2>Teacher Leave Management</h2>
+          {% if all_teacher_leaves %}
+            <table class="leave-table">
+              <thead>
                 <tr>
-                  <td>{{ leave.apply_date|date:'d/m/Y H:i' }}</td>
-                  <td>{{ leave.reason }}</td>
-                  <td>{{ leave.from_date|date:'d/m/Y' }}</td>
-                  <td>{{ leave.to_date|date:'d/m/Y' }}</td>
-                  <td class="status-{{ leave.status|lower }}">{{ leave.status }}</td>
-                  <td>
-                    {% if leave.status == 'PENDING' %}
-                      <button class="btn btn-outline edit-btn" data-id="{{ leave.id }}"><i class="bxr bx-pencil"></i></button>
-                      <button class="btn btn-inverted delete-btn" data-id="{{ leave.id }}"><i class="bxr bx-trash"></i></button>
-                    {% endif %}
-                  </td>
+                  <th>Teacher</th>
+                  <th>Apply Date</th>
+                  <th>Reason</th>
+                  <th>From</th>
+                  <th>To</th>
+                  <th>Status</th>
+                  <th>Action</th>
                 </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        {% else %}
-          <p>No leave requests found.</p>
-        {% endif %}
-      </div>
+              </thead>
+              <tbody>
+                {% for leave in all_teacher_leaves %}
+                  <tr>
+                    <td>{{ leave.teacher.user.get_full_name }}</td>
+                    <td>{{ leave.apply_date|date:'d/m/Y H:i' }}</td>
+                    <td>{{ leave.reason }}</td>
+                    <td>{{ leave.from_date|date:'d/m/Y' }}</td>
+                    <td>{{ leave.to_date|date:'d/m/Y' }}</td>
+                    <td class="status-{{ leave.status|lower }}">{{ leave.status }}</td>
+                    <td>
+                      {% if leave.status == 'PENDING' %}
+                        <button class="btn btn-success approve-btn" data-id="{{ leave.id }}" style="margin-right: 5px;"><i class="bx bx-check"></i> Approve</button>
+                        <button class="btn btn-danger reject-btn" data-id="{{ leave.id }}"><i class="bx bx-x"></i> Reject</button>
+                      {% else %}
+                        <small>Approved by: {{ leave.approved_by.get_full_name|default:'N/A' }}</small>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          {% else %}
+            <p>No teacher leave requests found.</p>
+          {% endif %}
+        </div>
+      {% else %}
+        <!-- Student/Teacher View - Apply and View Own Leaves -->
+        <div class="apply-leave-section">
+          <button id="applyLeaveBtn" class="btn btn-primary">Apply for Leave</button>
+        </div>
+
+        <div class="leave-table-section">
+          <h2>Your Leave Requests</h2>
+          {% if leaves %}
+            <table class="leave-table">
+              <thead>
+                <tr>
+                  <th>Apply Date</th>
+                  <th>Reason</th>
+                  <th>From</th>
+                  <th>To</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for leave in leaves %}
+                  <tr>
+                    <td>{{ leave.apply_date|date:'d/m/Y H:i' }}</td>
+                    <td>{{ leave.reason }}</td>
+                    <td>{{ leave.from_date|date:'d/m/Y' }}</td>
+                    <td>{{ leave.to_date|date:'d/m/Y' }}</td>
+                    <td class="status-{{ leave.status|lower }}">{{ leave.status }}</td>
+                    <td>
+                      {% if leave.status == 'PENDING' %}
+                        <button class="btn btn-outline edit-btn" data-id="{{ leave.id }}"><i class="bxr bx-pencil"></i></button>
+                        <button class="btn btn-inverted delete-btn" data-id="{{ leave.id }}"><i class="bxr bx-trash"></i></button>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          {% else %}
+            <p>No leave requests found.</p>
+          {% endif %}
+        </div>
+      {% endif %}
     {% endif %}
   </div>
 

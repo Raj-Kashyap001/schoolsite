@@ -23,21 +23,36 @@ document
   .addEventListener("submit", function (e) {
     e.preventDefault();
     const formData = new FormData(this);
+    // Ensure CSRF token is included
+    const csrfToken = document.querySelector("[name=csrfmiddlewaretoken]");
+    if (csrfToken) {
+      formData.append("csrfmiddlewaretoken", csrfToken.value);
+    }
     fetch(leaveUrl, {
       method: "POST",
       body: formData,
-      headers: {
-        "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]")
-          .value,
-      },
+      credentials: "same-origin",
     })
-      .then((response) => response.json())
+      .then((response) => {
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          return response.json();
+        } else {
+          throw new Error(
+            "Server returned non-JSON response. Please check your login session."
+          );
+        }
+      })
       .then((data) => {
         if (data.success) {
           location.reload();
         } else {
           alert("Error: " + data.error);
         }
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+        alert("An error occurred: " + error.message);
       });
   });
 
@@ -46,8 +61,19 @@ document.querySelectorAll(".edit-btn").forEach((btn) => {
   btn.addEventListener("click", function () {
     const leaveId = this.getAttribute("data-id");
     // Fetch leave data and populate modal
-    fetch(`${leaveUrl}?action=get&leave_id=${leaveId}`)
-      .then((response) => response.json())
+    fetch(`${leaveUrl}?action=get&leave_id=${leaveId}`, {
+      credentials: "same-origin",
+    })
+      .then((response) => {
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          return response.json();
+        } else {
+          throw new Error(
+            "Server returned non-JSON response. Please check your login session."
+          );
+        }
+      })
       .then((data) => {
         if (data.success) {
           document.getElementById("reason").value = data.leave.reason;
@@ -60,7 +86,13 @@ document.querySelectorAll(".edit-btn").forEach((btn) => {
             `<input type="hidden" name="action" value="edit" id="actionInput"><input type="hidden" name="leave_id" value="${leaveId}" id="leaveIdInput">`
           );
           modal.style.display = "block";
+        } else {
+          alert("Error: " + data.error);
         }
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+        alert("An error occurred: " + error.message);
       });
   });
 });
@@ -72,21 +104,121 @@ document.querySelectorAll(".delete-btn").forEach((btn) => {
       const formData = new FormData();
       formData.append("action", "delete");
       formData.append("leave_id", leaveId);
+      // Add CSRF token
+      const csrfToken = document.querySelector("[name=csrfmiddlewaretoken]");
+      if (csrfToken) {
+        formData.append("csrfmiddlewaretoken", csrfToken.value);
+      }
       fetch(leaveUrl, {
         method: "POST",
         body: formData,
-        headers: {
-          "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]")
-            .value,
-        },
+        credentials: "same-origin",
       })
-        .then((response) => response.json())
+        .then((response) => {
+          const contentType = response.headers.get("content-type");
+          if (contentType && contentType.includes("application/json")) {
+            return response.json();
+          } else {
+            throw new Error(
+              "Server returned non-JSON response. Please check your login session."
+            );
+          }
+        })
         .then((data) => {
           if (data.success) {
             location.reload();
           } else {
             alert("Error: " + data.error);
           }
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+          alert("An error occurred: " + error.message);
+        });
+    }
+  });
+});
+
+// Admin approve/reject functionality
+document.querySelectorAll(".approve-btn").forEach((btn) => {
+  btn.addEventListener("click", function () {
+    const leaveId = this.getAttribute("data-id");
+    if (confirm("Are you sure you want to approve this leave request?")) {
+      const formData = new FormData();
+      formData.append("action", "approve");
+      formData.append("leave_id", leaveId);
+      // Add CSRF token
+      const csrfToken = document.querySelector("[name=csrfmiddlewaretoken]");
+      if (csrfToken) {
+        formData.append("csrfmiddlewaretoken", csrfToken.value);
+      }
+      fetch(leaveUrl, {
+        method: "POST",
+        body: formData,
+        credentials: "same-origin",
+      })
+        .then((response) => {
+          const contentType = response.headers.get("content-type");
+          if (contentType && contentType.includes("application/json")) {
+            return response.json();
+          } else {
+            throw new Error(
+              "Server returned non-JSON response. Please check your login session."
+            );
+          }
+        })
+        .then((data) => {
+          if (data.success) {
+            location.reload();
+          } else {
+            alert("Error: " + (data.error || "Unknown error"));
+          }
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+          alert("An error occurred: " + error.message);
+        });
+    }
+  });
+});
+
+document.querySelectorAll(".reject-btn").forEach((btn) => {
+  btn.addEventListener("click", function () {
+    const leaveId = this.getAttribute("data-id");
+    if (confirm("Are you sure you want to reject this leave request?")) {
+      const formData = new FormData();
+      formData.append("action", "reject");
+      formData.append("leave_id", leaveId);
+      // Add CSRF token
+      const csrfToken = document.querySelector("[name=csrfmiddlewaretoken]");
+      if (csrfToken) {
+        formData.append("csrfmiddlewaretoken", csrfToken.value);
+      }
+      fetch(leaveUrl, {
+        method: "POST",
+        body: formData,
+        credentials: "same-origin",
+      })
+        .then((response) => {
+          const contentType = response.headers.get("content-type");
+          if (contentType && contentType.includes("application/json")) {
+            return response.json();
+          } else {
+            throw new Error(
+              "Server returned non-JSON response. Please check your login session."
+            );
+          }
+        })
+        .then((data) => {
+          if (data.success) {
+            location.reload();
+          } else {
+            alert("Error: " + (data.error || "Unknown error"));
+          }
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+          alert("An error occurred: " + error.message);
         });
     }
   });
