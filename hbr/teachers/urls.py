@@ -5,4 +5,5 @@ app_name = "teachers"
 
 urlpatterns = [
     path("profile/", views.profile, name="profile"),
+    path("salary/", views.salary, name="salary"),
 ]

@@ -1,5 +1,5 @@
 from django.http import HttpRequest, HttpResponse, JsonResponse
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.contenttypes.models import ContentType
@@ -8,7 +8,7 @@ from django.utils import timezone
 import pandas as pd
 from datetime import date
 from base.views import get_user_role
-from .models import Teacher
+from .models import Teacher, TeacherSalary
 
 
 @login_required
@@ -73,3 +73,21 @@ def profile(request: HttpRequest):
             context["teacher"] = None
 
     return render(request, "teachers/profile.html", context)
+
+
+@login_required
+def salary(request: HttpRequest):
+    """View for teacher to see their salary records"""
+    user = request.user
+    role = get_user_role(user)
+
+    if role != "Teacher":
+        return HttpResponse("Unauthorized", status=403)
+
+    teacher = get_object_or_404(Teacher, user=user)
+    salaries = TeacherSalary.objects.filter(teacher=teacher).order_by("-payment_date")
+
+    context = {
+        "salaries": salaries,
+    }
+    return render(request, "teachers/salary.html", context)

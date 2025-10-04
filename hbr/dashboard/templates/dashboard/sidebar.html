@@ -17,7 +17,7 @@
 
   {% with url_name=request.resolver_match.url_name %}
     <nav class="sidebar-nav">
-      <a href="{% url 'dashboard' %}" class="{% if url_name == 'dashboard' %}active{% endif %}"><i class="bx bx-home"></i> Home</a>
+      <a href="{% url 'dashboard:dashboard' %}" class="{% if url_name == 'dashboard' %}active{% endif %}"><i class="bx bx-home"></i> Home</a>
       <a href="{% url 'attendance:attendance' %}" class="{% if url_name == 'attendance' %}active{% endif %}"><i class="bx bx-calendar-alt"></i>Attendance</a>
       {% if role == 'Teacher' %}
         <a href="{% url 'attendance:mark_student_attendance' %}" class="{% if url_name == 'mark_student_attendance' %}active{% endif %}"><i class="bx bx-check-circle"></i>Mark Student Attendance</a>
@@ -30,8 +30,10 @@
       {% if role == 'Student' %}
         <a href="{% url 'students:documents' %}" class="{% if url_name == 'documents' %}active{% endif %}"><i class="bx bx-folder"></i> My Documents</a>
         <a href="{% url 'students:certificates' %}" class="{% if url_name == 'certificates' %}active{% endif %}"><i class="bxr bx-medal-star-alt-2"></i> My Certificates</a>
+        <a href="/students/payments/" class="{% if url_name == 'payments' %}active{% endif %}"><i class="bx bx-wallet"></i>Payments</a>
+      {% elif role == 'Teacher' %}
+        <a href="/teachers/salary/" class="{% if url_name == 'salary' %}active{% endif %}"><i class="bx bx-wallet"></i>Salary Records</a>
       {% endif %}
-      <a href="{% url 'students:payments' %}" class="{% if url_name == 'payments' %}active{% endif %}"><i class="bx bx-wallet"></i>Payments</a>
       {% if role == 'Student' %}
         <a href="{% url 'academics:exams' %}" class="{% if url_name == 'exams' %}active{% endif %}"><i class="bx bx-book"></i> My Exams</a>
       {% endif %}
