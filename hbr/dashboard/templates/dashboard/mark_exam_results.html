@@ -1,0 +1,212 @@
+{% extends 'dashboard/layout.html' %}
+{% load static %}
+
+{% block content %}
+  <div class="exams-container">
+    <h1>Mark Exam Results</h1>
+
+    {% if error %}
+      <div class="error">{{ error }}</div>
+    {% else %}
+      <!-- Step 1: Select Exam -->
+      <div id="exam-selection" class="step active">
+        <h2>Step 1: Select Exam</h2>
+        <div id="exam-list" class="exam-list">
+          <p>Loading exams...</p>
+        </div>
+      </div>
+
+      <!-- Step 2: Select Subject -->
+      <div id="subject-selection" class="step">
+        <h2>Step 2: Select Subject</h2>
+        <div id="subject-list" class="subject-list">
+          <p>Please select an exam first.</p>
+        </div>
+      </div>
+
+      <!-- Step 3: Mark Results -->
+      <div id="results-marking" class="step">
+        <h2>Step 3: Mark Student Results</h2>
+        <div id="students-table-container" class="table-container">
+          <p>Please select a subject first.</p>
+        </div>
+        <div class="form-actions">
+          <button id="save-draft-btn" class="btn btn-outline">Save Draft</button>
+          <button id="submit-results-btn" class="btn btn-primary">Submit & Lock Results</button>
+        </div>
+      </div>
+
+      <!-- Messages -->
+      <div id="messages" class="messages"></div>
+    {% endif %}
+  </div>
+
+  <style>
+    .exams-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem 1rem;
+    }
+    
+    .exams-container h1 {
+      text-align: center;
+      margin-bottom: 2rem;
+      color: var(--color-black);
+      font-size: 2.5rem;
+    }
+    
+    .step {
+      display: none;
+      margin-bottom: 2rem;
+      background: var(--color-white);
+      padding: 1.5rem;
+      border-radius: 12px;
+      box-shadow: 0 1px 6px hsl(0 0 0 /0.1);
+    }
+    
+    .step.active {
+      display: block;
+    }
+    
+    .step h2 {
+      color: var(--color-primary);
+      margin-bottom: 1rem;
+      font-size: 1.5rem;
+      border-bottom: 2px solid var(--color-secondary);
+      padding-bottom: 0.5rem;
+    }
+    
+    .exam-list,
+    .subject-list {
+      display: grid;
+      gap: 1rem;
+    }
+    
+    .exam-item,
+    .subject-item {
+      background: var(--color-secondary);
+      padding: 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border: 2px solid transparent;
+    }
+    
+    .exam-item:hover,
+    .subject-item:hover {
+      background: color-mix(in srgb, var(--color-secondary), var(--color-black) 10%);
+      border-color: var(--color-primary);
+    }
+    
+    .exam-item.selected,
+    .subject-item.selected {
+      background: var(--color-primary);
+      color: var(--color-white);
+      border-color: var(--color-primary);
+    }
+    
+    .table-container {
+      margin-bottom: 1.5rem;
+    }
+    
+    .students-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--color-white);
+      box-shadow: 0 1px 6px hsl(0 0 0 /0.1);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    
+    .students-table th,
+    .students-table td {
+      padding: 0.8rem;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .students-table th {
+      background: var(--color-secondary);
+      color: var(--color-black);
+      font-weight: 600;
+    }
+    
+    .students-table tbody tr:hover {
+      background: #f8f9fa;
+    }
+    
+    .marks-input {
+      width: 80px;
+      padding: 0.4rem;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      text-align: center;
+    }
+    
+    .remarks-input {
+      width: 150px;
+      padding: 0.4rem;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    
+    .locked-row {
+      background: #f8f9fa;
+      opacity: 0.7;
+    }
+    
+    .locked-row .marks-input,
+    .locked-row .remarks-input {
+      background: #e9ecef;
+      cursor: not-allowed;
+    }
+    
+    .form-actions {
+      text-align: center;
+      margin-top: 1.5rem;
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+    }
+    
+    .messages {
+      margin-top: 1rem;
+    }
+    
+    .message {
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      font-weight: 500;
+    }
+    
+    .message.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    
+    .message.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 2rem;
+      color: #666;
+    }
+    
+    .error {
+      color: var(--color-primary);
+      text-align: center;
+      font-size: 1.2rem;
+      margin-top: 2rem;
+    }
+  </style>
+{% endblock %}
+
+{% block inline_js %}
+  <script src="{% static 'js/mark_exam_results.js' %}"></script>
+{% endblock %}

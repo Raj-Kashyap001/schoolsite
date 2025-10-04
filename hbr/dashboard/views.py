@@ -1,3 +1,6 @@
+from decimal import Decimal
+from django.db import models
+from django.db.models import Q
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
@@ -1410,8 +1413,8 @@ def notice_board(request: HttpRequest):
             notices = (
                 Notice.objects.filter(is_active=True)
                 .filter(
-                    models.Q(notice_type=Notice.NoticeType.ANNOUNCEMENT)
-                    | models.Q(
+                    Q(notice_type=Notice.NoticeType.ANNOUNCEMENT)
+                    | Q(
                         notice_type=Notice.NoticeType.INDIVIDUAL,
                         target_students=student,
                     )
@@ -1505,10 +1508,8 @@ def exams(request: HttpRequest):
                 upcoming_exams = (
                     Exam.objects.filter(
                         # Exams from current term OR exams from past terms with future schedules
-                        models.Q(term=current_term)
-                        | models.Q(
-                            term__end_date__lt=today, examschedule__date__gte=today
-                        )
+                        Q(term=current_term)
+                        | Q(term__end_date__lt=today, examschedule__date__gte=today)
                     )
                     .prefetch_related("examschedule_set")
                     .distinct()
@@ -1657,6 +1658,296 @@ def get_exam_results(request: HttpRequest, term_id: int):
         return JsonResponse({"results": results_data})
     except (Student.DoesNotExist, Term.DoesNotExist):
         return JsonResponse({"error": "Not found"}, status=404)
+
+
+@login_required
+def mark_exam_results(request: HttpRequest):
+    role = get_user_role(request.user)
+    if role not in ["Teacher", "Admin"]:
+        return HttpResponse("Access denied", status=403)
+
+    context = {"role": role, "current_session": get_current_session()}
+
+    try:
+        teacher = Teacher.objects.get(user=request.user)
+        context["teacher"] = teacher
+    except Teacher.DoesNotExist:
+        context["error"] = "Teacher profile not found"
+        return render(request, "dashboard/mark_exam_results.html", context)
+
+    if (
+        request.method == "POST"
+        and request.headers.get("X-Requested-With") == "XMLHttpRequest"
+    ):
+        action = request.POST.get("action")
+
+        if action == "get_assigned_exams":
+            # Get exams where teacher has subjects in ExamSchedule (case-insensitive)
+            exam_schedules = ExamSchedule.objects.filter(
+                subject__iexact=teacher.subject
+            ).select_related("exam", "exam__term")
+            exams = []
+            seen_exams = set()
+            for schedule in exam_schedules:
+                if schedule.exam.id not in seen_exams:
+                    exams.append(
+                        {
+                            "id": schedule.exam.id,
+                            "name": schedule.exam.name,
+                            "term": str(schedule.exam.term),
+                            "date": schedule.date.strftime("%Y-%m-%d"),
+                        }
+                    )
+                    seen_exams.add(schedule.exam.id)
+            return JsonResponse({"success": True, "exams": exams})
+
+        elif action == "get_subjects":
+            exam_id = request.POST.get("exam_id")
+            if not exam_id:
+                return JsonResponse({"success": False, "error": "Exam ID required"})
+
+            try:
+                exam = Exam.objects.get(id=exam_id)
+                subjects = (
+                    ExamSchedule.objects.filter(
+                        exam=exam, subject__iexact=teacher.subject
+                    )
+                    .values_list("subject", flat=True)
+                    .distinct()
+                )
+                return JsonResponse({"success": True, "subjects": list(subjects)})
+            except Exam.DoesNotExist:
+                return JsonResponse({"success": False, "error": "Exam not found"})
+
+        elif action == "get_students":
+            exam_id = request.POST.get("exam_id")
+            subject = request.POST.get("subject")
+            if not all([exam_id, subject]):
+                return JsonResponse(
+                    {"success": False, "error": "Exam ID and subject required"}
+                )
+
+            try:
+                exam = Exam.objects.get(id=exam_id)
+                # Get students in teacher's classrooms
+                students = (
+                    Student.objects.filter(classroom__in=teacher.classroom.all())
+                    .select_related("user", "classroom")
+                    .order_by("sr_no")
+                )
+
+                students_data = []
+                for student in students:
+                    # Check if result already exists
+                    existing_result = ExamResult.objects.filter(
+                        student=student, exam=exam, subject=subject
+                    ).first()
+
+                    students_data.append(
+                        {
+                            "id": student.id,
+                            "name": student.user.get_full_name(),
+                            "roll_no": student.roll_no,
+                            "class": str(student.classroom),
+                            "marks_obtained": (
+                                str(existing_result.marks_obtained)
+                                if existing_result and existing_result.marks_obtained
+                                else ""
+                            ),
+                            "remarks": (
+                                existing_result.remarks if existing_result else ""
+                            ),
+                            "grade": existing_result.grade if existing_result else "",
+                            "is_locked": bool(
+                                existing_result
+                                and existing_result.status
+                                == ExamResult.Status.SUBMITTED
+                            ),
+                        }
+                    )
+
+                return JsonResponse(
+                    {"success": True, "students": students_data, "total_marks": 100}
+                )
+            except Exam.DoesNotExist:
+                return JsonResponse({"success": False, "error": "Exam not found"})
+
+        elif action == "save_draft":
+            exam_id = request.POST.get("exam_id")
+            subject = request.POST.get("subject")
+            student_marks = request.POST.get("student_marks")
+
+            if not all([exam_id, subject, student_marks]):
+                return JsonResponse(
+                    {"success": False, "error": "Missing required data"}
+                )
+
+            try:
+                import json
+
+                marks_data = json.loads(student_marks)
+                exam = Exam.objects.get(id=exam_id)
+
+                saved_count = 0
+                for student_id, data in marks_data.items():
+                    student = Student.objects.get(id=student_id)
+                    marks_obtained = data.get("marks", "")
+                    remarks = data.get("remarks", "")
+
+                    # Only save if not already submitted
+                    result, created = ExamResult.objects.get_or_create(
+                        student=student,
+                        exam=exam,
+                        subject=subject,
+                        defaults={
+                            "marks_obtained": (
+                                Decimal(marks_obtained) if marks_obtained else None
+                            ),
+                            "total_marks": Decimal("100"),
+                            "remarks": remarks,
+                            "status": ExamResult.Status.DRAFT,
+                        },
+                    )
+                    if (
+                        not created and result.status == ExamResult.Status.DRAFT
+                    ):  # Only update if not submitted
+                        result.marks_obtained = (
+                            Decimal(marks_obtained) if marks_obtained else None
+                        )
+                        result.remarks = remarks
+                        result.save()
+                    saved_count += 1
+
+                return JsonResponse(
+                    {
+                        "success": True,
+                        "message": f"Draft saved for {saved_count} students",
+                    }
+                )
+            except (
+                Exam.DoesNotExist,
+                Student.DoesNotExist,
+                json.JSONDecodeError,
+                ValueError,
+            ) as e:
+                return JsonResponse({"success": False, "error": str(e)})
+
+        elif action == "submit_results":
+            exam_id = request.POST.get("exam_id")
+            subject = request.POST.get("subject")
+            student_marks = request.POST.get("student_marks")
+
+            if not all([exam_id, subject, student_marks]):
+                return JsonResponse(
+                    {"success": False, "error": "Missing required data"}
+                )
+
+            try:
+                import json
+
+                marks_data = json.loads(student_marks)
+                exam = Exam.objects.get(id=exam_id)
+
+                # Validation
+                errors = []
+                for student_id, data in marks_data.items():
+                    marks = data.get("marks", "").strip()
+                    if not marks:
+                        student = Student.objects.get(id=student_id)
+                        errors.append(
+                            f"Marks required for {student.user.get_full_name()}"
+                        )
+
+                    try:
+                        if marks:
+                            marks_val = Decimal(marks)
+                            if marks_val < 0 or marks_val > 100:
+                                student = Student.objects.get(id=student_id)
+                                errors.append(
+                                    f"Invalid marks for {student.user.get_full_name()}: {marks}"
+                                )
+                    except (ValueError, TypeError):
+                        student = Student.objects.get(id=student_id)
+                        errors.append(
+                            f"Invalid marks format for {student.user.get_full_name()}: {marks}"
+                        )
+
+                if errors:
+                    return JsonResponse(
+                        {
+                            "success": False,
+                            "error": "Validation failed",
+                            "details": errors,
+                        }
+                    )
+
+                # Calculate grades and save
+                submitted_count = 0
+                for student_id, data in marks_data.items():
+                    student = Student.objects.get(id=student_id)
+                    marks_obtained = Decimal(data.get("marks", "0"))
+                    remarks = data.get("remarks", "")
+
+                    # Calculate grade (simple percentage-based)
+                    percentage = (marks_obtained / 100) * 100
+                    if percentage >= 90:
+                        grade = "A+"
+                    elif percentage >= 80:
+                        grade = "A"
+                    elif percentage >= 70:
+                        grade = "B+"
+                    elif percentage >= 60:
+                        grade = "B"
+                    elif percentage >= 50:
+                        grade = "C"
+                    elif percentage >= 40:
+                        grade = "D"
+                    else:
+                        grade = "F"
+
+                    from django.utils import timezone
+
+                    result, created = ExamResult.objects.get_or_create(
+                        student=student,
+                        exam=exam,
+                        subject=subject,
+                        defaults={
+                            "marks_obtained": marks_obtained,
+                            "total_marks": Decimal("100"),
+                            "grade": grade,
+                            "remarks": remarks,
+                            "status": ExamResult.Status.SUBMITTED,
+                            "submitted_at": timezone.now(),
+                            "submitted_by": request.user,
+                        },
+                    )
+                    if not created:
+                        result.marks_obtained = marks_obtained
+                        result.grade = grade
+                        result.remarks = remarks
+                        result.status = ExamResult.Status.SUBMITTED
+                        result.submitted_at = timezone.now()
+                        result.submitted_by = request.user
+                        result.save()
+                    submitted_count += 1
+
+                return JsonResponse(
+                    {
+                        "success": True,
+                        "message": f"Results submitted and locked for {submitted_count} students",
+                    }
+                )
+            except (
+                Exam.DoesNotExist,
+                Student.DoesNotExist,
+                json.JSONDecodeError,
+                ValueError,
+            ) as e:
+                return JsonResponse({"success": False, "error": str(e)})
+
+        return JsonResponse({"success": False, "error": "Invalid action"})
+
+    return render(request, "dashboard/mark_exam_results.html", context)
 
 
 @login_required

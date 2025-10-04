@@ -1,5 +1,14 @@
 from django.core.management.base import BaseCommand
-from dashboard.models import Classroom, Subject, Stream, Exam, Term, AcademicSession
+from dashboard.models import (
+    Classroom,
+    Subject,
+    Stream,
+    Exam,
+    Term,
+    AcademicSession,
+    ExamSchedule,
+)
+from datetime import datetime, time
 
 
 class Command(BaseCommand):
@@ -116,5 +125,52 @@ class Command(BaseCommand):
                 )
                 if created:
                     self.stdout.write(f"Created exam: {exam_name}")
+
+            # Create Exam Schedules for the exams
+            exam_schedules_data = [
+                # Asst. 1st exam schedules
+                ("Asst. 1st", "HINDI", "2024-04-15", "09:00", "Room 101"),
+                ("Asst. 1st", "ENGLISH", "2024-04-16", "09:00", "Room 102"),
+                ("Asst. 1st", "MATHS", "2024-04-17", "09:00", "Room 103"),
+                ("Asst. 1st", "SCIENCE", "2024-04-18", "09:00", "Room 104"),
+                ("Asst. 1st", "SOCIAL SCIENCE", "2024-04-19", "09:00", "Room 105"),
+                # Int. 1st exam schedules
+                ("Int. 1st", "HINDI", "2024-05-15", "09:00", "Room 101"),
+                ("Int. 1st", "ENGLISH", "2024-05-16", "09:00", "Room 102"),
+                ("Int. 1st", "MATHS", "2024-05-17", "09:00", "Room 103"),
+                ("Int. 1st", "SCIENCE", "2024-05-18", "09:00", "Room 104"),
+                ("Int. 1st", "SOCIAL SCIENCE", "2024-05-19", "09:00", "Room 105"),
+                # Qtrly Exam schedules
+                ("Qtrly Exam", "HINDI", "2024-07-15", "09:00", "Room 101"),
+                ("Qtrly Exam", "ENGLISH", "2024-07-16", "09:00", "Room 102"),
+                ("Qtrly Exam", "MATHS", "2024-07-17", "09:00", "Room 103"),
+                ("Qtrly Exam", "SCIENCE", "2024-07-18", "09:00", "Room 104"),
+                ("Qtrly Exam", "SOCIAL SCIENCE", "2024-07-19", "09:00", "Room 105"),
+            ]
+
+            for (
+                exam_name,
+                subject_name,
+                date_str,
+                time_str,
+                room,
+            ) in exam_schedules_data:
+                try:
+                    exam = Exam.objects.get(term=first_term, name=exam_name)
+                    schedule, created = ExamSchedule.objects.get_or_create(
+                        exam=exam,
+                        date=date_str,
+                        time=time_str,
+                        subject=subject_name,
+                        defaults={"room": room},
+                    )
+                    if created:
+                        self.stdout.write(
+                            f"Created exam schedule: {exam_name} - {subject_name} - {date_str}"
+                        )
+                except Exam.DoesNotExist:
+                    self.stdout.write(
+                        f"Warning: Exam '{exam_name}' not found, skipping schedule creation"
+                    )
 
         self.stdout.write(self.style.SUCCESS("Initial data seeding completed!"))

@@ -321,6 +321,10 @@ class ExamSchedule(models.Model):
 
 
 class ExamResult(models.Model):
+    class Status(models.TextChoices):
+        DRAFT = "DRAFT", "Draft"
+        SUBMITTED = "SUBMITTED", "Submitted"
+
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
     exam = models.ForeignKey(Exam, on_delete=models.CASCADE)
     subject = models.CharField(max_length=100)
@@ -331,6 +335,13 @@ class ExamResult(models.Model):
         max_digits=5, decimal_places=2, default=Decimal("100")
     )
     grade = models.CharField(max_length=10, blank=True)
+    status = models.CharField(
+        max_length=20, choices=Status.choices, default=Status.DRAFT
+    )
+    submitted_at = models.DateTimeField(null=True, blank=True)
+    submitted_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True
+    )
 
     def __str__(self):
         return f"{self.student} - {self.exam.name} - {self.subject}"
