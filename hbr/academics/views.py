@@ -380,6 +380,153 @@ def save_exam_results(request: HttpRequest, exam_id: int, classroom_id: int):
 
 
 @login_required
+def bulk_import_results(request: HttpRequest, exam_id: int, classroom_id: int):
+    role = get_user_role(request.user)
+    if role != "Teacher":
+        return JsonResponse({"error": "Access denied"}, status=403)
+
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    try:
+        teacher = Teacher.objects.get(user=request.user)
+        exam = Exam.objects.get(id=exam_id)
+        classroom = Classroom.objects.get(id=classroom_id)
+
+        # Check assignment
+        if not ExamAssignment.objects.filter(
+            teacher=teacher, exam=exam, classroom=classroom
+        ).exists():
+            return JsonResponse({"error": "Access denied"}, status=403)
+
+        # Check if exam is locked
+        if ExamResult.objects.filter(
+            exam=exam, student__classroom=classroom, status=ExamResult.Status.LOCKED
+        ).exists():
+            return JsonResponse({"error": "Exam results are locked"}, status=403)
+
+        file = request.FILES.get("file")
+        if not file:
+            return JsonResponse({"error": "No file provided"}, status=400)
+
+        # Process CSV or Excel file
+        if file.name.endswith(".csv"):
+            df = pd.read_csv(file)
+        elif file.name.endswith((".xlsx", ".xls")):
+            df = pd.read_excel(file)
+        else:
+            return JsonResponse({"error": "Unsupported file format"}, status=400)
+
+        # Expected columns: roll_no, subject, marks, grade
+        required_columns = ["roll_no", "subject", "marks"]
+        if not all(col in df.columns for col in required_columns):
+            return JsonResponse(
+                {"error": "Missing required columns: roll_no, subject, marks"},
+                status=400,
+            )
+
+        students = {
+            student.roll_no: student
+            for student in Student.objects.filter(classroom=classroom)
+        }
+
+        for _, row in df.iterrows():
+            roll_no = str(row["roll_no"]).strip()
+            subject = str(row["subject"]).strip()
+            marks = row.get("marks")
+            grade = str(row.get("grade", "")).strip() if "grade" in df.columns else ""
+
+            if roll_no not in students:
+                continue  # Skip invalid roll numbers
+
+            student = students[roll_no]
+
+            # Get or create result
+            result, created = ExamResult.objects.get_or_create(
+                student=student,
+                exam=exam,
+                subject=subject,
+                defaults={
+                    "total_marks": Decimal("100"),
+                    "submitted_by": request.user,
+                },
+            )
+
+            # Update marks and grade
+            result.marks_obtained = (
+                Decimal(str(marks)) if marks and str(marks).strip() else None
+            )
+            result.grade = grade
+            result.status = ExamResult.Status.DRAFT
+            result.save()
+
+        return JsonResponse({"success": True})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@login_required
+def export_results(request: HttpRequest, exam_id: int, classroom_id: int):
+    role = get_user_role(request.user)
+    if role != "Teacher":
+        return HttpResponse("Access denied", status=403)
+
+    try:
+        teacher = Teacher.objects.get(user=request.user)
+        exam = Exam.objects.get(id=exam_id)
+        classroom = Classroom.objects.get(id=classroom_id)
+
+        # Check assignment
+        if not ExamAssignment.objects.filter(
+            teacher=teacher, exam=exam, classroom=classroom
+        ).exists():
+            return HttpResponse("Access denied", status=403)
+
+        # Get all results for this exam and classroom
+        results = (
+            ExamResult.objects.filter(exam=exam, student__classroom=classroom)
+            .select_related("student")
+            .order_by("student__roll_no", "subject")
+        )
+
+        # Create CSV response
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = (
+            f'attachment; filename="{exam.name}_{classroom.grade}{classroom.section or ""}_results.csv"'
+        )
+
+        writer = csv.writer(response)
+        writer.writerow(
+            [
+                "Roll No",
+                "Student Name",
+                "Subject",
+                "Marks Obtained",
+                "Total Marks",
+                "Grade",
+                "Status",
+            ]
+        )
+
+        for result in results:
+            writer.writerow(
+                [
+                    result.student.roll_no,
+                    result.student.user.get_full_name(),
+                    result.subject,
+                    result.marks_obtained or "",
+                    result.total_marks,
+                    result.grade or "",
+                    result.status,
+                ]
+            )
+
+        return response
+    except (Teacher.DoesNotExist, Exam.DoesNotExist, Classroom.DoesNotExist):
+        return HttpResponse("Not found", status=404)
+
+
+@login_required
 def get_exam_results(request: HttpRequest, term_id: int):
     role = get_user_role(request.user)
     if role != "Student":

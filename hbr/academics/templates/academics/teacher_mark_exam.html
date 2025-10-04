@@ -34,9 +34,17 @@
       </div>
     {% else %}
       <div class="toolbar">
-        <button id="saveDraftBtn" class="btn btn-outline">Save Draft</button>
-        <button id="commitBtn" class="btn btn-primary">Commit Results</button>
-        <button id="lockBtn" class="btn btn-danger">Lock Results</button>
+        <div class="toolbar-left">
+          <button id="saveDraftBtn" class="btn btn-outline">Save Draft</button>
+          <button id="commitBtn" class="btn btn-primary">Commit Results</button>
+          <button id="lockBtn" class="btn btn-danger">Lock Results</button>
+        </div>
+        <div class="toolbar-right">
+          <button id="bulkImportBtn" class="btn btn-secondary">Bulk Import</button>
+          {% if is_locked %}
+            <button id="exportBtn" class="btn btn-success">Export Results</button>
+          {% endif %}
+        </div>
       </div>
 
       <div class="results-table-container">
@@ -118,6 +126,28 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
+  // Bulk import
+  document.getElementById('bulkImportBtn').addEventListener('click', function() {
+    // Create a file input element
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.csv,.xlsx,.xls';
+    input.onchange = function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        uploadBulkImport(file);
+      }
+    };
+    input.click();
+  });
+
+  // Export results
+  {% if is_locked %}
+  document.getElementById('exportBtn').addEventListener('click', function() {
+    window.open(`/academics/teacher/export-results/${examId}/${classroomId}/`, '_blank');
+  });
+  {% endif %}
+
   function saveResults(action) {
     const studentsData = [];
     const rows = document.querySelectorAll('.marking-table tbody tr');
@@ -170,6 +200,32 @@ document.addEventListener('DOMContentLoaded', function() {
     .catch(error => {
       console.error('Error:', error);
       alert('An error occurred while saving results.');
+    });
+  }
+
+  function uploadBulkImport(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    fetch(`/academics/teacher/bulk-import/${examId}/${classroomId}/`, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+      },
+      body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        alert('Bulk import completed successfully!');
+        location.reload();
+      } else {
+        alert('Error: ' + data.error);
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('An error occurred during bulk import.');
     });
   }
 });

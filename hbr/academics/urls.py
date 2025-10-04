@@ -40,4 +40,14 @@ urlpatterns = [
         views.save_exam_results,
         name="save_exam_results",
     ),
+    path(
+        "teacher/bulk-import/<int:exam_id>/<int:classroom_id>/",
+        views.bulk_import_results,
+        name="bulk_import_results",
+    ),
+    path(
+        "teacher/export-results/<int:exam_id>/<int:classroom_id>/",
+        views.export_results,
+        name="export_results",
+    ),
 ]

@@ -2010,8 +2010,15 @@ html::-webkit-scrollbar-thumb {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     margin-bottom: 20px;
     display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .toolbar-left,
+  .toolbar-right {
+    display: flex;
     gap: 10px;
-    justify-content: center;
+    align-items: center;
   }
 
   .results-table-container {
@@ -2061,5 +2068,27 @@ html::-webkit-scrollbar-thumb {
   .btn-danger:hover {
     background: #c82333;
     border-color: #bd2130;
+  }
+
+  .btn-secondary {
+    background: #6c757d;
+    color: white;
+    border: 1px solid #6c757d;
+  }
+
+  .btn-secondary:hover {
+    background: #5a6268;
+    border-color: #545b62;
+  }
+
+  .btn-success {
+    background: #28a745;
+    color: white;
+    border: 1px solid #28a745;
+  }
+
+  .btn-success:hover {
+    background: #218838;
+    border-color: #1e7e34;
   }
 }
