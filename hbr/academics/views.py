@@ -27,6 +27,10 @@ from dashboard.pdf_utils import (
     generate_admit_card_pdf as dashboard_generate_admit_card_pdf,
 )
 
+from django import template
+
+register = template.Library()
+
 
 def get_current_session():
     """Helper function to get the current academic session"""
@@ -252,58 +256,6 @@ def teacher_select_exam(request: HttpRequest, classroom_id: int):
 
 
 @login_required
-def teacher_mark_exam(request: HttpRequest, exam_id: int, classroom_id: int):
-    role = get_user_role(request.user)
-    if role != "Teacher":
-        return HttpResponse("Access denied", status=403)
-
-    try:
-        teacher = Teacher.objects.get(user=request.user)
-        exam = Exam.objects.get(id=exam_id)
-        classroom = Classroom.objects.get(id=classroom_id)
-
-        # Check assignment
-        if not ExamAssignment.objects.filter(
-            teacher=teacher, exam=exam, classroom=classroom
-        ).exists():
-            return HttpResponse("Access denied", status=403)
-
-        # Get students in classroom
-        students = Student.objects.filter(classroom=classroom).order_by("roll_no")
-
-        # Get exam schedule for subjects
-        exam_schedules = ExamSchedule.objects.filter(exam=exam).order_by("subject")
-
-        # Get existing results
-        existing_results = ExamResult.objects.filter(
-            exam=exam, student__classroom=classroom
-        ).select_related("student")
-
-        # Create results dict for easy lookup
-        results_dict = {}
-        for result in existing_results:
-            key = f"{result.student.id}_{result.subject}"
-            results_dict[key] = result
-
-        # Check if exam is locked
-        is_locked = any(
-            result.status == ExamResult.Status.LOCKED for result in existing_results
-        )
-
-        context = {
-            "exam": exam,
-            "classroom": classroom,
-            "students": students,
-            "exam_schedules": exam_schedules,
-            "results_dict": results_dict,
-            "is_locked": is_locked,
-        }
-        return render(request, "academics/teacher_mark_exam.html", context)
-    except (Teacher.DoesNotExist, Exam.DoesNotExist, Classroom.DoesNotExist):
-        return HttpResponse("Not found", status=404)
-
-
-@login_required
 def save_exam_results(request: HttpRequest, exam_id: int, classroom_id: int):
     role = get_user_role(request.user)
     if role != "Teacher":
@@ -380,6 +332,53 @@ def save_exam_results(request: HttpRequest, exam_id: int, classroom_id: int):
 
 
 @login_required
+def download_import_template(request: HttpRequest, exam_id: int, classroom_id: int):
+    role = get_user_role(request.user)
+    if role != "Teacher":
+        return HttpResponse("Access denied", status=403)
+
+    try:
+        teacher = Teacher.objects.get(user=request.user)
+        exam = Exam.objects.get(id=exam_id)
+        classroom = Classroom.objects.get(id=classroom_id)
+
+        # Check assignment
+        if not ExamAssignment.objects.filter(
+            teacher=teacher, exam=exam, classroom=classroom
+        ).exists():
+            return HttpResponse("Access denied", status=403)
+
+        # Get students and exam schedules
+        students = Student.objects.filter(classroom=classroom).order_by("roll_no")
+        exam_schedules = ExamSchedule.objects.filter(exam=exam).order_by("subject")
+
+        # Create CSV response
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = (
+            f'attachment; filename="{exam.name}_{classroom.grade}{classroom.section or ""}_import_template.csv"'
+        )
+
+        writer = csv.writer(response)
+        writer.writerow(["roll_no", "subject", "marks", "grade"])
+
+        # Add sample data for each student and subject combination
+        for student in students[:3]:  # Show first 3 students as examples
+            for schedule in exam_schedules:
+                writer.writerow(
+                    [
+                        student.roll_no,
+                        schedule.subject,
+                        "85",  # Sample marks
+                        "A",  # Sample grade
+                    ]
+                )
+
+        return response
+    except (Teacher.DoesNotExist, Exam.DoesNotExist, Classroom.DoesNotExist):
+        return HttpResponse("Not found", status=404)
+
+
+@login_required
 def bulk_import_results(request: HttpRequest, exam_id: int, classroom_id: int):
     role = get_user_role(request.user)
     if role != "Teacher":
@@ -426,7 +425,7 @@ def bulk_import_results(request: HttpRequest, exam_id: int, classroom_id: int):
             )
 
         students = {
-            student.roll_no: student
+            str(student.roll_no).strip(): student
             for student in Student.objects.filter(classroom=classroom)
         }
 
@@ -453,10 +452,15 @@ def bulk_import_results(request: HttpRequest, exam_id: int, classroom_id: int):
             )
 
             # Update marks and grade
-            result.marks_obtained = (
-                Decimal(str(marks)) if marks and str(marks).strip() else None
-            )
-            result.grade = grade
+            try:
+                if marks is not None and str(marks).strip():
+                    result.marks_obtained = Decimal(str(marks).strip())
+                else:
+                    result.marks_obtained = None
+            except (ValueError, TypeError):
+                result.marks_obtained = None
+
+            result.grade = grade.strip() if grade else ""
             result.status = ExamResult.Status.DRAFT
             result.save()
 
@@ -632,9 +636,8 @@ def teacher_mark_exam(request: HttpRequest, exam_id: int, classroom_id: int):
         # Create results dict for easy lookup
         results_dict = {}
         for result in existing_results:
-            if result.student.id not in results_dict:
-                results_dict[result.student.id] = {}
-            results_dict[result.student.id][result.subject] = result
+            key = f"{result.student.id}_{result.subject}"
+            results_dict[key] = result
 
         # Check if exam is locked
         is_locked = any(

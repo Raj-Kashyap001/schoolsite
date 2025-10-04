@@ -50,4 +50,9 @@ urlpatterns = [
         views.export_results,
         name="export_results",
     ),
+    path(
+        "teacher/download-template/<int:exam_id>/<int:classroom_id>/",
+        views.download_import_template,
+        name="download_import_template",
+    ),
 ]
