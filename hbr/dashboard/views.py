@@ -54,6 +54,11 @@ def get_dashboard_sections(role):
                 "icon": "check-square",
             },
             {"name": "View Attendance", "url": "/attendance/view/", "icon": "calendar"},
+            {
+                "name": "Mark Exam Results",
+                "url": "/academics/teacher/marking/",
+                "icon": "edit",
+            },
             {"name": "Leave Management", "url": "/leave/manage/", "icon": "calendar"},
         ],
         "Admin": [

@@ -1,6 +1,13 @@
 from django.contrib import admin
 
-from .models import AcademicSession, Exam, ExamResult, ExamSchedule, Term
+from .models import (
+    AcademicSession,
+    Exam,
+    ExamResult,
+    ExamSchedule,
+    Term,
+    ExamAssignment,
+)
 
 
 @admin.register(ExamSchedule)
@@ -14,11 +21,4 @@ class ExamScheduleAdmin(admin.ModelAdmin):
         return super().get_queryset(request).select_related("exam", "exam__term")
 
 
-admin.site.register(
-    [
-        AcademicSession,
-        Exam,
-        ExamResult,
-        Term,
-    ]
-)
+admin.site.register([AcademicSession, Exam, ExamResult, Term, ExamAssignment])

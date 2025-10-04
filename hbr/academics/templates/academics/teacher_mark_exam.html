@@ -1,0 +1,177 @@
+{% extends 'dashboard/layout.html' %}
+{% load static %}
+
+{% block content %}
+  <div class="marking-container">
+    <div class="exam-info-card">
+      <h1>Mark Exam Results</h1>
+      <div class="exam-details">
+        <div class="detail-item">
+          <strong>Exam:</strong> {{ exam.name }}
+        </div>
+        <div class="detail-item">
+          <strong>Class:</strong> {{ classroom.grade }}{% if classroom.section %}
+            {{ classroom.section }}
+          {% endif %}
+        </div>
+        <div class="detail-item">
+          <strong>Term:</strong> {{ exam.term.name }} ({{ exam.term.academic_session.year }})
+        </div>
+        <div class="detail-item">
+          <strong>Status:</strong>
+          {% if is_locked %}
+            <span class="status-locked">Locked</span>
+          {% else %}
+            <span class="status-open">Open for Marking</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    {% if is_locked %}
+      <div class="locked-message">
+        <p>This exam has been locked and cannot be modified. Only administrators can unlock it.</p>
+      </div>
+    {% else %}
+      <div class="toolbar">
+        <button id="saveDraftBtn" class="btn btn-outline">Save Draft</button>
+        <button id="commitBtn" class="btn btn-primary">Commit Results</button>
+        <button id="lockBtn" class="btn btn-danger">Lock Results</button>
+      </div>
+
+      <div class="results-table-container">
+        <table class="marking-table">
+          <thead>
+            <tr>
+              <th rowspan="2">Roll No</th>
+              <th rowspan="2">Student Name</th>
+              {% for schedule in exam_schedules %}
+                <th colspan="2">{{ schedule.subject }}</th>
+              {% endfor %}
+            </tr>
+            <tr>
+              {% for schedule in exam_schedules %}
+                <th>Marks</th>
+                <th>Grade</th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for student in students %}
+              <tr data-student-id="{{ student.id }}">
+                <td>{{ student.roll_no }}</td>
+                <td>{{ student.user.get_full_name }}</td>
+                {% for schedule in exam_schedules %}
+                  {% for result in results_list %}
+                    {% if result.student.id == student.id and result.subject == schedule.subject %}
+                      <td>
+                        <input type="number" class="marks-input" data-subject="{{ schedule.subject }}" value="{{ result.marks_obtained|default:'' }}" min="0" max="100" step="0.5" />
+                      </td>
+                      <td>
+                        <input type="text" class="grade-input" data-subject="{{ schedule.subject }}" value="{{ result.grade|default:'' }}" maxlength="10" />
+                      </td>
+                    {% endif %}
+                  {% empty %}
+                    <td>
+                      <input type="number" class="marks-input" data-subject="{{ schedule.subject }}" value="" min="0" max="100" step="0.5" />
+                    </td>
+                    <td>
+                      <input type="text" class="grade-input" data-subject="{{ schedule.subject }}" value="" maxlength="10" />
+                    </td>
+                  {% endfor %}
+                {% endfor %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+
+    <div class="back-link">
+      <a href="{% url 'academics:teacher_select_exam' classroom.id %}" class="btn btn-outline">Back to Exams</a>
+    </div>
+  </div>
+{% endblock %}
+
+{% block inline_js %}
+  <script>
+document.addEventListener('DOMContentLoaded', function() {
+  const examId = {{ exam.id }};
+  const classroomId = {{ classroom.id }};
+
+  // Save draft
+  document.getElementById('saveDraftBtn').addEventListener('click', function() {
+    saveResults('save_draft');
+  });
+
+  // Commit results
+  document.getElementById('commitBtn').addEventListener('click', function() {
+    if (confirm('Are you sure you want to commit these results? This will mark them as submitted.')) {
+      saveResults('commit');
+    }
+  });
+
+  // Lock results
+  document.getElementById('lockBtn').addEventListener('click', function() {
+    if (confirm('Are you sure you want to lock these results? Once locked, only administrators can modify them.')) {
+      saveResults('lock');
+    }
+  });
+
+  function saveResults(action) {
+    const studentsData = [];
+    const rows = document.querySelectorAll('.marking-table tbody tr');
+
+    rows.forEach(row => {
+      const studentId = row.dataset.studentId;
+      const subjects = [];
+      const marksInputs = row.querySelectorAll('.marks-input');
+      const gradeInputs = row.querySelectorAll('.grade-input');
+
+      marksInputs.forEach((input, index) => {
+        const subject = input.dataset.subject;
+        const marks = input.value;
+        const grade = gradeInputs[index].value;
+        subjects.push({
+          subject: subject,
+          marks: marks,
+          grade: grade
+        });
+      });
+
+      studentsData.push({
+        student_id: studentId,
+        subjects: subjects
+      });
+    });
+
+    fetch(`/academics/teacher/save-results/${examId}/${classroomId}/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+      },
+      body: JSON.stringify({
+        action: action,
+        students: studentsData
+      })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        alert('Results saved successfully!');
+        if (action === 'lock') {
+          location.reload();
+        }
+      } else {
+        alert('Error: ' + data.error);
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('An error occurred while saving results.');
+    });
+  }
+});
+</script>
+{% endblock %}

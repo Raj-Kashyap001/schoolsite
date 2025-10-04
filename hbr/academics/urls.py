@@ -23,4 +23,21 @@ urlpatterns = [
     path(
         "exam-results/<int:term_id>/", views.get_exam_results, name="get_exam_results"
     ),
+    # Teacher exam marking
+    path("teacher/marking/", views.teacher_exam_marking, name="teacher_exam_marking"),
+    path(
+        "teacher/select-exam/<int:classroom_id>/",
+        views.teacher_select_exam,
+        name="teacher_select_exam",
+    ),
+    path(
+        "teacher/mark-exam/<int:exam_id>/<int:classroom_id>/",
+        views.teacher_mark_exam,
+        name="teacher_mark_exam",
+    ),
+    path(
+        "teacher/save-results/<int:exam_id>/<int:classroom_id>/",
+        views.save_exam_results,
+        name="save_exam_results",
+    ),
 ]

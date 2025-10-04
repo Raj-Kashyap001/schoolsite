@@ -1,3 +1,4 @@
+from decimal import Decimal
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
@@ -11,8 +12,16 @@ import json
 import pandas as pd
 from datetime import date
 from base.views import get_user_role
-from .models import AcademicSession, Term, Exam, ExamSchedule, ExamResult
-from students.models import Student
+from .models import (
+    AcademicSession,
+    Term,
+    Exam,
+    ExamSchedule,
+    ExamResult,
+    ExamAssignment,
+)
+from students.models import Student, Classroom
+from teachers.models import Teacher
 from dashboard.pdf_utils import (
     generate_exam_timetable_pdf,
     generate_admit_card_pdf as dashboard_generate_admit_card_pdf,
@@ -197,6 +206,180 @@ def download_admit_card(request: HttpRequest, exam_id: int):
 
 
 @login_required
+def teacher_exam_marking(request: HttpRequest):
+    role = get_user_role(request.user)
+    if role != "Teacher":
+        return HttpResponse("Access denied", status=403)
+
+    try:
+        teacher = Teacher.objects.get(user=request.user)
+        # Get assigned classrooms
+        assigned_classrooms = teacher.classroom.all()
+        context = {
+            "assigned_classrooms": assigned_classrooms,
+        }
+        return render(request, "academics/teacher_exam_marking.html", context)
+    except Teacher.DoesNotExist:
+        return HttpResponse("Teacher profile not found", status=404)
+
+
+@login_required
+def teacher_select_exam(request: HttpRequest, classroom_id: int):
+    role = get_user_role(request.user)
+    if role != "Teacher":
+        return HttpResponse("Access denied", status=403)
+
+    try:
+        teacher = Teacher.objects.get(user=request.user)
+        classroom = Classroom.objects.get(id=classroom_id)
+
+        # Check if classroom is assigned to teacher
+        if not teacher.classroom.filter(id=classroom_id).exists():
+            return HttpResponse("Access denied", status=403)
+
+        # Get assigned exams for this classroom
+        assigned_exams = ExamAssignment.objects.filter(
+            teacher=teacher, classroom=classroom
+        ).select_related("exam")
+
+        context = {
+            "classroom": classroom,
+            "assigned_exams": assigned_exams,
+        }
+        return render(request, "academics/teacher_select_exam.html", context)
+    except (Teacher.DoesNotExist, Classroom.DoesNotExist):
+        return HttpResponse("Not found", status=404)
+
+
+@login_required
+def teacher_mark_exam(request: HttpRequest, exam_id: int, classroom_id: int):
+    role = get_user_role(request.user)
+    if role != "Teacher":
+        return HttpResponse("Access denied", status=403)
+
+    try:
+        teacher = Teacher.objects.get(user=request.user)
+        exam = Exam.objects.get(id=exam_id)
+        classroom = Classroom.objects.get(id=classroom_id)
+
+        # Check assignment
+        if not ExamAssignment.objects.filter(
+            teacher=teacher, exam=exam, classroom=classroom
+        ).exists():
+            return HttpResponse("Access denied", status=403)
+
+        # Get students in classroom
+        students = Student.objects.filter(classroom=classroom).order_by("roll_no")
+
+        # Get exam schedule for subjects
+        exam_schedules = ExamSchedule.objects.filter(exam=exam).order_by("subject")
+
+        # Get existing results
+        existing_results = ExamResult.objects.filter(
+            exam=exam, student__classroom=classroom
+        ).select_related("student")
+
+        # Create results dict for easy lookup
+        results_dict = {}
+        for result in existing_results:
+            key = f"{result.student.id}_{result.subject}"
+            results_dict[key] = result
+
+        # Check if exam is locked
+        is_locked = any(
+            result.status == ExamResult.Status.LOCKED for result in existing_results
+        )
+
+        context = {
+            "exam": exam,
+            "classroom": classroom,
+            "students": students,
+            "exam_schedules": exam_schedules,
+            "results_dict": results_dict,
+            "is_locked": is_locked,
+        }
+        return render(request, "academics/teacher_mark_exam.html", context)
+    except (Teacher.DoesNotExist, Exam.DoesNotExist, Classroom.DoesNotExist):
+        return HttpResponse("Not found", status=404)
+
+
+@login_required
+def save_exam_results(request: HttpRequest, exam_id: int, classroom_id: int):
+    role = get_user_role(request.user)
+    if role != "Teacher":
+        return JsonResponse({"error": "Access denied"}, status=403)
+
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    try:
+        teacher = Teacher.objects.get(user=request.user)
+        exam = Exam.objects.get(id=exam_id)
+        classroom = Classroom.objects.get(id=classroom_id)
+
+        # Check assignment
+        if not ExamAssignment.objects.filter(
+            teacher=teacher, exam=exam, classroom=classroom
+        ).exists():
+            return JsonResponse({"error": "Access denied"}, status=403)
+
+        # Check if exam is locked
+        locked_results = ExamResult.objects.filter(
+            exam=exam, student__classroom=classroom, status=ExamResult.Status.LOCKED
+        )
+        if locked_results.exists():
+            return JsonResponse({"error": "Exam results are locked"}, status=403)
+
+        data = json.loads(request.body)
+        action = data.get("action")  # "save_draft", "commit", "lock"
+
+        students_data = data.get("students", [])
+
+        for student_data in students_data:
+            student_id = student_data["student_id"]
+            subjects = student_data["subjects"]
+
+            for subject_data in subjects:
+                subject = subject_data["subject"]
+                marks = subject_data.get("marks")
+                grade = subject_data.get("grade", "")
+
+                # Get or create result
+                result, created = ExamResult.objects.get_or_create(
+                    student_id=student_id,
+                    exam=exam,
+                    subject=subject,
+                    defaults={
+                        "total_marks": Decimal("100"),
+                        "submitted_by": request.user,
+                    },
+                )
+
+                # Update marks and grade
+                result.marks_obtained = Decimal(marks) if marks else None
+                result.grade = grade
+
+                # Set status based on action
+                if action == "save_draft":
+                    result.status = ExamResult.Status.DRAFT
+                    result.submitted_at = None
+                elif action == "commit":
+                    result.status = ExamResult.Status.SUBMITTED
+                    result.submitted_at = timezone.now()
+                elif action == "lock":
+                    result.status = ExamResult.Status.LOCKED
+                    result.submitted_at = timezone.now()
+
+                result.save()
+
+        return JsonResponse({"success": True})
+    except (Teacher.DoesNotExist, Exam.DoesNotExist, Classroom.DoesNotExist):
+        return JsonResponse({"error": "Not found"}, status=404)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@login_required
 def get_exam_results(request: HttpRequest, term_id: int):
     role = get_user_role(request.user)
     if role != "Student":
@@ -223,3 +406,178 @@ def get_exam_results(request: HttpRequest, term_id: int):
         return JsonResponse({"results": results_data})
     except (Student.DoesNotExist, Term.DoesNotExist):
         return JsonResponse({"error": "Not found"}, status=404)
+
+
+@login_required
+def teacher_exam_marking(request: HttpRequest):
+    role = get_user_role(request.user)
+    if role != "Teacher":
+        return HttpResponse("Access denied", status=403)
+
+    try:
+        teacher = Teacher.objects.get(user=request.user)
+        # Get assigned classrooms
+        assigned_classrooms = teacher.classroom.all()
+        context = {
+            "assigned_classrooms": assigned_classrooms,
+        }
+        return render(request, "academics/teacher_exam_marking.html", context)
+    except Teacher.DoesNotExist:
+        return HttpResponse("Teacher profile not found", status=404)
+
+
+@login_required
+def teacher_select_exam(request: HttpRequest, classroom_id: int):
+    role = get_user_role(request.user)
+    if role != "Teacher":
+        return HttpResponse("Access denied", status=403)
+
+    try:
+        teacher = Teacher.objects.get(user=request.user)
+        classroom = Classroom.objects.get(id=classroom_id)
+
+        # Check if classroom is assigned to teacher
+        if not teacher.classroom.filter(id=classroom_id).exists():
+            return HttpResponse("Access denied", status=403)
+
+        # Get assigned exams for this classroom
+        assigned_exams = ExamAssignment.objects.filter(
+            teacher=teacher, classroom=classroom
+        ).select_related("exam")
+
+        context = {
+            "classroom": classroom,
+            "assigned_exams": assigned_exams,
+        }
+        return render(request, "academics/teacher_select_exam.html", context)
+    except (Teacher.DoesNotExist, Classroom.DoesNotExist):
+        return HttpResponse("Not found", status=404)
+
+
+@login_required
+def teacher_mark_exam(request: HttpRequest, exam_id: int, classroom_id: int):
+    role = get_user_role(request.user)
+    if role != "Teacher":
+        return HttpResponse("Access denied", status=403)
+
+    try:
+        teacher = Teacher.objects.get(user=request.user)
+        exam = Exam.objects.get(id=exam_id)
+        classroom = Classroom.objects.get(id=classroom_id)
+
+        # Check assignment
+        if not ExamAssignment.objects.filter(
+            teacher=teacher, exam=exam, classroom=classroom
+        ).exists():
+            return HttpResponse("Access denied", status=403)
+
+        # Get students in classroom
+        students = Student.objects.filter(classroom=classroom).order_by("roll_no")
+
+        # Get exam schedule for subjects
+        exam_schedules = ExamSchedule.objects.filter(exam=exam).order_by("subject")
+
+        # Get existing results
+        existing_results = ExamResult.objects.filter(
+            exam=exam, student__classroom=classroom
+        ).select_related("student")
+
+        # Create results dict for easy lookup
+        results_dict = {}
+        for result in existing_results:
+            if result.student.id not in results_dict:
+                results_dict[result.student.id] = {}
+            results_dict[result.student.id][result.subject] = result
+
+        # Check if exam is locked
+        is_locked = any(
+            result.status == ExamResult.Status.LOCKED for result in existing_results
+        )
+
+        context = {
+            "exam": exam,
+            "classroom": classroom,
+            "students": students,
+            "exam_schedules": exam_schedules,
+            "results_dict": results_dict,
+            "is_locked": is_locked,
+        }
+        return render(request, "academics/teacher_mark_exam.html", context)
+    except (Teacher.DoesNotExist, Exam.DoesNotExist, Classroom.DoesNotExist):
+        return HttpResponse("Not found", status=404)
+
+
+@login_required
+def save_exam_results(request: HttpRequest, exam_id: int, classroom_id: int):
+    role = get_user_role(request.user)
+    if role != "Teacher":
+        return JsonResponse({"error": "Access denied"}, status=403)
+
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    try:
+        teacher = Teacher.objects.get(user=request.user)
+        exam = Exam.objects.get(id=exam_id)
+        classroom = Classroom.objects.get(id=classroom_id)
+
+        # Check assignment
+        if not ExamAssignment.objects.filter(
+            teacher=teacher, exam=exam, classroom=classroom
+        ).exists():
+            return JsonResponse({"error": "Access denied"}, status=403)
+
+        # Check if exam is locked
+        locked_results = ExamResult.objects.filter(
+            exam=exam, student__classroom=classroom, status=ExamResult.Status.LOCKED
+        )
+        if locked_results.exists():
+            return JsonResponse({"error": "Exam results are locked"}, status=403)
+
+        data = json.loads(request.body)
+        action = data.get("action")  # "save_draft", "commit", "lock"
+
+        students_data = data.get("students", [])
+
+        for student_data in students_data:
+            student_id = student_data["student_id"]
+            subjects = student_data["subjects"]
+
+            for subject_data in subjects:
+                subject = subject_data["subject"]
+                marks = subject_data.get("marks")
+                grade = subject_data.get("grade", "")
+
+                # Get or create result
+                result, created = ExamResult.objects.get_or_create(
+                    student_id=student_id,
+                    exam=exam,
+                    subject=subject,
+                    defaults={
+                        "total_marks": Decimal("100"),
+                        "submitted_by": request.user,
+                    },
+                )
+
+                # Update marks and grade
+                result.marks_obtained = Decimal(marks) if marks else None
+                result.grade = grade
+
+                # Set status based on action
+                if action == "save_draft":
+                    result.status = ExamResult.Status.DRAFT
+                    result.submitted_at = None
+                elif action == "commit":
+                    result.status = ExamResult.Status.SUBMITTED
+                    result.submitted_at = timezone.now()
+                elif action == "lock":
+                    result.status = ExamResult.Status.LOCKED
+                    result.submitted_at = timezone.now()
+
+                result.save()
+
+        return JsonResponse({"success": True})
+    except (Teacher.DoesNotExist, Exam.DoesNotExist, Classroom.DoesNotExist):
+        return JsonResponse({"error": "Not found"}, status=404)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)

@@ -59,10 +59,24 @@ class ExamSchedule(models.Model):
         unique_together = ("exam", "date", "time", "subject")
 
 
+class ExamAssignment(models.Model):
+    exam = models.ForeignKey(Exam, on_delete=models.CASCADE)
+    teacher = models.ForeignKey("teachers.Teacher", on_delete=models.CASCADE)
+    classroom = models.ForeignKey("students.Classroom", on_delete=models.CASCADE)
+    assigned_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.teacher} - {self.exam.name} - {self.classroom}"
+
+    class Meta:
+        unique_together = ("exam", "teacher", "classroom")
+
+
 class ExamResult(models.Model):
     class Status(models.TextChoices):
         DRAFT = "DRAFT", "Draft"
         SUBMITTED = "SUBMITTED", "Submitted"
+        LOCKED = "LOCKED", "Locked"
 
     student = models.ForeignKey("students.Student", on_delete=models.CASCADE)
     exam = models.ForeignKey(Exam, on_delete=models.CASCADE)

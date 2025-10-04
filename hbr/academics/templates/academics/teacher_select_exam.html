@@ -1,0 +1,78 @@
+{% extends 'dashboard/layout.html' %}
+{% load static %}
+
+{% block content %}
+  <div class="exam-selection-container">
+    <h1>Mark Exam Results</h1>
+    <h2>
+      Class: {{ classroom.grade }}{% if classroom.section %}
+        {{ classroom.section }}
+      {% endif %}
+    </h2>
+
+    {% if assigned_exams %}
+      <div class="exam-grid">
+        {% for assignment in assigned_exams %}
+          <div class="exam-card">
+            <h3>{{ assignment.exam.name }}</h3>
+            <p>
+              <strong>Term:</strong> {{ assignment.exam.term.name }} ({{ assignment.exam.term.academic_session.year }})
+            </p>
+            <p>
+              <strong>Description:</strong> {{ assignment.exam.description|default:'N/A' }}
+            </p>
+            <a href="{% url 'academics:teacher_mark_exam' assignment.exam.id classroom.id %}" class="btn btn-primary">Mark Results</a>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="no-exams">No exams assigned to you for this class.</p>
+    {% endif %}
+
+    <div class="back-link">
+      <a href="{% url 'academics:teacher_exam_marking' %}" class="btn btn-outline">Back to Classes</a>
+    </div>
+  </div>
+{% endblock %}
+
+<style>
+  .exam-selection-container {
+    padding: 20px;
+  }
+  
+  .exam-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+  }
+  
+  .exam-card {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  .exam-card h3 {
+    margin-bottom: 10px;
+    color: #333;
+  }
+  
+  .exam-card p {
+    margin-bottom: 8px;
+    color: #666;
+  }
+  
+  .no-exams {
+    text-align: center;
+    color: #666;
+    font-size: 18px;
+    margin-top: 40px;
+  }
+  
+  .back-link {
+    margin-top: 30px;
+    text-align: center;
+  }
+</style>

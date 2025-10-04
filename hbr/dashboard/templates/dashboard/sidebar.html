@@ -21,7 +21,7 @@
       <a href="{% url 'attendance:attendance' %}" class="{% if url_name == 'attendance' %}active{% endif %}"><i class="bx bx-calendar-alt"></i>Attendance</a>
       {% if role == 'Teacher' %}
         <a href="{% url 'attendance:mark_student_attendance' %}" class="{% if url_name == 'mark_student_attendance' %}active{% endif %}"><i class="bx bx-check-circle"></i>Mark Student Attendance</a>
-        {% comment %} <a href="{% url 'mark_exam_results' %}" class="{% if url_name == 'mark_exam_results' %}active{% endif %}"><i class="bx bx-edit"></i>Mark Exam Results</a> {% endcomment %}
+        <a href="{% url 'academics:teacher_exam_marking' %}" class="{% if url_name == 'teacher_exam_marking' %}active{% endif %}"><i class="bx bx-edit"></i>Mark Exam Results</a>
       {% endif %}
       {% if role == 'Admin' %}
         <a href="{% url 'attendance:mark_teacher_attendance' %}" class="{% if url_name == 'mark_teacher_attendance' %}active{% endif %}"><i class="bx bx-user-check"></i>Mark Teacher Attendance</a>
