@@ -77,7 +77,6 @@ urlpatterns = [
         name="download_admit_card",
     ),
     path("exams/results/<int:term_id>/", views.get_exam_results, name="exam_results"),
-    path("mark-exam-results/", views.mark_exam_results, name="mark_exam_results"),
     path("notice-board/", views.notice_board, name="notice_board"),
     path(
         "notice-board/download/<int:notice_id>/",
