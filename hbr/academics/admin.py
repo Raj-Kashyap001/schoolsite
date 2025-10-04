@@ -21,4 +21,20 @@ class ExamScheduleAdmin(admin.ModelAdmin):
         return super().get_queryset(request).select_related("exam", "exam__term")
 
 
-admin.site.register([AcademicSession, Exam, ExamResult, Term, ExamAssignment])
+@admin.register(ExamResult)
+class ExamResultAdmin(admin.ModelAdmin):
+    list_display = (
+        "student",
+        "exam",
+        "subject",
+        "marks_obtained",
+        "grade",
+        "status",
+        "marking_disabled",
+    )
+    list_filter = ("exam__term", "subject", "status", "marking_disabled")
+    search_fields = ("student__user__username", "exam__name", "subject")
+    ordering = ("exam", "student", "subject")
+
+
+admin.site.register([AcademicSession, Exam, Term, ExamAssignment])

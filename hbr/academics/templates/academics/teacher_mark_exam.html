@@ -76,6 +76,15 @@
                 <th>Grade</th>
               {% endfor %}
             </tr>
+            {% if user_role == 'Admin' %}
+              <tr>
+                <th></th>
+                <th></th>
+                {% for schedule in exam_schedules %}
+                  <th>Disable</th>
+                {% endfor %}
+              </tr>
+            {% endif %}
           </thead>
           <tbody>
             {% for student in students %}
@@ -87,11 +96,16 @@
                     {% if results_dict|key_exists:result_key %}
                       {% with result=results_dict|get_item:result_key %}
                         <td>
-                          <input type="number" class="marks-input" data-subject="{{ schedule.subject }}" value="{{ result.marks_obtained|default:'' }}" min="0" max="100" step="0.5" />
+                          <input type="number" class="marks-input" data-subject="{{ schedule.subject }}" value="{{ result.marks_obtained|default:'' }}" min="0" max="100" step="0.5" {% if result.marking_disabled %}disabled{% endif %} />
                         </td>
                         <td>
-                          <input type="text" class="grade-input" data-subject="{{ schedule.subject }}" value="{{ result.grade|default:'' }}" maxlength="10" />
+                          <input type="text" class="grade-input" data-subject="{{ schedule.subject }}" value="{{ result.grade|default:'' }}" maxlength="10" {% if result.marking_disabled %}disabled{% endif %} />
                         </td>
+                        {% if user_role == "Admin" %}
+                        <td>
+                          <input type="checkbox" class="disable-checkbox" data-subject="{{ schedule.subject }}" {% if result.marking_disabled %}checked{% endif %} />
+                        </td>
+                        {% endif %}
                       {% endwith %}
                     {% else %}
                       <td>
@@ -100,6 +114,11 @@
                       <td>
                         <input type="text" class="grade-input" data-subject="{{ schedule.subject }}" value="" maxlength="10" />
                       </td>
+                      {% if user_role == "Admin" %}
+                      <td>
+                        <input type="checkbox" class="disable-checkbox" data-subject="{{ schedule.subject }}" />
+                      </td>
+                      {% endif %}
                     {% endif %}
                   {% endwith %}
                 {% endfor %}
@@ -162,6 +181,23 @@
     document.addEventListener('DOMContentLoaded', function () {
       const examId = '{{ exam.id }}'
       const classroomId = '{{ classroom.id }}'
+
+      // Handle disable checkboxes
+      document.querySelectorAll('.disable-checkbox').forEach((checkbox) => {
+        checkbox.addEventListener('change', function () {
+          const subject = this.dataset.subject
+          const row = this.closest('tr')
+          const marksInput = row.querySelector(`.marks-input[data-subject="${subject}"]`)
+          const gradeInput = row.querySelector(`.grade-input[data-subject="${subject}"]`)
+          if (this.checked) {
+            marksInput.disabled = true
+            gradeInput.disabled = true
+          } else {
+            marksInput.disabled = false
+            gradeInput.disabled = false
+          }
+        })
+      })
     
       // Save draft
       document.getElementById('saveDraftBtn').addEventListener('click', function () {
@@ -213,10 +249,12 @@
             const subject = input.dataset.subject
             const marks = input.value
             const grade = gradeInputs[index].value
+            const disabled = row.querySelectorAll('.disable-checkbox')[index]?.checked || false
             subjects.push({
               subject: subject,
               marks: marks,
-              grade: grade
+              grade: grade,
+              disabled: disabled
             })
           })
     
@@ -274,30 +312,30 @@
           .then((data) => {
             if (data.success) {
               importMessage.innerHTML = `
-                                          <div style="color: #28a745; padding: 10px; background: #d4edda; border-radius: 4px; margin-bottom: 10px;">
-                                            <strong>Success!</strong> Bulk import completed successfully.
-                                          </div>
-                                          <p style="margin-bottom: 10px;">Refreshing page to show imported data...</p>
-                                        `
+                                              <div style="color: #28a745; padding: 10px; background: #d4edda; border-radius: 4px; margin-bottom: 10px;">
+                                                <strong>Success!</strong> Bulk import completed successfully.
+                                              </div>
+                                              <p style="margin-bottom: 10px;">Refreshing page to show imported data...</p>
+                                            `
               // Auto-refresh after 2 seconds to show the imported data
               setTimeout(() => {
                 location.reload()
               }, 2000)
             } else {
               importMessage.innerHTML = `
-                                          <div style="color: #dc3545; padding: 10px; background: #f8d7da; border-radius: 4px;">
-                                            <strong>Error:</strong> ${data.error}
-                                          </div>
-                                        `
+                                              <div style="color: #dc3545; padding: 10px; background: #f8d7da; border-radius: 4px;">
+                                                <strong>Error:</strong> ${data.error}
+                                              </div>
+                                            `
             }
           })
           .catch((error) => {
             console.error('Error:', error)
             importMessage.innerHTML = `
-                                        <div style="color: #dc3545; padding: 10px; background: #f8d7da; border-radius: 4px;">
-                                          <strong>Error:</strong> An error occurred during bulk import. Please try again.
-                                        </div>
-                                      `
+                                            <div style="color: #dc3545; padding: 10px; background: #f8d7da; border-radius: 4px;">
+                                              <strong>Error:</strong> An error occurred during bulk import. Please try again.
+                                            </div>
+                                          `
           })
       }
     

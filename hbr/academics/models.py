@@ -95,6 +95,9 @@ class ExamResult(models.Model):
     submitted_by = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, blank=True
     )
+    marking_disabled = models.BooleanField(
+        default=False, help_text="If checked, this result field cannot be edited"
+    )
 
     def __str__(self):
         return f"{self.student} - {self.exam.name} - {self.subject}"
