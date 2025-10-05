@@ -26,7 +26,11 @@
       {% if role == 'Admin' %}
         <a href="{% url 'attendance:mark_teacher_attendance' %}" class="{% if url_name == 'mark_teacher_attendance' %}active{% endif %}"><i class="bx bx-user-check"></i>Mark Teacher Attendance</a>
       {% endif %}
-      <a href="{% url 'leave:leave' %}" class="{% if url_name == 'leave' %}active{% endif %}"><i class="bx bx-calendar-check"></i> Apply Leave</a>
+      {% if role == 'Admin' %}
+        <a href="{% url 'leave:leave' %}" class="{% if url_name == 'leave' %}active{% endif %}"><i class="bx bx-calendar-check"></i> Approve Leave</a>
+      {% else %}
+        <a href="{% url 'leave:leave' %}" class="{% if url_name == 'leave' %}active{% endif %}"><i class="bx bx-calendar-check"></i> Apply Leave</a>
+      {% endif %}
       {% if role == 'Student' %}
         <a href="{% url 'students:documents' %}" class="{% if url_name == 'documents' %}active{% endif %}"><i class="bx bx-folder"></i> My Documents</a>
         <a href="{% url 'students:certificates' %}" class="{% if url_name == 'certificates' %}active{% endif %}"><i class="bxr bx-medal-star-alt-2"></i> My Certificates</a>

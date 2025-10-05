@@ -565,6 +565,320 @@ def export_attendance_json(request: HttpRequest):
     return export_attendance(request, "json")
 
 
+def find_teacher(
+    teacher_name: str, subject: str
+) -> Tuple[Optional[Teacher], Optional[str]]:
+    """Find teacher by name and subject"""
+    try:
+        first_name = teacher_name.split()[0] if teacher_name else ""
+        teacher = Teacher.objects.get(
+            subject__icontains=subject,
+            user__first_name__icontains=first_name,
+        )
+        return teacher, None
+    except Teacher.DoesNotExist:
+        return (
+            None,
+            f"Teacher not found - {teacher_name} (Subject: {subject})",
+        )
+    except Teacher.MultipleObjectsReturned:
+        return (
+            None,
+            f"Multiple teachers found - {teacher_name} (Subject: {subject})",
+        )
+
+
+def process_teacher_attendance_row(
+    row: Dict[str, str], row_num: int
+) -> Tuple[bool, Optional[str]]:
+    """Process a single teacher attendance row from CSV/Excel"""
+    # Extract and clean data
+    teacher_name = row.get("teacher_name", "").strip()
+    subject = row.get("subject", "").strip()
+    status = row.get("status", "").strip().upper()
+    remarks = row.get("remarks", "").strip()
+    date_str = row.get("date", "").strip()
+
+    # Skip empty rows
+    if not any([teacher_name, subject, status, date_str]):
+        return False, None
+
+    # Validate required fields
+    if not all([teacher_name, subject, status, date_str]):
+        return False, f"Row {row_num}: Missing required fields"
+
+    # Validate status
+    if not validate_attendance_status(status):
+        return False, f"Row {row_num}: Invalid status '{status}'"
+
+    # Parse date
+    attendance_date = parse_date_flexible(date_str)
+    if not attendance_date:
+        return False, f"Row {row_num}: Invalid date format '{date_str}'"
+
+    # Find teacher
+    teacher, error = find_teacher(teacher_name, subject)
+    if error:
+        return False, f"Row {row_num}: {error}"
+
+    # Check if attendance already exists
+    if TeacherAttendance.objects.filter(teacher=teacher, date=attendance_date).exists():
+        return (
+            False,
+            f"Row {row_num}: Attendance already marked for {teacher_name} on {attendance_date}",
+        )
+
+    # Create attendance record
+    TeacherAttendance.objects.create(
+        teacher=teacher,
+        date=attendance_date,
+        status=status,
+        remarks=remarks,
+        marked_by=None,  # System import
+    )
+    return True, None
+
+
+def import_teacher_attendance_from_dataframe(df: pd.DataFrame) -> Dict[str, Any]:
+    """Import teacher attendance records from DataFrame"""
+    imported_count = 0
+    errors = []
+
+    for row_num, row in df.iterrows():
+        try:
+            # Convert row to dict with string values
+            row_dict = {k: str(v).strip() for k, v in row.to_dict().items()}
+            success, error = process_teacher_attendance_row(row_dict, row_num + 2)
+
+            if success:
+                imported_count += 1
+            elif error:
+                errors.append(error)
+        except Exception as e:
+            errors.append(f"Row {row_num + 2}: {str(e)}")
+
+    response_data = {
+        "success": True,
+        "imported_count": imported_count,
+        "errors": errors[:10],
+    }
+
+    if errors:
+        response_data["message"] = (
+            f"Imported {imported_count} records with {len(errors)} errors"
+        )
+
+    return response_data
+
+
+@login_required
+def import_teacher_attendance_csv(request: HttpRequest):
+    """Import teacher attendance data from CSV file"""
+    role = get_user_role(request.user)
+    if role != "Admin":
+        return JsonResponse({"success": False, "error": "Access denied"})
+
+    if request.method != "POST":
+        return JsonResponse({"success": False, "error": "Invalid request method"})
+
+    file = request.FILES.get("csv_file")
+    if not file:
+        return JsonResponse({"success": False, "error": "No file provided"})
+
+    try:
+        # Read file to DataFrame
+        df, error = read_file_to_dataframe(file, "csv")
+        if error:
+            return JsonResponse({"success": False, "error": error})
+
+        # Import attendance from DataFrame
+        result = import_teacher_attendance_from_dataframe(df)
+        return JsonResponse(result)
+
+    except Exception as e:
+        return JsonResponse(
+            {"success": False, "error": f"Error processing file: {str(e)}"}
+        )
+
+
+@login_required
+def import_teacher_attendance_excel(request: HttpRequest):
+    """Import teacher attendance data from Excel file"""
+    role = get_user_role(request.user)
+    if role != "Admin":
+        return JsonResponse({"success": False, "error": "Access denied"})
+
+    if request.method != "POST":
+        return JsonResponse({"success": False, "error": "Invalid request method"})
+
+    file = request.FILES.get("excel_file")
+    if not file:
+        return JsonResponse({"success": False, "error": "No file provided"})
+
+    try:
+        # Read file to DataFrame
+        df, error = read_file_to_dataframe(file, "excel")
+        if error:
+            return JsonResponse({"success": False, "error": error})
+
+        # Import attendance from DataFrame
+        result = import_teacher_attendance_from_dataframe(df)
+        return JsonResponse(result)
+
+    except Exception as e:
+        return JsonResponse(
+            {"success": False, "error": f"Error processing file: {str(e)}"}
+        )
+
+
+def get_teacher_template_data() -> Dict[str, List]:
+    """Get sample data for teacher templates"""
+    return {
+        "teacher_name": ["John Doe", "Jane Smith", "Bob Johnson"],
+        "subject": ["Mathematics", "English", "Science"],
+        "status": ["PRESENT", "ABSENT", "LATE"],
+        "remarks": ["Good attendance", "Sick leave", "Traffic delay"],
+        "date": ["15-01-2025", "15-01-2025", "15-01-2025"],
+    }
+
+
+@login_required
+def download_teacher_template(request: HttpRequest):
+    """Download CSV template for teacher attendance import"""
+    role = get_user_role(request.user)
+    if role != "Admin":
+        return HttpResponse("Access denied", status=403)
+
+    data = get_teacher_template_data()
+
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = (
+        'attachment; filename="teacher_attendance_template.csv"'
+    )
+
+    writer = csv.writer(response)
+    writer.writerow(data.keys())
+    writer.writerows(zip(*data.values()))
+
+    return response
+
+
+@login_required
+def download_teacher_excel_template(request: HttpRequest):
+    """Download Excel template for teacher attendance import"""
+    role = get_user_role(request.user)
+    if role != "Admin":
+        return HttpResponse("Access denied", status=403)
+
+    data = get_teacher_template_data()
+    df = pd.DataFrame(data)
+
+    response = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    response["Content-Disposition"] = (
+        'attachment; filename="teacher_attendance_template.xlsx"'
+    )
+
+    with pd.ExcelWriter(response, engine="openpyxl") as writer:
+        df.to_excel(writer, sheet_name="Teacher Attendance Template", index=False)
+
+    return response
+
+
+def get_teacher_attendance_data_for_export(
+    from_date: Optional[str] = None,
+) -> List[Dict[str, Any]]:
+    """Get teacher attendance data for export"""
+    attendance_query = TeacherAttendance.objects.all()
+    if from_date:
+        attendance_query = attendance_query.filter(date__gte=from_date)
+
+    attendance_records = attendance_query.select_related(
+        "teacher", "teacher__user"
+    ).order_by("date", "teacher__user__first_name")
+
+    return [
+        {
+            "date": att.date.strftime("%Y-%m-%d"),
+            "teacher_name": att.teacher.user.get_full_name(),
+            "subject": att.teacher.subject,
+            "status": att.status,
+            "remarks": att.remarks or "",
+        }
+        for att in attendance_records
+    ]
+
+
+@login_required
+def export_teacher_attendance(request: HttpRequest, file_format: str = "csv"):
+    """Export teacher attendance data in CSV, Excel, or JSON format"""
+    role = get_user_role(request.user)
+    if role != "Admin":
+        return HttpResponse("Access denied", status=403)
+
+    from_date = request.GET.get("from_date")
+    data = get_teacher_attendance_data_for_export(from_date)
+
+    if file_format == "json":
+        response = create_export_response("json", "teacher_attendance_export.json")
+        response.write(json.dumps(data, indent=2))
+
+    elif file_format == "excel":
+        df = pd.DataFrame(data)
+        df.columns = ["Date", "Teacher Name", "Subject", "Status", "Remarks"]
+
+        response = create_export_response("excel", "teacher_attendance_export.xlsx")
+        with pd.ExcelWriter(response, engine="openpyxl") as writer:
+            df.to_excel(writer, sheet_name="Teacher Attendance", index=False)
+
+    elif file_format == "csv":
+        response = create_export_response("csv", "teacher_attendance_export.csv")
+        writer = csv.writer(response)
+
+        # Write title header if from_date is provided
+        if from_date:
+            writer.writerow([f"Teacher Attendance from {from_date}"])
+            writer.writerow([])
+
+        # Write headers and data
+        writer.writerow(["Date", "Teacher Name", "Subject", "Status", "Remarks"])
+        writer.writerows(
+            [
+                [
+                    row["date"],
+                    row["teacher_name"],
+                    row["subject"],
+                    row["status"],
+                    row["remarks"],
+                ]
+                for row in data
+            ]
+        )
+    else:
+        return HttpResponse("Invalid format", status=400)
+
+    return response
+
+
+@login_required
+def export_teacher_attendance_csv(request: HttpRequest):
+    """Export teacher attendance data to CSV"""
+    return export_teacher_attendance(request, "csv")
+
+
+@login_required
+def export_teacher_attendance_excel(request: HttpRequest):
+    """Export teacher attendance data to Excel"""
+    return export_teacher_attendance(request, "excel")
+
+
+@login_required
+def export_teacher_attendance_json(request: HttpRequest):
+    """Export teacher attendance data to JSON"""
+    return export_teacher_attendance(request, "json")
+
+
 @login_required
 def mark_teacher_attendance(request: HttpRequest):
     """Mark attendance for teachers (Admin only)"""
@@ -572,15 +886,41 @@ def mark_teacher_attendance(request: HttpRequest):
     if role != "Admin":
         return HttpResponse("Access denied", status=403)
 
-    teachers = Teacher.objects.all().order_by("user__first_name", "user__last_name")
-    context = {"teachers": teachers}
+    today = date.today()
+    context = {"today": today}
+
+    # Get teachers with and without attendance marked for today
+    teachers = (
+        Teacher.objects.exclude(teacherattendance__date=today)
+        .distinct()
+        .order_by("user__first_name", "user__last_name")
+    )
+
+    marked_teachers = (
+        Teacher.objects.filter(teacherattendance__date=today)
+        .distinct()
+        .order_by("user__first_name", "user__last_name")
+    )
+
+    context.update(
+        {
+            "teachers": teachers,
+            "marked_teachers": marked_teachers,
+            "has_marked_attendance": marked_teachers.exists(),
+        }
+    )
 
     if request.method == "POST":
-        attendance_date = request.POST.get("date")
-        if not attendance_date:
-            messages.error(request, "Date is required")
-            return render(request, "attendance/mark_teacher_attendance.html", context)
+        action = request.POST.get("action")
 
+        # Handle undo action
+        if action == "undo":
+            teacher_id = request.POST.get("teacher_id")
+            TeacherAttendance.objects.filter(teacher_id=teacher_id, date=today).delete()
+            messages.success(request, "Attendance undone for teacher")
+            return redirect("attendance:mark_teacher_attendance")
+
+        # Mark attendance for teachers
         attendance_count = 0
         for teacher in teachers:
             status = request.POST.get(f"status_{teacher.id}")
@@ -589,7 +929,7 @@ def mark_teacher_attendance(request: HttpRequest):
             if status:
                 TeacherAttendance.objects.update_or_create(
                     teacher=teacher,
-                    date=attendance_date,
+                    date=today,
                     defaults={
                         "status": status,
                         "remarks": remarks,
@@ -601,4 +941,4 @@ def mark_teacher_attendance(request: HttpRequest):
         messages.success(request, f"Attendance marked for {attendance_count} teachers")
         return redirect("attendance:mark_teacher_attendance")
 
-    return render(request, "attendance/mark_teacher_attendance.html", context)
+    return render(request, "dashboard/mark_teacher_attendance.html", context)

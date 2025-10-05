@@ -24,4 +24,39 @@ urlpatterns = [
         "export-excel/", views.export_attendance_excel, name="export_attendance_excel"
     ),
     path("export-json/", views.export_attendance_json, name="export_attendance_json"),
+    path(
+        "import-teacher-csv/",
+        views.import_teacher_attendance_csv,
+        name="import_teacher_attendance_csv",
+    ),
+    path(
+        "import-teacher-excel/",
+        views.import_teacher_attendance_excel,
+        name="import_teacher_attendance_excel",
+    ),
+    path(
+        "export-teacher-csv/",
+        views.export_teacher_attendance_csv,
+        name="export_teacher_attendance_csv",
+    ),
+    path(
+        "export-teacher-excel/",
+        views.export_teacher_attendance_excel,
+        name="export_teacher_attendance_excel",
+    ),
+    path(
+        "export-teacher-json/",
+        views.export_teacher_attendance_json,
+        name="export_teacher_attendance_json",
+    ),
+    path(
+        "teacher-template/",
+        views.download_teacher_template,
+        name="download_teacher_template",
+    ),
+    path(
+        "teacher-excel-template/",
+        views.download_teacher_excel_template,
+        name="download_teacher_excel_template",
+    ),
 ]

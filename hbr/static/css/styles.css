@@ -1119,6 +1119,14 @@ html::-webkit-scrollbar-thumb {
     text-align: center;
   }
 
+  .admin-leave-section {
+    h2 {
+      color: var(--color-primary);
+      margin-bottom: 1.5rem;
+      font-size: 1.5rem;
+    }
+  }
+
   .leave-table-section h2 {
     color: var(--color-primary);
     margin-bottom: 1rem;
@@ -1161,11 +1169,67 @@ html::-webkit-scrollbar-thumb {
     font-weight: 600;
   }
 
+  .leave-table td:last-child {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    justify-content: flex-start;
+
+    @media (max-width: 768px) {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.3rem;
+    }
+  }
+
   .edit-btn,
-  .delete-btn {
-    margin-right: 0.5rem;
+  .delete-btn,
+  .approve-btn,
+  .reject-btn {
     padding: 0.4rem 0.8rem;
     font-size: 0.8rem;
+    min-width: fit-content;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+
+    @media (max-width: 768px) {
+      padding: 0.3rem 0.6rem;
+      font-size: 0.75rem;
+      gap: 0.2rem;
+    }
+
+    i {
+      font-size: 1rem;
+
+      @media (max-width: 768px) {
+        font-size: 0.9rem;
+      }
+    }
+  }
+
+  .approve-btn {
+    background: #28a745;
+    color: white;
+    border: 1px solid #28a745;
+
+    &:hover {
+      background: #218838;
+      border-color: #1e7e34;
+    }
+  }
+
+  .reject-btn {
+    background: #dc3545;
+    color: white;
+    border: 1px solid #dc3545;
+
+    &:hover {
+      background: #c82333;
+      border-color: #bd2130;
+    }
   }
 
   /* Modal styles */
