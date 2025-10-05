@@ -46,7 +46,7 @@ def login_page(request: HttpRequest, role: str):
     if request.user.is_authenticated:
         user_role = get_user_role(request.user)
         if user_role == role:
-            return redirect("dashboard")
+            return redirect("dashboard:dashboard")
         else:
             # Show confirmation page
             if request.method == "POST":
@@ -54,7 +54,7 @@ def login_page(request: HttpRequest, role: str):
                     logout(request)
                     return redirect(f"/login/{role}")
                 elif "cancel" in request.POST:
-                    return redirect("dashboard")
+                    return redirect("dashboard:dashboard")
             context = {"current_role": user_role, "target_role": role}
             return render(request, "base/confirm_logout.html", context)
 
@@ -64,7 +64,7 @@ def login_page(request: HttpRequest, role: str):
         user = authenticate(username=username, password=password)
         if user is not None and user.groups.filter(name=role).exists():
             login(request, user)
-            return redirect("dashboard")
+            return redirect("dashboard:dashboard")
         else:
             messages.error(request, "Invalid Credentials!")
 
