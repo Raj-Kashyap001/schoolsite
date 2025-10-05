@@ -62,6 +62,7 @@ def get_dashboard_sections(role):
             {"name": "Leave Management", "url": "/leave/manage/", "icon": "calendar"},
         ],
         "Admin": [
+            {"name": "Profile", "url": "/administration/profile/", "icon": "user"},
             {
                 "name": "Mark Teacher Attendance",
                 "url": "/attendance/mark-teacher/",

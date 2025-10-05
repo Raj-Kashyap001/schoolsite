@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     "academics.apps.AcademicsConfig",
     "leave.apps.LeaveConfig",
     "notices.apps.NoticesConfig",
+    "administration.apps.AdministrationConfig",
 ]
 
 MIDDLEWARE = [

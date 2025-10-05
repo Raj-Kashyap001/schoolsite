@@ -41,6 +41,8 @@
         <a href="{% url 'students:profile' %}" class="{% if url_name == 'profile' %}active{% endif %}"><i class="bx bx-user"></i> My Profile</a>
       {% elif role == 'Teacher' %}
         <a href="{% url 'teachers:profile' %}" class="{% if url_name == 'profile' %}active{% endif %}"><i class="bx bx-user"></i> My Profile</a>
+      {% elif role == 'Admin' %}
+        <a href="{% url 'administration:profile' %}" class="{% if url_name == 'profile' %}active{% endif %}"><i class="bx bx-user"></i> My Profile</a>
       {% endif %}
       <a href="{% url 'notices:notice_board' %}" class="{% if url_name == 'notice_board' %}active{% endif %}"><i class="bx bx-bell"></i> Notice Board</a>
     </nav>
