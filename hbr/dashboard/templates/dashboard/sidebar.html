@@ -46,9 +46,10 @@
       {% elif role == 'Teacher' %}
         <a href="{% url 'teachers:profile' %}" class="{% if url_name == 'profile' %}active{% endif %}"><i class="bx bx-user"></i> My Profile</a>
       {% elif role == 'Admin' %}
-        <a href="{% url 'administration:profile' %}" class="{% if url_name == 'profile' %}active{% endif %}"><i class="bx bx-user"></i> My Profile</a>
+        <a href="{% url 'administration:profile' %}" class="{% if request.path == '/administration/profile/' %}active{% endif %}"><i class="bx bx-user"></i> My Profile</a>
         <a href="{% url 'dashboard:settings' %}" class="{% if url_name == 'settings' %}active{% endif %}"><i class="bx bx-cog"></i> Settings</a>
         <a href="{% url 'students:class_management' %}" class="{% if url_name == 'class_management' %}active{% endif %}"><i class="bx bx-group"></i> Class Management</a>
+        <a href="{% url 'teachers:teacher_management' %}" class="{% if url_name == 'teacher_management' %}active{% endif %}"><i class="bx bx-whiteboard"></i> Teacher Management</a>
       {% endif %}
       <a href="{% url 'notices:notice_board' %}" class="{% if url_name == 'notice_board' %}active{% endif %}"><i class="bx bx-bell"></i> Notice Board</a>
     </nav>

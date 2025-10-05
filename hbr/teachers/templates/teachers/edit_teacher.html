@@ -1,0 +1,257 @@
+{% extends 'dashboard/layout.html' %}
+{% load static %}
+
+{% block content %}
+  <div class="edit-teacher-container">
+    <div class="header-section">
+      <h1>Edit Teacher: {{ teacher.user.get_full_name }}</h1>
+      <a href="{% url 'teachers:teacher_management' %}" class="btn btn-transparent"><i class="bx bx-arrow-left"></i> Back to Management</a>
+    </div>
+
+    <div class="form-container">
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <!-- Profile Photo Section -->
+        <div class="form-section profile-section">
+          <div class="profile-upload-area">
+            <div class="profile-preview">
+              {% if teacher.profile_photo %}
+                <img src="{{ teacher.profile_photo.url }}" alt="Current Profile" class="current-profile-img" />
+              {% else %}
+                <div class="profile-placeholder">
+                  <i class="bx bx-user"></i>
+                </div>
+              {% endif %}
+            </div>
+            <div class="upload-controls">
+              <label for="id_profile_photo" class="upload-btn"><i class="bx bx-camera"></i> Change Photo</label>
+              {{ form.profile_photo }}
+              <button type="button" class="clear-btn" id="clear-photo-btn" style="display: none;"><i class="bx bx-x"></i> Clear</button>
+              {% if form.profile_photo.errors %}
+                <div class="error">{{ form.profile_photo.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Personal Information -->
+        <div class="form-section">
+          <h3><i class="bx bx-user-circle"></i> Personal Information</h3>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="id_first_name">First Name *</label>
+              <input type="text" name="first_name" value="{{ form.first_name.value|default:teacher.user.first_name }}" required id="id_first_name" />
+              {% if form.first_name.errors %}
+                <div class="error">{{ form.first_name.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="form-group">
+              <label for="id_last_name">Last Name *</label>
+              <input type="text" name="last_name" value="{{ form.last_name.value|default:teacher.user.last_name }}" required id="id_last_name" />
+              {% if form.last_name.errors %}
+                <div class="error">{{ form.last_name.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="form-group">
+              <label for="id_email">Email Address *</label>
+              <input type="email" name="email" value="{{ form.email.value|default:teacher.user.email }}" required id="id_email" />
+              {% if form.email.errors %}
+                <div class="error">{{ form.email.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="form-group">
+              <label for="id_mobile_no">Mobile Number</label>
+              {{ form.mobile_no }}
+              {% if form.mobile_no.errors %}
+                <div class="error">{{ form.mobile_no.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Professional Information -->
+        <div class="form-section">
+          <h3><i class="bx bx-graduation"></i> Professional Information</h3>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="id_subject">Subject *</label>
+              {{ form.subject }}
+              {% if form.subject.errors %}
+                <div class="error">{{ form.subject.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="form-group">
+              <label for="id_qualification">Qualification</label>
+              {{ form.qualification }}
+              {% if form.qualification.errors %}
+                <div class="error">{{ form.qualification.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Classroom Assignments -->
+        <div class="form-section">
+          <h3><i class="bx bx-chalkboard"></i> Classroom Assignments</h3>
+
+          <!-- Teaching Classes -->
+          <div class="form-group">
+            <label for="id_classroom">Classes for Teaching Subjects</label>
+            <div class="custom-select-wrapper">
+              {{ form.classroom }}
+              <div class="select-arrow">
+                <i class="bx bx-chevron-down"></i>
+              </div>
+            </div>
+            {% if form.classroom.errors %}
+              <div class="error">{{ form.classroom.errors }}</div>
+            {% endif %}
+            <div class="selected-items" id="classroom-selected">
+              <!-- Selected items will be populated by JavaScript -->
+            </div>
+          </div>
+
+          <!-- Class Teacher Assignment -->
+          <div class="class-teacher-section">
+            <div class="checkbox-wrapper">
+              {{ form.is_class_teacher }}
+              <label for="id_is_class_teacher" class="checkbox-label">
+                <span class="checkmark"></span>
+                Assign as Class Teacher
+              </label>
+            </div>
+            {% if form.is_class_teacher.errors %}
+              <div class="error">{{ form.is_class_teacher.errors }}</div>
+            {% endif %}
+
+            <div class="class-teacher-select" id="class-teacher-select" style="display: none;">
+              <label for="id_class_teacher_class">Select Class for Class Teacher Role</label>
+              <div class="custom-select-wrapper">
+                {{ form.class_teacher_class }}
+                <div class="select-arrow">
+                  <i class="bx bx-chevron-down"></i>
+                </div>
+              </div>
+              {% if form.class_teacher_class.errors %}
+                <div class="error">{{ form.class_teacher_class.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary"><i class="bx bx-save"></i> Update Teacher</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Handle class teacher checkbox toggle
+      const classTeacherCheckbox = document.getElementById('id_is_class_teacher');
+      const classTeacherSelect = document.getElementById('class-teacher-select');
+
+      function toggleClassTeacherSelect() {
+        if (classTeacherCheckbox.checked) {
+          classTeacherSelect.style.display = 'block';
+        } else {
+          classTeacherSelect.style.display = 'none';
+        }
+      }
+
+      classTeacherCheckbox.addEventListener('change', toggleClassTeacherSelect);
+      toggleClassTeacherSelect(); // Initial check
+
+      // Handle multi-select classroom display
+      const classroomSelect = document.getElementById('id_classroom');
+      const selectedContainer = document.getElementById('classroom-selected');
+
+      function updateSelectedItems() {
+        const selectedOptions = Array.from(classroomSelect.selectedOptions);
+        selectedContainer.innerHTML = '';
+
+        selectedOptions.forEach(option => {
+          const item = document.createElement('span');
+          item.className = 'selected-item';
+          item.innerHTML = `
+            ${option.textContent}
+            <span class="remove-item" data-value="${option.value}">×</span>
+          `;
+          selectedContainer.appendChild(item);
+        });
+
+        // Add event listeners to remove buttons
+        document.querySelectorAll('.remove-item').forEach(btn => {
+          btn.addEventListener('click', function() {
+            const value = this.getAttribute('data-value');
+            const option = classroomSelect.querySelector(`option[value="${value}"]`);
+            if (option) {
+              option.selected = false;
+              updateSelectedItems();
+            }
+          });
+        });
+      }
+
+      classroomSelect.addEventListener('change', updateSelectedItems);
+      updateSelectedItems(); // Initial display
+
+      // Handle profile photo preview and clear
+      const profileInput = document.getElementById('id_profile_photo');
+      const profilePlaceholder = document.querySelector('.current-profile-img') ? document.querySelector('.current-profile-img').parentElement : document.querySelector('.profile-placeholder');
+      const clearBtn = document.getElementById('clear-photo-btn');
+      let currentPreview = document.querySelector('.current-profile-img');
+      let originalContent = profilePlaceholder.innerHTML;
+
+      function updatePhotoPreview(file) {
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            if (currentPreview) {
+              currentPreview.remove();
+            }
+            currentPreview = document.createElement('img');
+            currentPreview.src = e.target.result;
+            currentPreview.style.width = '100%';
+            currentPreview.style.height = '100%';
+            currentPreview.style.borderRadius = '50%';
+            currentPreview.style.objectFit = 'cover';
+            currentPreview.alt = 'Profile Preview';
+            currentPreview.className = 'current-profile-img';
+            profilePlaceholder.innerHTML = '';
+            profilePlaceholder.appendChild(currentPreview);
+            clearBtn.style.display = 'inline-flex';
+          };
+          reader.readAsDataURL(file);
+        }
+      }
+
+      function clearPhotoPreview() {
+        if (currentPreview) {
+          currentPreview.remove();
+          currentPreview = null;
+        }
+        profilePlaceholder.innerHTML = originalContent;
+        profileInput.value = '';
+        clearBtn.style.display = 'none';
+      }
+
+      profileInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+          updatePhotoPreview(file);
+        }
+      });
+
+      clearBtn.addEventListener('click', clearPhotoPreview);
+
+      // Show clear button if there's already an image
+      if (document.querySelector('.current-profile-img')) {
+        clearBtn.style.display = 'inline-flex';
+      }
+
+    });
+  </script>
+{% endblock %}

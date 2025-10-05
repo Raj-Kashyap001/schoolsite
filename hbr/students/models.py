@@ -43,6 +43,13 @@ class Stream(models.Model):
 class Classroom(models.Model):
     grade = models.CharField()
     section = models.CharField(blank=True, null=True)
+    class_teacher = models.OneToOneField(
+        "teachers.Teacher",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="class_teacher_of",
+    )
 
     def __str__(self):
         if self.section:

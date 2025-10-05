@@ -3,6 +3,11 @@
 {% block content %}
   <div class="profile-container">
     {% csrf_token %}
+    {% if is_admin_viewing %}
+      <div class="admin-actions">
+        <a href="{% url 'teachers:teacher_management' %}" class="btn btn-transparent"><i class="bx bx-arrow-left"></i> Back to Teacher Management</a>
+      </div>
+    {% endif %}
     <h1>{{ user.first_name }} {{ user.last_name }}'s Profile</h1>
 
     <div class="profile-cards">
@@ -38,17 +43,19 @@
               {% endif %}
             </p>
           </div>
-          <div class="profile-actions">
-            <button class="btn btn-primary" id="change-photo-btn">
-              <i class="bx bx-image-portrait"></i>
-              {% if teacher.profile_photo %}
-                Change
-              {% else %}
-                Upload
-              {% endif %}Profile Image
-            </button>
-            <input type="file" id="profile-photo-input" accept="image/*" style="display: none;" />
-          </div>
+          {% if not is_admin_viewing %}
+            <div class="profile-actions">
+              <button class="btn btn-primary" id="change-photo-btn">
+                <i class="bx bx-image-portrait"></i>
+                {% if teacher.profile_photo %}
+                  Change
+                {% else %}
+                  Upload
+                {% endif %}Profile Image
+              </button>
+              <input type="file" id="profile-photo-input" accept="image/*" style="display: none;" />
+            </div>
+          {% endif %}
         {% else %}
           <p>No teacher information found.</p>
         {% endif %}
@@ -130,9 +137,12 @@
       </div>
     </div>
   </div>
+
   {% load static %}
   <script>
     window.profileUrl = '/teachers/profile/'
   </script>
-  <script src="{% static 'js/profile_image_change.js' %}?v=5"></script>
+  {% if not is_admin_viewing %}
+    <script src="{% static 'js/profile_image_change.js' %}?v=5"></script>
+  {% endif %}
 {% endblock %}

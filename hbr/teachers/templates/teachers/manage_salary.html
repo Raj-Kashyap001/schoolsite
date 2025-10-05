@@ -1,0 +1,93 @@
+{% extends 'dashboard/layout.html' %}
+{% load static %}
+
+{% block content %}
+  <div class="manage-salary-container">
+    <div class="header-section">
+      <h1>Salary Management: {{ teacher.user.get_full_name }}</h1>
+      <a href="{% url 'teachers:teacher_management' %}" class="btn btn-secondary"><i class="bx bx-arrow-back"></i> Back to Management</a>
+    </div>
+
+    <div class="content-grid">
+      <!-- Add Salary Form -->
+      <div class="form-section">
+        <h2>Add New Salary Record</h2>
+        <form method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+
+          <div class="form-row">
+            <div class="form-group">
+              {{ form.amount.label_tag }}
+              {{ form.amount }}
+              {% if form.amount.errors %}
+                <div class="error">{{ form.amount.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="form-group">
+              {{ form.payment_date.label_tag }}
+              {{ form.payment_date }}
+              {% if form.payment_date.errors %}
+                <div class="error">{{ form.payment_date.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="form-group">
+            {{ form.description.label_tag }}
+            {{ form.description }}
+            {% if form.description.errors %}
+              <div class="error">{{ form.description.errors }}</div>
+            {% endif %}
+          </div>
+
+          <div class="form-group">
+            {{ form.attachment.label_tag }}
+            {{ form.attachment }}
+            {% if form.attachment.errors %}
+              <div class="error">{{ form.attachment.errors }}</div>
+            {% endif %}
+          </div>
+
+          <button type="submit" class="btn btn-primary"><i class="bx bx-plus"></i> Add Salary Record</button>
+        </form>
+      </div>
+
+      <!-- Salary Records Table -->
+      <div class="records-section">
+        <h2>Salary Records</h2>
+        <div class="table-container">
+          <table class="salary-table">
+            <thead>
+              <tr>
+                <th>Description</th>
+                <th>Amount</th>
+                <th>Payment Date</th>
+                <th>Attachment</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for salary in salaries %}
+                <tr>
+                  <td>{{ salary.description }}</td>
+                  <td>₹{{ salary.amount }}</td>
+                  <td>{{ salary.payment_date|date:'d/m/Y' }}</td>
+                  <td>
+                    {% if salary.attachment %}
+                      <a href="{{ salary.attachment.url }}" target="_blank" class="btn btn-download btn-sm"><i class="bx bx-download"></i> Download</a>
+                    {% else %}
+                      No attachment
+                    {% endif %}
+                  </td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="4">No salary records found.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

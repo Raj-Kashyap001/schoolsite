@@ -1,0 +1,274 @@
+{% extends 'dashboard/layout.html' %}
+{% load static %}
+
+{% block content %}
+  <div class="add-teacher-container">
+    <div class="header-section">
+      <h1>Add New Teacher</h1>
+      <a href="{% url 'teachers:teacher_management' %}" class="btn btn-transparent"><i class="bx bx-arrow-left"></i> Back to Management</a>
+    </div>
+
+    <div class="form-container">
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <!-- Profile Photo Section -->
+        <div class="form-section profile-section">
+          <div class="profile-upload-area">
+            <div class="profile-preview">
+              <div class="profile-placeholder">
+                <i class="bx bx-user"></i>
+              </div>
+            </div>
+            <div class="upload-controls">
+              <label for="id_profile_photo" class="upload-btn"><i class="bx bx-camera"></i> Upload Photo</label>
+              {{ profile_form.profile_photo }}
+              <button type="button" class="clear-btn" id="clear-photo-btn" style="display: none;"><i class="bx bx-x"></i> Clear</button>
+              {% if profile_form.profile_photo.errors %}
+                <div class="error">{{ profile_form.profile_photo.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Personal Information -->
+        <div class="form-section">
+          <h3><i class="bx bx-user-circle"></i> Personal Information</h3>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="id_first_name">First Name *</label>
+              {{ user_form.first_name }}
+              {% if user_form.first_name.errors %}
+                <div class="error">{{ user_form.first_name.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="form-group">
+              <label for="id_last_name">Last Name *</label>
+              {{ user_form.last_name }}
+              {% if user_form.last_name.errors %}
+                <div class="error">{{ user_form.last_name.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="form-group">
+              <label for="id_email">Email Address *</label>
+              {{ user_form.email }}
+              {% if user_form.email.errors %}
+                <div class="error">{{ user_form.email.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="form-group">
+              <label for="id_mobile_no">Mobile Number</label>
+              {{ profile_form.mobile_no }}
+              {% if profile_form.mobile_no.errors %}
+                <div class="error">{{ profile_form.mobile_no.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Account Credentials -->
+        <div class="form-section">
+          <h3><i class="bx bx-lock-alt"></i> Account Credentials</h3>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="id_username">Username *</label>
+              {{ user_form.username }}
+              {% if user_form.username.errors %}
+                <div class="error">{{ user_form.username.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="form-group">
+              <label for="id_password1">Password *</label>
+              {{ user_form.password1 }}
+              {% if user_form.password1.errors %}
+                <div class="error">{{ user_form.password1.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="form-group span-2">
+              <label for="id_password2">Confirm Password *</label>
+              {{ user_form.password2 }}
+              {% if user_form.password2.errors %}
+                <div class="error">{{ user_form.password2.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Professional Information -->
+        <div class="form-section">
+          <h3><i class="bx bx-graduation"></i> Professional Information</h3>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="id_subject">Subject *</label>
+              {{ profile_form.subject }}
+              {% if profile_form.subject.errors %}
+                <div class="error">{{ profile_form.subject.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="form-group">
+              <label for="id_qualification">Qualification</label>
+              {{ profile_form.qualification }}
+              {% if profile_form.qualification.errors %}
+                <div class="error">{{ profile_form.qualification.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Classroom Assignments -->
+        <div class="form-section">
+          <h3><i class="bx bx-chalkboard"></i> Classroom Assignments</h3>
+
+          <!-- Teaching Classes -->
+          <div class="form-group">
+            <label for="id_classroom">Classes for Teaching Subjects</label>
+            <div class="custom-select-wrapper">
+              {{ profile_form.classroom }}
+              <div class="select-arrow">
+                <i class="bx bx-chevron-down"></i>
+              </div>
+            </div>
+            {% if profile_form.classroom.errors %}
+              <div class="error">{{ profile_form.classroom.errors }}</div>
+            {% endif %}
+            <div class="selected-items" id="classroom-selected">
+              <!-- Selected items will be populated by JavaScript -->
+            </div>
+          </div>
+
+          <!-- Class Teacher Assignment -->
+          <div class="class-teacher-section">
+            <div class="checkbox-wrapper">
+              {{ profile_form.is_class_teacher }}
+              <label for="id_is_class_teacher" class="checkbox-label">
+                <span class="checkmark"></span>
+                Assign as Class Teacher
+              </label>
+            </div>
+            {% if profile_form.is_class_teacher.errors %}
+              <div class="error">{{ profile_form.is_class_teacher.errors }}</div>
+            {% endif %}
+
+            <div class="class-teacher-select" id="class-teacher-select" style="display: none;">
+              <label for="id_class_teacher_class">Select Class for Class Teacher Role</label>
+              <div class="custom-select-wrapper">
+                {{ profile_form.class_teacher_class }}
+                <div class="select-arrow">
+                  <i class="bx bx-chevron-down"></i>
+                </div>
+              </div>
+              {% if profile_form.class_teacher_class.errors %}
+                <div class="error">{{ profile_form.class_teacher_class.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary"><i class="bx bx-save"></i> Create Teacher Account</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Handle class teacher checkbox toggle
+      const classTeacherCheckbox = document.getElementById('id_is_class_teacher');
+      const classTeacherSelect = document.getElementById('class-teacher-select');
+
+      function toggleClassTeacherSelect() {
+        if (classTeacherCheckbox.checked) {
+          classTeacherSelect.style.display = 'block';
+        } else {
+          classTeacherSelect.style.display = 'none';
+        }
+      }
+
+      classTeacherCheckbox.addEventListener('change', toggleClassTeacherSelect);
+      toggleClassTeacherSelect(); // Initial check
+
+      // Handle multi-select classroom display
+      const classroomSelect = document.getElementById('id_classroom');
+      const selectedContainer = document.getElementById('classroom-selected');
+
+      function updateSelectedItems() {
+        const selectedOptions = Array.from(classroomSelect.selectedOptions);
+        selectedContainer.innerHTML = '';
+
+        selectedOptions.forEach(option => {
+          const item = document.createElement('span');
+          item.className = 'selected-item';
+          item.innerHTML = `
+            ${option.textContent}
+            <span class="remove-item" data-value="${option.value}">×</span>
+          `;
+          selectedContainer.appendChild(item);
+        });
+
+        // Add event listeners to remove buttons
+        document.querySelectorAll('.remove-item').forEach(btn => {
+          btn.addEventListener('click', function() {
+            const value = this.getAttribute('data-value');
+            const option = classroomSelect.querySelector(`option[value="${value}"]`);
+            if (option) {
+              option.selected = false;
+              updateSelectedItems();
+            }
+          });
+        });
+      }
+
+      classroomSelect.addEventListener('change', updateSelectedItems);
+      updateSelectedItems(); // Initial display
+
+      // Handle profile photo preview and clear
+      const profileInput = document.getElementById('id_profile_photo');
+      const profilePlaceholder = document.querySelector('.profile-placeholder');
+      const clearBtn = document.getElementById('clear-photo-btn');
+      let currentPreview = null;
+
+      function updatePhotoPreview(file) {
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            if (currentPreview) {
+              currentPreview.remove();
+            }
+            currentPreview = document.createElement('img');
+            currentPreview.src = e.target.result;
+            currentPreview.style.width = '100%';
+            currentPreview.style.height = '100%';
+            currentPreview.style.borderRadius = '50%';
+            currentPreview.style.objectFit = 'cover';
+            currentPreview.alt = 'Profile Preview';
+            profilePlaceholder.innerHTML = '';
+            profilePlaceholder.appendChild(currentPreview);
+            clearBtn.style.display = 'inline-flex';
+          };
+          reader.readAsDataURL(file);
+        }
+      }
+
+      function clearPhotoPreview() {
+        if (currentPreview) {
+          currentPreview.remove();
+          currentPreview = null;
+        }
+        profilePlaceholder.innerHTML = '<i class="bx bx-user"></i>';
+        profileInput.value = '';
+        clearBtn.style.display = 'none';
+      }
+
+      profileInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+          updatePhotoPreview(file);
+        }
+      });
+
+      clearBtn.addEventListener('click', clearPhotoPreview);
+
+    });
+  </script>
+{% endblock %}
