@@ -1,6 +1,7 @@
 from django.http import HttpRequest, HttpResponse
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 from base.views import get_user_role
 from academics.models import AcademicSession
 
@@ -77,3 +78,44 @@ def get_dashboard_sections(role):
         ],
     }
     return sections.get(role, [])
+
+
+@login_required
+def settings_view(request: HttpRequest):
+    """Settings view for admin to select academic session"""
+    user = request.user
+    role = get_user_role(user)
+
+    # Only allow admin access
+    if role != "Admin":
+        messages.error(request, "Access denied. Admin privileges required.")
+        return redirect("dashboard:dashboard")
+
+    if request.method == "POST":
+        session_id = request.POST.get("academic_session")
+        if session_id:
+            try:
+                # Validate the session exists
+                AcademicSession.objects.get(id=session_id)
+                request.session["selected_academic_session_id"] = int(session_id)
+                messages.success(request, "Academic session updated successfully.")
+            except (AcademicSession.DoesNotExist, ValueError):
+                messages.error(request, "Invalid academic session selected.")
+        else:
+            # Clear selection to use current session
+            if "selected_academic_session_id" in request.session:
+                del request.session["selected_academic_session_id"]
+            messages.success(request, "Using current academic session.")
+
+        return redirect("dashboard:settings")
+
+    # Get all available sessions
+    sessions = AcademicSession.objects.all().order_by("-start_date")
+    current_selected_id = request.session.get("selected_academic_session_id")
+
+    context = {
+        "role": role,
+        "sessions": sessions,
+        "current_selected_id": current_selected_id,
+    }
+    return render(request, "dashboard/settings.html", context)

@@ -194,6 +194,8 @@ class Command(BaseCommand):
 
     def seed_academic_data(self, current_year):
         """Seed academic sessions, terms, exams and schedules"""
+        today = date.today()
+
         # Create current academic session
         session_year = f"{current_year}-{current_year + 1}"
         session, created = AcademicSession.objects.get_or_create(

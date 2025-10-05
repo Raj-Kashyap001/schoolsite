@@ -32,10 +32,21 @@ from django import template
 register = template.Library()
 
 
-def get_current_session():
+def get_current_session(request=None):
     """Helper function to get the current academic session"""
     from datetime import date
 
+    # Check if user has selected a specific session
+    if request and hasattr(request, "session"):
+        selected_session_id = request.session.get("selected_academic_session_id")
+        if selected_session_id:
+            try:
+                current_session = AcademicSession.objects.get(id=selected_session_id)
+                return current_session
+            except AcademicSession.DoesNotExist:
+                pass
+
+    # Default logic: get current session based on date
     today = date.today()
     current_session = AcademicSession.objects.filter(
         start_date__lte=today, end_date__gte=today
@@ -98,8 +109,8 @@ def exams(request: HttpRequest):
                     student=student, exam__term=current_term
                 ).select_related("exam")
 
-                # For modal: all terms for querying previous results
-                all_terms = Term.objects.order_by("-end_date")
+                # For modal: all terms for the current session
+                all_terms = session_terms
 
                 context.update(
                     {

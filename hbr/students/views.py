@@ -3,7 +3,14 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from base.views import get_user_role
 from .forms import StudentProfileForm
-from .models import Student
+from .models import (
+    Student,
+    Classroom,
+    DailyTimetable,
+    ExamTimetable,
+    TeacherNotification,
+)
+from teachers.models import Teacher
 from .data_utils import (
     prepare_student_profile_data,
     handle_certificate_request,
@@ -166,3 +173,182 @@ def download_profile_pdf(request: HttpRequest):
 
     student_data, user_data = prepare_student_profile_data(student, request.user)
     return generate_profile_pdf_response(student_data, user_data, request.user.username)
+
+
+@login_required
+def class_management(request: HttpRequest):
+    """Class management overview for admin"""
+    role = get_user_role(request.user)
+
+    if role != "Admin":
+        return HttpResponse("Access denied", status=403)
+
+    classrooms = Classroom.objects.all().order_by("grade")
+    context = {
+        "classrooms": classrooms,
+        "role": role,
+    }
+    return render(request, "students/class_management.html", context)
+
+
+@login_required
+def manage_class_students(request: HttpRequest, classroom_id: int):
+    """Manage students in a specific classroom"""
+    role = get_user_role(request.user)
+
+    if role != "Admin":
+        return HttpResponse("Access denied", status=403)
+
+    try:
+        classroom = Classroom.objects.get(id=classroom_id)
+    except Classroom.DoesNotExist:
+        return HttpResponse("Classroom not found", status=404)
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+        student_ids = request.POST.getlist("student_ids")
+
+        if action == "assign":
+            # Assign selected students to this classroom
+            Student.objects.filter(id__in=student_ids).update(classroom=classroom)
+        elif action == "remove":
+            # Remove selected students from this classroom (assign to a default or None)
+            # For now, we'll just remove them - they can be reassigned later
+            Student.objects.filter(id__in=student_ids).update(classroom=None)
+
+    # Get all students and current classroom students
+    all_students = Student.objects.select_related("user", "classroom").order_by(
+        "roll_no"
+    )
+    classroom_students = classroom.student.all().order_by("roll_no")
+
+    context = {
+        "classroom": classroom,
+        "all_students": all_students,
+        "classroom_students": classroom_students,
+        "role": role,
+    }
+    return render(request, "students/manage_class_students.html", context)
+
+
+@login_required
+def manage_timetables(request: HttpRequest, classroom_id: int):
+    """Manage daily and exam timetables for a classroom"""
+    role = get_user_role(request.user)
+
+    if role != "Admin":
+        return HttpResponse("Access denied", status=403)
+
+    try:
+        classroom = Classroom.objects.get(id=classroom_id)
+    except Classroom.DoesNotExist:
+        return HttpResponse("Classroom not found", status=404)
+
+    if request.method == "POST":
+        if "daily_timetable" in request.FILES:
+            day_of_week = request.POST.get("day_of_week")
+            file = request.FILES["daily_timetable"]
+
+            # Create or update daily timetable
+            DailyTimetable.objects.update_or_create(
+                classroom=classroom,
+                day_of_week=day_of_week,
+                defaults={
+                    "timetable_file": file,
+                    "uploaded_by": request.user,
+                    "is_active": True,
+                },
+            )
+
+        elif "exam_timetable" in request.FILES:
+            title = request.POST.get("exam_title")
+            file = request.FILES["exam_timetable"]
+
+            # Create exam timetable
+            ExamTimetable.objects.create(
+                classroom=classroom,
+                title=title,
+                timetable_file=file,
+                uploaded_by=request.user,
+                is_active=True,
+            )
+
+        elif "delete_daily" in request.POST:
+            timetable_id = request.POST.get("delete_daily")
+            DailyTimetable.objects.filter(id=timetable_id, classroom=classroom).delete()
+
+        elif "delete_exam" in request.POST:
+            timetable_id = request.POST.get("delete_exam")
+            ExamTimetable.objects.filter(id=timetable_id, classroom=classroom).delete()
+
+    # Get existing timetables
+    daily_timetables = DailyTimetable.objects.filter(
+        classroom=classroom, is_active=True
+    )
+    exam_timetables = ExamTimetable.objects.filter(classroom=classroom, is_active=True)
+
+    context = {
+        "classroom": classroom,
+        "daily_timetables": daily_timetables,
+        "exam_timetables": exam_timetables,
+        "days_of_week": DailyTimetable.DAYS_OF_WEEK,
+        "role": role,
+    }
+    return render(request, "students/manage_timetables.html", context)
+
+
+@login_required
+def manage_teacher_notifications(request: HttpRequest, classroom_id: int):
+    """Manage teacher notifications for a classroom"""
+    role = get_user_role(request.user)
+
+    if role != "Admin":
+        return HttpResponse("Access denied", status=403)
+
+    try:
+        classroom = Classroom.objects.get(id=classroom_id)
+    except Classroom.DoesNotExist:
+        return HttpResponse("Classroom not found", status=404)
+
+    if request.method == "POST":
+        if "create_notification" in request.POST:
+            teacher_id = request.POST.get("teacher_id")
+            title = request.POST.get("title")
+            message = request.POST.get("message")
+            priority = request.POST.get("priority", "MEDIUM")
+
+            try:
+                teacher = Teacher.objects.get(id=teacher_id)
+                TeacherNotification.objects.create(
+                    teacher=teacher,
+                    classroom=classroom,
+                    title=title,
+                    message=message,
+                    priority=priority,
+                    created_by=request.user,
+                )
+            except Teacher.DoesNotExist:
+                pass  # Handle error appropriately
+
+        elif "delete_notification" in request.POST:
+            notification_id = request.POST.get("delete_notification")
+            TeacherNotification.objects.filter(
+                id=notification_id, classroom=classroom
+            ).delete()
+
+    # Get teachers assigned to this classroom
+    teachers = classroom.teachers.all()
+    notifications = (
+        TeacherNotification.objects.filter(classroom=classroom, is_active=True)
+        .select_related("teacher")
+        .order_by("-created_at")
+    )
+
+    context = {
+        "classroom": classroom,
+        "teachers": teachers,
+        "notifications": notifications,
+        "priorities": TeacherNotification.PRIORITY_CHOICES,
+        "role": role,
+    }
+    return render(request, "students/manage_teacher_notifications.html", context)

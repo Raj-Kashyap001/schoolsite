@@ -13,14 +13,27 @@ def get_user_role(user):
 
 def current_session(request):
     """Context processor to add current academic session to all templates"""
-    today = date.today()
-    current_session_obj = AcademicSession.objects.filter(
-        start_date__lte=today, end_date__gte=today
-    ).first()
+    # Check if user has selected a specific session
+    selected_session_id = request.session.get("selected_academic_session_id")
 
-    # If no current session, get the latest one
+    if selected_session_id:
+        try:
+            current_session_obj = AcademicSession.objects.get(id=selected_session_id)
+        except AcademicSession.DoesNotExist:
+            current_session_obj = None
+    else:
+        current_session_obj = None
+
+    # If no selected session or invalid, use current session based on date
     if not current_session_obj:
-        current_session_obj = AcademicSession.objects.order_by("-end_date").first()
+        today = date.today()
+        current_session_obj = AcademicSession.objects.filter(
+            start_date__lte=today, end_date__gte=today
+        ).first()
+
+        # If no current session, get the latest one
+        if not current_session_obj:
+            current_session_obj = AcademicSession.objects.order_by("-end_date").first()
 
     return {"current_session": current_session_obj}
 

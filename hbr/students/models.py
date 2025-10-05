@@ -155,3 +155,85 @@ class Payment(models.Model):
 
     def __str__(self):
         return f"{self.student} - {self.description} - {self.amount} - {self.status}"
+
+
+def timetable_file_path(instance, filename):
+    return f"timetables/{instance.classroom.grade}/daily/{filename}"
+
+
+class DailyTimetable(models.Model):
+    DAYS_OF_WEEK = [
+        ("MONDAY", "Monday"),
+        ("TUESDAY", "Tuesday"),
+        ("WEDNESDAY", "Wednesday"),
+        ("THURSDAY", "Thursday"),
+        ("FRIDAY", "Friday"),
+        ("SATURDAY", "Saturday"),
+        ("SUNDAY", "Sunday"),
+    ]
+
+    classroom = models.ForeignKey(
+        Classroom, on_delete=models.CASCADE, related_name="daily_timetables"
+    )
+    day_of_week = models.CharField(max_length=10, choices=DAYS_OF_WEEK)
+    timetable_file = models.FileField(
+        upload_to=timetable_file_path, blank=True, null=True
+    )
+    uploaded_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.classroom} - {self.day_of_week} - {self.uploaded_at.date()}"
+
+    class Meta:
+        unique_together = ("classroom", "day_of_week")
+
+
+def exam_timetable_file_path(instance, filename):
+    return f"timetables/{instance.classroom.grade}/exam/{filename}"
+
+
+class ExamTimetable(models.Model):
+    classroom = models.ForeignKey(
+        Classroom, on_delete=models.CASCADE, related_name="exam_timetables"
+    )
+    title = models.CharField(max_length=255, help_text="e.g., Mid-term Exam Timetable")
+    timetable_file = models.FileField(upload_to=exam_timetable_file_path)
+    uploaded_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.classroom} - {self.title}"
+
+
+class TeacherNotification(models.Model):
+    PRIORITY_CHOICES = [
+        ("LOW", "Low"),
+        ("MEDIUM", "Medium"),
+        ("HIGH", "High"),
+        ("URGENT", "Urgent"),
+    ]
+
+    teacher = models.ForeignKey(
+        "teachers.Teacher", on_delete=models.CASCADE, related_name="notifications"
+    )
+    classroom = models.ForeignKey(
+        Classroom, on_delete=models.CASCADE, related_name="teacher_notifications"
+    )
+    title = models.CharField(max_length=255)
+    message = models.TextField()
+    priority = models.CharField(
+        max_length=10, choices=PRIORITY_CHOICES, default="MEDIUM"
+    )
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.teacher} - {self.classroom} - {self.title}"
+
+    class Meta:
+        ordering = ["-created_at"]

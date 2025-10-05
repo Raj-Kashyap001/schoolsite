@@ -1,0 +1,41 @@
+{% extends 'dashboard/layout.html' %}
+
+{% block content %}
+  <div class="class-management-container">
+    <h1>Class Management</h1>
+    <p>Manage classrooms, student assignments, timetables, and teacher notifications.</p>
+
+    <div class="classrooms-grid">
+      {% for classroom in classrooms %}
+        <div class="classroom-card">
+          <div class="classroom-header">
+            <h3>{{ classroom }}</h3>
+            <span class="student-count">{{ classroom.student.count }} students</span>
+          </div>
+
+          <div class="classroom-actions">
+            <a href="{% url 'students:manage_class_students' classroom.id %}" class="btn btn-primary"><i class="bx bx-user-plus"></i> Manage Students</a>
+            <a href="{% url 'students:manage_timetables' classroom.id %}" class="btn btn-outline"><i class="bx bx-calendar"></i> Timetables</a>
+            <a href="{% url 'students:manage_teacher_notifications' classroom.id %}" class="btn btn-outline"><i class="bx bx-bell"></i> Notifications</a>
+          </div>
+
+          <div class="classroom-info">
+            <p>
+              <strong>Teachers:</strong> {{ classroom.teachers.count }}
+            </p>
+            <p>
+              <strong>Daily Timetables:</strong> {{ classroom.daily_timetables.filter.is_active.count }}
+            </p>
+            <p>
+              <strong>Exam Timetables:</strong> {{ classroom.exam_timetables.filter.is_active.count }}
+            </p>
+          </div>
+        </div>
+      {% empty %}
+        <div class="no-classes">
+          <p>No classrooms found. Please create classrooms first.</p>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+{% endblock %}

@@ -16,4 +16,21 @@ urlpatterns = [
     path(
         "download-profile-pdf/", views.download_profile_pdf, name="download_profile_pdf"
     ),
+    # Class Management URLs (Admin only)
+    path("class-management/", views.class_management, name="class_management"),
+    path(
+        "manage-class/<int:classroom_id>/students/",
+        views.manage_class_students,
+        name="manage_class_students",
+    ),
+    path(
+        "manage-class/<int:classroom_id>/timetables/",
+        views.manage_timetables,
+        name="manage_timetables",
+    ),
+    path(
+        "manage-class/<int:classroom_id>/notifications/",
+        views.manage_teacher_notifications,
+        name="manage_teacher_notifications",
+    ),
 ]

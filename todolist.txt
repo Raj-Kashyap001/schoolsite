@@ -1,2 +1,3 @@
 Have Teacher a Class Teacher Feature (apply this in attendance)
 Individuals Notice sending
+make setting section last
