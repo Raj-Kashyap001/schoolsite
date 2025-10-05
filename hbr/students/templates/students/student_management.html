@@ -5,9 +5,27 @@
   <div class="student-management-container">
     <div class="header-section">
       <h1>Student Management</h1>
-      <a href="{% url 'students:add_student' %}" class="btn btn-primary">
-        <i class="bx bx-plus"></i> Add New Student
-      </a>
+      <div class="header-actions">
+        <div class="dropdown">
+          <button class="btn btn-success dropdown-toggle" type="button" onclick="toggleDropdown()">
+            <i class="bx bx-import"></i> Import/Export
+          </button>
+          <div class="dropdown-menu" id="import-export-dropdown">
+            <a href="{% url 'students:export_students' %}?{% for key,value in request.GET.items %}{{ key }}={{ value }}&{% endfor %}format=csv" class="dropdown-item">
+              <i class="bx bx-export"></i> Export to CSV
+            </a>
+            <a href="{% url 'students:export_students' %}?{% for key,value in request.GET.items %}{{ key }}={{ value }}&{% endfor %}format=excel" class="dropdown-item">
+              <i class="bx bx-export"></i> Export to Excel
+            </a>
+            <a href="{% url 'students:import_students' %}" class="dropdown-item">
+              <i class="bx bx-import"></i> Import from File
+            </a>
+          </div>
+        </div>
+        <a href="{% url 'students:add_student' %}" class="btn btn-primary">
+          <i class="bx bx-plus"></i> Add New Student
+        </a>
+      </div>
     </div>
 
     <!-- Filters Section -->
@@ -146,9 +164,72 @@
       align-items: center;
       margin-bottom: 2rem;
     }
-    
+
     .header-section h1 {
       margin: 0;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 1rem;
+      padding: auto;
+      align-items: center;
+    }
+
+    /* Dropdown Styles */
+    .dropdown {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .dropdown-toggle {
+      padding: 1.1rem !important;
+      height: 28px;
+    }
+
+    .dropdown-toggle::after {
+      content: none;
+    }
+
+    .dropdown-menu {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      min-width: 200px;
+      z-index: 1000;
+      display: none;
+    }
+
+    .dropdown-menu.show {
+      display: block;
+    }
+
+    .dropdown-item {
+      display: flex;
+      align-items: center;
+      padding: 0.75rem 1rem;
+      color: #333;
+      text-decoration: none;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .dropdown-item:hover {
+      background: #f8f9fa;
+    }
+
+    .dropdown-item i {
+      margin-right: 0.5rem;
+      width: 16px;
+    }
+
+    .dropdown-item:last-child {
+      border-bottom: none;
     }
     
     .students-table-container {
@@ -417,6 +498,11 @@
     function toggleMultiselect() {
       const options = document.getElementById('multiselect-options');
       options.classList.toggle('show');
+    }
+
+    function toggleDropdown() {
+      const dropdown = document.getElementById('import-export-dropdown');
+      dropdown.classList.toggle('show');
     }
 
     function updateSelectedText() {

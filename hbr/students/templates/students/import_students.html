@@ -1,0 +1,266 @@
+{% extends 'dashboard/layout.html' %}
+{% load static %}
+
+{% block content %}
+  <div class="import-students-container">
+    <div class="header-section">
+      <h1>Import Students</h1>
+      <a href="{% url 'students:student_management' %}" class="btn btn-secondary"><i class="bx bx-arrow-back"></i> Back to Management</a>
+    </div>
+
+    <div class="import-form-container">
+      <form method="post" enctype="multipart/form-data" class="import-form">
+        {% csrf_token %}
+
+        <div class="form-section">
+          <h2>Upload Student Data</h2>
+          <p class="form-description">Upload a CSV or Excel file containing student information. The file should include columns for: First Name, Last Name, Email, Father Name, Mother Name, Date of Birth, Mobile No, Category, Gender, Current Address, Permanent Address, Weight, Height</p>
+
+          <div class="form-group">
+            {{ form.classroom.label_tag }}
+            {{ form.classroom }}
+            {% if form.classroom.errors %}
+              <div class="error">{{ form.classroom.errors }}</div>
+            {% endif %}
+          </div>
+
+          <div class="form-group">
+            {{ form.file.label_tag }}
+            {{ form.file }}
+            {% if form.file.errors %}
+              <div class="error">{{ form.file.errors }}</div>
+            {% endif %}
+            <small class="form-help">Supported formats: CSV, Excel (.xlsx, .xls)</small>
+          </div>
+
+          <div class="form-group">
+            <label class="checkbox-label">
+              {{ form.overwrite_existing }}
+              {{ form.overwrite_existing.label }}
+            </label>
+            {% if form.overwrite_existing.errors %}
+              <div class="error">{{ form.overwrite_existing.errors }}</div>
+            {% endif %}
+            <small class="form-help">Check this to update existing students with matching admission numbers</small>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary"><i class="bx bx-upload"></i> Import Students</button>
+          <a href="{% url 'students:student_management' %}" class="btn btn-secondary">Cancel</a>
+        </div>
+      </form>
+    </div>
+
+    <!-- Sample Data Section -->
+    <div class="sample-data-section">
+      <h3>Sample CSV Format</h3>
+      <div class="sample-table-container">
+        <table class="sample-table">
+          <thead>
+            <tr>
+              <th>First Name</th>
+              <th>Last Name</th>
+              <th>Email</th>
+              <th>Father Name</th>
+              <th>Mother Name</th>
+              <th>Date of Birth</th>
+              <th>Mobile No</th>
+              <th>Category</th>
+              <th>Gender</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>John</td>
+              <td>Doe</td>
+              <td>john.doe@example.com</td>
+              <td>Robert Doe</td>
+              <td>Mary Doe</td>
+              <td>2005-06-15</td>
+              <td>9876543210</td>
+              <td>GENERAL</td>
+              <td>MALE</td>
+            </tr>
+            <tr>
+              <td>Jane</td>
+              <td>Smith</td>
+              <td>jane.smith@example.com</td>
+              <td>David Smith</td>
+              <td>Sarah Smith</td>
+              <td>2006-03-22</td>
+              <td>9876543211</td>
+              <td>OBC</td>
+              <td>FEMALE</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="download-sample">
+        <a href="{% url 'students:export_students' %}?format=csv" class="btn btn-outline-primary"><i class="bx bx-download"></i> Download Sample CSV</a>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    .import-students-container {
+      padding: 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .header-section {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+    }
+    
+    .import-form-container {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      padding: 2rem;
+      margin-bottom: 2rem;
+    }
+    
+    .form-section h2 {
+      margin-bottom: 1rem;
+      color: #333;
+      border-bottom: 2px solid var(--color-primary);
+      padding-bottom: 0.5rem;
+    }
+    
+    .form-description {
+      background: #f8f9fa;
+      padding: 1rem;
+      border-radius: 4px;
+      margin-bottom: 1.5rem;
+      color: #666;
+      line-height: 1.5;
+    }
+    
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+      color: #333;
+    }
+    
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 1rem;
+    }
+    
+    .checkbox-label {
+      display: flex !important;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 600 !important;
+      margin-bottom: 0.5rem !important;
+      cursor: pointer;
+    }
+    
+    .checkbox-label input[type='checkbox'] {
+      width: auto;
+      margin: 0;
+    }
+    
+    .form-help {
+      display: block;
+      color: #666;
+      font-size: 0.875rem;
+      margin-top: 0.25rem;
+    }
+    
+    .error {
+      color: #dc3545;
+      font-size: 0.875rem;
+      margin-top: 0.25rem;
+    }
+    
+    .form-actions {
+      text-align: center;
+      margin-top: 2rem;
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+    }
+    
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 1rem;
+    }
+    
+    .btn-primary {
+      background: #007bff;
+      color: white;
+    }
+    
+    .btn-secondary {
+      background: #6c757d;
+      color: white;
+    }
+    
+    .btn-outline-primary {
+      background: transparent;
+      color: #007bff;
+      border: 1px solid #007bff;
+    }
+    
+    /* Sample Data Section */
+    .sample-data-section {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      padding: 2rem;
+    }
+    
+    .sample-data-section h3 {
+      margin-bottom: 1rem;
+      color: #333;
+    }
+    
+    .sample-table-container {
+      overflow-x: auto;
+      margin-bottom: 1rem;
+    }
+    
+    .sample-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+    
+    .sample-table th,
+    .sample-table td {
+      padding: 0.5rem;
+      text-align: left;
+      border: 1px solid #ddd;
+    }
+    
+    .sample-table th {
+      background: #f8f9fa;
+      font-weight: 600;
+    }
+    
+    .download-sample {
+      text-align: center;
+    }
+  </style>
+{% endblock %}

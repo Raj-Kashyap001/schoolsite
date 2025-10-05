@@ -4,6 +4,11 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth.models import User
 from django.db import transaction
+from django.core.files.storage import FileSystemStorage
+import csv
+import pandas as pd
+from io import StringIO, BytesIO
+import openpyxl
 from base.views import get_user_role
 from .forms import (
     StudentProfileForm,
@@ -13,6 +18,7 @@ from .forms import (
     DocumentUploadForm,
     PaymentForm,
     CertificateRequestForm,
+    StudentBulkImportForm,
     generate_student_credentials,
     generate_admission_number,
     generate_roll_number,
@@ -837,3 +843,372 @@ def manage_student_certificates(request: HttpRequest, student_id: int):
         "role": role,
     }
     return render(request, "students/manage_student_certificates.html", context)
+
+
+@login_required
+def export_students(request: HttpRequest):
+    """Admin view for exporting students to CSV/Excel"""
+    role = get_user_role(request.user)
+
+    if role != "Admin":
+        return HttpResponse("Access denied", status=403)
+
+    # Get filter parameters (same as student_management)
+    selected_classes = request.GET.getlist("classroom")
+    search_query = request.GET.get("search", "").strip()
+
+    # Base queryset
+    students = Student.objects.select_related("user", "classroom")
+
+    # Apply classroom filter
+    if selected_classes:
+        students = students.filter(classroom__id__in=selected_classes)
+
+    # Apply search filter
+    if search_query:
+        from django.db.models import Q
+
+        students = students.filter(
+            Q(user__first_name__icontains=search_query)
+            | Q(user__last_name__icontains=search_query)
+            | Q(user__username__icontains=search_query)
+        )
+
+    students = students.order_by("user__first_name")
+
+    # Get export format
+    export_format = request.GET.get("format", "csv")
+
+    if export_format == "excel":
+        # Export to Excel
+        data = []
+        for student in students:
+            data.append(
+                {
+                    "Admission No": student.admission_no,
+                    "Roll No": student.roll_no,
+                    "First Name": student.user.first_name,
+                    "Last Name": student.user.last_name,
+                    "Username": student.user.username,
+                    "Email": student.user.email,
+                    "Father Name": student.father_name,
+                    "Mother Name": student.mother_name,
+                    "Date of Birth": (
+                        student.dob.strftime("%Y-%m-%d") if student.dob else ""
+                    ),
+                    "Mobile No": str(student.mobile_no),
+                    "Category": student.category,
+                    "Gender": student.gender,
+                    "Classroom": str(student.classroom),
+                    "Stream": str(student.stream) if student.stream else "",
+                    "Subjects": ", ".join([str(s) for s in student.subjects.all()]),
+                    "Current Address": student.current_address,
+                    "Permanent Address": student.permanent_address,
+                    "Weight": str(student.weight) if student.weight else "",
+                    "Height": str(student.height) if student.height else "",
+                }
+            )
+
+        df = pd.DataFrame(data)
+
+        # Create Excel file in memory
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine="openpyxl") as writer:
+            df.to_excel(writer, sheet_name="Students", index=False)
+
+        output.seek(0)
+        response = HttpResponse(output.read(), content_type="application/vnd.openpyxl")
+        filename = (
+            f"students_export_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+        )
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+
+    else:
+        # Export to CSV (default)
+        output = StringIO()
+        writer = csv.writer(output)
+
+        # Write header
+        writer.writerow(
+            [
+                "Admission No",
+                "Roll No",
+                "First Name",
+                "Last Name",
+                "Username",
+                "Email",
+                "Father Name",
+                "Mother Name",
+                "Date of Birth",
+                "Mobile No",
+                "Category",
+                "Gender",
+                "Classroom",
+                "Stream",
+                "Subjects",
+                "Current Address",
+                "Permanent Address",
+                "Weight",
+                "Height",
+            ]
+        )
+
+        # Write student data
+        for student in students:
+            writer.writerow(
+                [
+                    student.admission_no,
+                    student.roll_no,
+                    student.user.first_name,
+                    student.user.last_name,
+                    student.user.username,
+                    student.user.email,
+                    student.father_name,
+                    student.mother_name,
+                    student.dob.strftime("%Y-%m-%d") if student.dob else "",
+                    str(student.mobile_no),
+                    student.category,
+                    student.gender,
+                    str(student.classroom),
+                    str(student.stream) if student.stream else "",
+                    ", ".join([str(s) for s in student.subjects.all()]),
+                    student.current_address,
+                    student.permanent_address,
+                    str(student.weight) if student.weight else "",
+                    str(student.height) if student.height else "",
+                ]
+            )
+
+        response = HttpResponse(output.getvalue(), content_type="text/csv")
+        filename = f"students_export_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.csv"
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+
+    return response
+
+
+@login_required
+def import_students(request: HttpRequest):
+    """Admin view for importing students from CSV/Excel files"""
+    role = get_user_role(request.user)
+
+    if role != "Admin":
+        return HttpResponse("Access denied", status=403)
+
+    if request.method == "POST":
+        form = StudentBulkImportForm(request.POST, request.FILES)
+        if form.is_valid():
+            file = request.FILES["file"]
+            classroom = form.cleaned_data["classroom"]
+            overwrite_existing = form.cleaned_data["overwrite_existing"]
+
+            try:
+                # Save uploaded file temporarily
+                fs = FileSystemStorage()
+                filename = fs.save(file.name, file)
+                file_path = fs.path(filename)
+
+                imported_count = 0
+                error_messages = []
+
+                try:
+                    if file.name.endswith((".xlsx", ".xls")):
+                        # Read Excel file
+                        df = pd.read_excel(file_path)
+                    else:
+                        # Read CSV file
+                        df = pd.read_csv(file_path)
+
+                    # Process each row with progress feedback
+                    total_rows = len(df)
+                    for index, row in df.iterrows():
+                        try:
+                            current_row = index + 1
+                            print(
+                                f"DEBUG: Processing student {current_row}/{total_rows}"
+                            )
+
+                            # Show progress every 5 students
+                            if current_row % 5 == 0 or current_row == total_rows:
+                                print(
+                                    f"DEBUG: Progress: {current_row}/{total_rows} students processed"
+                                )
+                            # Extract data from row (handle missing columns gracefully)
+                            admission_no = str(row.get("Admission No", "")).strip()
+                            first_name = str(row.get("First Name", "")).strip()
+                            last_name = str(row.get("Last Name", "")).strip()
+                            email = str(row.get("Email", "")).strip()
+
+                            if not first_name or not last_name:
+                                error_messages.append(
+                                    f"Row {index + 1}: First name and last name are required"
+                                )
+                                continue
+
+                            # Check if student already exists
+                            existing_student = None
+                            if admission_no:
+                                existing_student = Student.objects.filter(
+                                    admission_no=admission_no
+                                ).first()
+
+                            if existing_student and not overwrite_existing:
+                                error_messages.append(
+                                    f"Row {index + 1}: Student with admission no {admission_no} already exists"
+                                )
+                                continue
+                            elif existing_student and overwrite_existing:
+                                # Update existing student
+                                user = existing_student.user
+                                user.first_name = first_name
+                                user.last_name = last_name
+                                user.email = email
+                                user.save()
+
+                                existing_student.father_name = str(
+                                    row.get("Father Name", "")
+                                ).strip()
+                                existing_student.mother_name = str(
+                                    row.get("Mother Name", "")
+                                ).strip()
+                                existing_student.mobile_no = (
+                                    int(row.get("Mobile No", 0))
+                                    if row.get("Mobile No")
+                                    else 0
+                                )
+                                existing_student.category = str(
+                                    row.get("Category", "")
+                                ).strip()
+                                existing_student.gender = str(
+                                    row.get("Gender", "")
+                                ).strip()
+                                existing_student.current_address = str(
+                                    row.get("Current Address", "")
+                                ).strip()
+                                existing_student.permanent_address = str(
+                                    row.get("Permanent Address", "")
+                                ).strip()
+                                existing_student.classroom = classroom
+
+                                # Handle optional fields
+                                if row.get("Date of Birth"):
+                                    existing_student.dob = pd.to_datetime(
+                                        row.get("Date of Birth")
+                                    ).date()
+                                if row.get("Weight"):
+                                    existing_student.weight = float(row.get("Weight"))
+                                if row.get("Height"):
+                                    existing_student.height = float(row.get("Height"))
+
+                                existing_student.save()
+                                imported_count += 1
+                            else:
+                                # Create new student
+                                # Generate username and password
+                                dob_str = str(row.get("Date of Birth", ""))
+                                if dob_str:
+                                    try:
+                                        dob = pd.to_datetime(dob_str).date()
+                                    except:
+                                        dob = None
+                                else:
+                                    dob = None
+
+                                username, password = generate_student_credentials(
+                                    first_name,
+                                    last_name,
+                                    dob or pd.Timestamp.now().date(),
+                                )
+
+                                # Create user
+                                user = User.objects.create_user(
+                                    username=username,
+                                    first_name=first_name,
+                                    last_name=last_name,
+                                    email=email,
+                                    password=password,
+                                )
+
+                                # Generate sequence and IDs
+                                existing_students = Student.objects.filter(
+                                    classroom=classroom
+                                )
+                                sequence = existing_students.count() + 1
+
+                                # Generate admission number if not provided
+                                if not admission_no:
+                                    admission_no = generate_admission_number(
+                                        classroom.grade
+                                    )
+
+                                roll_no = generate_roll_number(classroom, sequence)
+
+                                # Create student
+                                student = Student.objects.create(
+                                    user=user,
+                                    sr_no=sequence,
+                                    roll_no=roll_no,
+                                    admission_no=admission_no,
+                                    father_name=str(row.get("Father Name", "")).strip(),
+                                    mother_name=str(row.get("Mother Name", "")).strip(),
+                                    dob=dob,
+                                    mobile_no=(
+                                        int(row.get("Mobile No", 0))
+                                        if row.get("Mobile No")
+                                        else 0
+                                    ),
+                                    category=str(row.get("Category", "")).strip(),
+                                    gender=str(row.get("Gender", "")).strip(),
+                                    current_address=str(
+                                        row.get("Current Address", "")
+                                    ).strip(),
+                                    permanent_address=str(
+                                        row.get("Permanent Address", "")
+                                    ).strip(),
+                                    classroom=classroom,
+                                )
+
+                                # Handle optional fields
+                                if row.get("Weight"):
+                                    student.weight = float(row.get("Weight"))
+                                if row.get("Height"):
+                                    student.height = float(row.get("Height"))
+                                student.save()
+
+                                imported_count += 1
+
+                        except Exception as e:
+                            error_messages.append(f"Row {index + 1}: {str(e)}")
+
+                finally:
+                    # Clean up uploaded file
+                    fs.delete(filename)
+
+                # Show results
+                if imported_count > 0:
+                    messages.success(
+                        request, f"Successfully imported {imported_count} students."
+                    )
+
+                if error_messages:
+                    messages.warning(
+                        request, f"Errors encountered: {'; '.join(error_messages[:5])}"
+                    )
+                    if len(error_messages) > 5:
+                        messages.warning(
+                            request, f"... and {len(error_messages) - 5} more errors"
+                        )
+
+                return redirect("students:student_management")
+
+            except Exception as e:
+                messages.error(request, f"Error processing file: {e}")
+                return redirect("students:student_management")
+
+    else:
+        form = StudentBulkImportForm()
+
+    context = {
+        "form": form,
+        "role": role,
+    }
+    return render(request, "students/import_students.html", context)

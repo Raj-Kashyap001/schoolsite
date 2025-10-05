@@ -176,6 +176,31 @@ class CertificateRequestForm(forms.Form):
     )
 
 
+class StudentBulkImportForm(forms.Form):
+    """Form for bulk importing students from CSV/Excel files"""
+
+    file = forms.FileField(
+        required=True,
+        widget=forms.FileInput(
+            attrs={"class": "form-control", "accept": ".csv,.xlsx,.xls"}
+        ),
+        help_text="Upload CSV or Excel file with student data",
+    )
+
+    classroom = forms.ModelChoiceField(
+        queryset=Classroom.objects.all(),
+        required=True,
+        widget=forms.Select(attrs={"class": "form-control"}),
+        help_text="Select classroom for imported students",
+    )
+
+    overwrite_existing = forms.BooleanField(
+        required=False,
+        widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
+        help_text="Check this to overwrite existing students with same admission number",
+    )
+
+
 def generate_student_credentials(first_name, last_name, dob):
     """Generate username and password for student"""
 
