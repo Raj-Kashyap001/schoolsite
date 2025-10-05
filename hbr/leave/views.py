@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.contenttypes.models import ContentType
 from django.utils import timezone
+from django.core.paginator import Paginator
 import csv
 import io
 import json
@@ -256,6 +257,16 @@ def leave(request: HttpRequest):
         try:
             student = Student.objects.get(user=request.user)
             leaves = Leave.objects.filter(student=student).order_by("-apply_date")
+
+            # Apply user filters
+            user_search = request.GET.get("user_search", "").strip()
+            user_status = request.GET.get("user_status", "")
+
+            if user_search:
+                leaves = leaves.filter(reason__icontains=user_search)
+            if user_status:
+                leaves = leaves.filter(status=user_status)
+
             context["leaves"] = leaves
             context["student"] = student
         except Student.DoesNotExist:
@@ -265,12 +276,31 @@ def leave(request: HttpRequest):
         try:
             teacher = Teacher.objects.get(user=request.user)
             leaves = Leave.objects.filter(teacher=teacher).order_by("-apply_date")
+
+            # Apply user filters
+            user_search = request.GET.get("user_search", "").strip()
+            user_status = request.GET.get("user_status", "")
+
+            if user_search:
+                leaves = leaves.filter(reason__icontains=user_search)
+            if user_status:
+                leaves = leaves.filter(status=user_status)
+
             context["leaves"] = leaves
             context["teacher"] = teacher
         except Teacher.DoesNotExist:
             context["error"] = "Teacher profile not found"
 
     elif role == "Admin":
+        # Get page numbers and filters from request
+        teacher_page = request.GET.get("teacher_page", 1)
+        student_page = request.GET.get("student_page", 1)
+        teacher_search = request.GET.get("teacher_search", "").strip()
+        student_search = request.GET.get("student_search", "").strip()
+        teacher_status = request.GET.get("teacher_status", "")
+        student_status = request.GET.get("student_status", "")
+
+        # Base querysets
         all_teacher_leaves = (
             Leave.objects.filter(teacher__isnull=False)
             .select_related("teacher", "approved_by")
@@ -281,7 +311,50 @@ def leave(request: HttpRequest):
             .select_related("student", "approved_by")
             .order_by("-apply_date")
         )
-        context["all_teacher_leaves"] = all_teacher_leaves
-        context["all_student_leaves"] = all_student_leaves
 
-    return render(request, "leave/leave.html", context)
+        # Apply teacher filters
+        if teacher_search:
+            all_teacher_leaves = all_teacher_leaves.filter(
+                teacher__user__first_name__icontains=teacher_search
+            ) | all_teacher_leaves.filter(
+                teacher__user__last_name__icontains=teacher_search
+            )
+        if teacher_status:
+            all_teacher_leaves = all_teacher_leaves.filter(status=teacher_status)
+
+        # Apply student filters
+        if student_search:
+            all_student_leaves = all_student_leaves.filter(
+                student__user__first_name__icontains=student_search
+            ) | all_student_leaves.filter(
+                student__user__last_name__icontains=student_search
+            )
+        if student_status:
+            all_student_leaves = all_student_leaves.filter(status=student_status)
+
+        # Paginate teacher leaves
+        teacher_paginator = Paginator(all_teacher_leaves, 10)  # 10 items per page
+        try:
+            teacher_leaves_page = teacher_paginator.page(teacher_page)
+        except:
+            teacher_leaves_page = teacher_paginator.page(1)
+
+        # Paginate student leaves
+        student_paginator = Paginator(all_student_leaves, 10)  # 10 items per page
+        try:
+            student_leaves_page = student_paginator.page(student_page)
+        except:
+            student_leaves_page = student_paginator.page(1)
+
+        context["all_teacher_leaves"] = teacher_leaves_page
+        context["all_student_leaves"] = student_leaves_page
+        context["teacher_paginator"] = teacher_paginator
+        context["student_paginator"] = student_paginator
+
+    # Render appropriate template based on role
+    if role == "Admin":
+        template = "dashboard/leave.html"
+    else:
+        template = "leave/leave.html"
+
+    return render(request, template, context)

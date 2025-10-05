@@ -141,7 +141,65 @@
             <a href="?{% for key,value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}" class="btn btn-secondary btn-sm">Previous</a>
           {% endif %}
 
-          <span class="current">
+          <!-- Page Numbers -->
+          <div class="page-numbers">
+            {% with total_pages=page_obj.paginator.num_pages current_page=page_obj.number %}
+              {% if total_pages <= 7 %}
+                <!-- Show all pages if 7 or fewer -->
+                {% for num in page_obj.paginator.page_range %}
+                  {% if num == current_page %}
+                    <span class="btn btn-primary btn-sm current-page">{{ num }}</span>
+                  {% else %}
+                    <a href="?{% for key,value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ num }}" class="btn btn-outline-primary btn-sm">{{ num }}</a>
+                  {% endif %}
+                {% endfor %}
+              {% else %}
+                <!-- Show limited range for many pages -->
+                {% if current_page <= 4 %}
+                  <!-- Show first 5 pages + last page -->
+                  {% for num in "12345"|make_list %}
+                    {% if num|add:"0" == current_page %}
+                      <span class="btn btn-primary btn-sm current-page">{{ num|add:"0" }}</span>
+                    {% else %}
+                      <a href="?{% for key,value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ num|add:"0" }}" class="btn btn-outline-primary btn-sm">{{ num|add:"0" }}</a>
+                    {% endif %}
+                  {% endfor %}
+                  <span class="btn btn-outline-secondary btn-sm disabled">...</span>
+                  <a href="?{% for key,value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ total_pages }}" class="btn btn-outline-primary btn-sm">{{ total_pages }}</a>
+                {% elif current_page >= total_pages|add:"-3" %}
+                  <!-- Show first page + last 5 pages -->
+                  <a href="?{% for key,value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page=1" class="btn btn-outline-primary btn-sm">1</a>
+                  <span class="btn btn-outline-secondary btn-sm disabled">...</span>
+                  {% for num in "12345"|make_list %}
+                    {% with page_num=total_pages|add:num|add:"-4" %}
+                      {% if page_num == current_page %}
+                        <span class="btn btn-primary btn-sm current-page">{{ page_num }}</span>
+                      {% else %}
+                        <a href="?{% for key,value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_num }}" class="btn btn-outline-primary btn-sm">{{ page_num }}</a>
+                      {% endif %}
+                    {% endwith %}
+                  {% endfor %}
+                {% else %}
+                  <!-- Show first page + current range + last page -->
+                  <a href="?{% for key,value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page=1" class="btn btn-outline-primary btn-sm">1</a>
+                  <span class="btn btn-outline-secondary btn-sm disabled">...</span>
+                  {% for offset in "-21"|make_list %}
+                    {% with page_num=current_page|add:offset %}
+                      {% if page_num == current_page %}
+                        <span class="btn btn-primary btn-sm current-page">{{ page_num }}</span>
+                      {% else %}
+                        <a href="?{% for key,value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_num }}" class="btn btn-outline-primary btn-sm">{{ page_num }}</a>
+                      {% endif %}
+                    {% endwith %}
+                  {% endfor %}
+                  <span class="btn btn-outline-secondary btn-sm disabled">...</span>
+                  <a href="?{% for key,value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ total_pages }}" class="btn btn-outline-primary btn-sm">{{ total_pages }}</a>
+                {% endif %}
+              {% endif %}
+            {% endwith %}
+          </div>
+
+          <span class="page-info">
             Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
           </span>
 
@@ -407,11 +465,72 @@
       display: flex;
       align-items: center;
       gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .page-numbers {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      margin: 0 1rem;
+    }
+
+    .page-info {
+      font-weight: 600;
+      color: #007bff;
+      margin: 0 1rem;
+    }
+
+    .current-page {
+      font-weight: bold;
+      background: #007bff !important;
+      color: white !important;
+    }
+
+    .btn-outline-primary {
+      background: transparent;
+      color: #007bff;
+      border: 1px solid #007bff;
+    }
+
+    .btn-outline-primary:hover {
+      background: #007bff;
+      color: white;
+    }
+
+    .btn-outline-secondary {
+      background: transparent;
+      color: #6c757d;
+      border: 1px solid #6c757d;
+    }
+
+    .btn-outline-secondary.disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
     }
 
     .current {
       font-weight: 600;
       color: #007bff;
+    }
+
+    @media (max-width: 768px) {
+      .page-numbers {
+        order: 3;
+        width: 100%;
+        justify-content: center;
+        margin-top: 1rem;
+      }
+
+      .page-info {
+        order: 2;
+        margin: 0;
+      }
+
+      .step-links {
+        flex-direction: column;
+        gap: 1rem;
+      }
     }
 
     @media (max-width: 768px) {

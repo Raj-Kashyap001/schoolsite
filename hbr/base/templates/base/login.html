@@ -8,17 +8,32 @@
   </head>
   <body>
     <div class="form-wrapper">
-      <h1>{{ role }} Login</h1>
-      <form method="POST">
+      <!-- School Header -->
+      <div class="school-header">
+        {% load static %}
+        <img src="{% static 'images/school-logo.png' %}" alt="{{ school_name }} Logo" class="school-logo-login" />
+        <h2 class="school-name">{{ school_name }}</h2>
+        <p class="login-subtitle">{{ role }} Portal</p>
+      </div>
+
+      <form method="POST" class="login-form">
         {% csrf_token %}
-        <input type="text" name="username" autocomplete="username" placeholder="Username" />
-        <input type="password" name="password" autocomplete="current-password" placeholder="********" />
-        {% if messages %}
-          {% for message in messages %}
-            <p class="{{ message.tags }} show">{{ message }}</p>
-          {% endfor %}
+
+        <label for="username">
+          <i class="bx bx-user"></i>
+          Username
+        </label>
+        <input type="text" id="username" name="username" autocomplete="username" placeholder="Enter your username" required />
+
+        <label for="password">
+          <i class="bx bx-lock"></i>
+          Password
+        </label>
+        <input type="password" id="password" name="password" autocomplete="current-password" placeholder="Enter your password" required />
+        {% if error_message %}
+          <p class="error show">{{ error_message }}</p>
         {% endif %}
-        <button>Login</button>
+        <button type="submit" class="login-btn">Login</button>
       </form>
       <span class="separator">OR</span>
       <div class="login-links">

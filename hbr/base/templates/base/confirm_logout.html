@@ -8,21 +8,36 @@
   </head>
   <body>
     <div class="form-wrapper">
-      <h1>Already Logged In</h1>
-      <p>
-        You are currently logged in as <strong>{{ current_role }}</strong>.
-      </p>
-      <p>
-        You are trying to login as <strong>{{ target_role }}</strong>.
-      </p>
-      <p>Would you like to logout and login as {{ target_role }}?</p>
-      <form method="POST">
-        {% csrf_token %}
-        <div class="confirm-buttons">
-          <button name="logout" value="yes">Yes, Logout</button>
-          <button name="cancel" value="no">No, Stay Logged In</button>
+      <!-- School Header -->
+      <div class="school-header">
+        {% load static %}
+        <img src="{% static 'images/school-logo.png' %}" alt="HBR School Logo" class="school-logo-login" />
+        <h2 class="school-name">HBR School</h2>
+        <p class="login-subtitle">Account Confirmation</p>
+      </div>
+
+      <div class="confirm-card">
+        <div class="confirm-icon">
+          <i class="bx bx-user-check"></i>
         </div>
-      </form>
+        <h3>Already Logged In</h3>
+        <div class="confirm-details">
+          <p>
+            You are currently logged in as <strong>{{ current_role }}</strong>.
+          </p>
+          <p>
+            You are trying to login as <strong>{{ target_role }}</strong>.
+          </p>
+          <p>Would you like to logout and login as {{ target_role }}?</p>
+        </div>
+        <form method="POST">
+          {% csrf_token %}
+          <div class="confirm-buttons">
+            <button name="logout" value="yes" class="btn btn-primary">Yes, Logout</button>
+            <button name="cancel" value="no" class="btn btn-outline">No, Stay Logged In</button>
+          </div>
+        </form>
+      </div>
     </div>
   </body>
 </html>

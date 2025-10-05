@@ -58,6 +58,7 @@ def login_page(request: HttpRequest, role: str):
             context = {"current_role": user_role, "target_role": role}
             return render(request, "base/confirm_logout.html", context)
 
+    error_message = None
     if request.method == "POST":
         username = request.POST.get("username")
         password = request.POST.get("password")
@@ -66,7 +67,12 @@ def login_page(request: HttpRequest, role: str):
             login(request, user)
             return redirect("dashboard:dashboard")
         else:
-            messages.error(request, "Invalid Credentials!")
+            error_message = "Invalid Credentials!"
 
-    context = {"role": role, "valid_roles": valid_roles}
+    context = {
+        "role": role,
+        "valid_roles": valid_roles,
+        "error_message": error_message,
+        "school_name": "HBR School",
+    }
     return render(request, "base/login.html", context)
