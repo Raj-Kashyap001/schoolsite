@@ -5,38 +5,205 @@
     <h1>Notice Board</h1>
     <p>Stay updated with the latest notifications from the administration.</p>
 
-    {% if notices %}
-      <div class="notices-list">
-        {% for notice in notices %}
-          <div class="notice-card">
-            <div class="notice-header">
-              <div>
-                <h3>{{ notice.title }}</h3>
-                <span class="notice-type-badge {% if notice.notice_type == 'ANNOUNCEMENT' %}
-                    announcement
-                  {% else %}
-                    individual
-                  {% endif %}">
-                  {{ notice.get_notice_type_display }}
-                </span>
-              </div>
-              <span class="notice-date">{{ notice.created_at|date:'M d, Y' }}</span>
-            </div>
-            <div class="notice-content">
-              <p>{{ notice.content }}</p>
-            </div>
-            {% if notice.attachment %}
-              <div class="notice-attachment">
-                <a href="{% url 'download_notice_attachment' notice.id %}" class="download-btn"><i class="bx bx-download"></i> Download Attachment</a>
-              </div>
-            {% endif %}
-          </div>
-        {% endfor %}
+    {% if role == 'Admin' %}
+      <div class="admin-actions">
+        <button class="btn btn-primary" id="create-notice-btn">Create New Notice</button>
+        <div class="bulk-actions" style="display: none;">
+          <button class="btn btn-outline" form="notices-form" name="action" value="disable">Disable Selected</button>
+          <button class="btn btn-outline" form="notices-form" name="action" value="delete">Delete Selected</button>
+        </div>
       </div>
+    {% endif %}
+
+    {% if notices %}
+      <form id="notices-form" method="post" action="">
+        {% csrf_token %}
+        <div class="notices-stack">
+          {% for notice in notices %}
+            <div class="notice-card {% if not notice.is_active %}inactive{% endif %}">
+              {% if role == 'Admin' %}
+                <div class="notice-checkbox-container">
+                  <input type="checkbox" name="notice_ids" value="{{ notice.id }}" class="notice-checkbox" />
+                </div>
+              {% endif %}
+              <div class="notice-main">
+                <div class="notice-header-row">
+                  <h3>{{ notice.title }}</h3>
+                  <div class="notice-badges">
+                    <span class="notice-type-badge {% if notice.notice_type == 'ANNOUNCEMENT' %}
+                        announcement
+                      {% else %}
+                        individual
+                      {% endif %}">
+                      {{ notice.get_notice_type_display }}
+                    </span>
+                    {% if notice.attachment %}
+                      <span class="attachment-badge" title="Has Attachment"><i class="bx bx-paperclip"></i></span>
+                    {% endif %}
+                    {% if role == 'Admin' %}
+                      <span class="notice-status {% if notice.is_active %}
+                          active
+                        {% else %}
+                          inactive
+                        {% endif %}">
+                        {{ notice.is_active|yesno:'Active,Inactive' }}
+                      </span>
+                    {% endif %}
+                  </div>
+                </div>
+                <div class="notice-content-row">
+                  <p>{{ notice.content|truncatechars:100 }}</p>
+                  <div class="notice-actions">
+                    {% if notice.attachment %}
+                      <a href="{% url 'notices:download_notice_attachment' notice.id %}" class="icon-btn" title="Download Attachment"><i class="bxr bx-arrow-down-stroke-circle"></i></a>
+                    {% endif %}
+                    {% if role == 'Admin' %}
+                      <button type="button" class="icon-btn edit-btn" title="Edit Notice" data-notice-id="{{ notice.id }}" data-title="{{ notice.title }}" data-content="{{ notice.content }}" data-notice-type="{{ notice.notice_type }}" data-target-students="{{ notice.target_students.all|join:',' }}" data-attachment="{% if notice.attachment %}{{ notice.attachment.name }}{% endif %}"><i class="bx bx-edit"></i></button>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </form>
     {% else %}
       <div class="no-notices">
         <p>No notices available at the moment.</p>
       </div>
     {% endif %}
+
+    <!-- Notice Modal -->
+    {% if role == 'Admin' %}
+      <div id="notice-modal" class="modal">
+        <div class="modal-content">
+          <span class="close">&times;</span>
+          <h2>Create New Notice</h2>
+          <form id="notice-form" method="post" action="{% url 'notices:create_notice' %}" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" id="notice-id" name="notice_id" value="" />
+            <input type="hidden" id="clear-attachment" name="clear_attachment" value="false" />
+            <div class="form-group">
+              <label for="{{ form.title.id_for_label }}">Title</label>
+              {{ form.title }}
+            </div>
+            <div class="form-group">
+              <label for="{{ form.content.id_for_label }}">Content</label>
+              {{ form.content }}
+            </div>
+            <div class="form-group">
+              <label for="{{ form.notice_type.id_for_label }}">Notice Type</label>
+              {{ form.notice_type }}
+            </div>
+            <div class="form-group">
+              <label for="{{ form.attachment.id_for_label }}">Attachment</label>
+              <div id="current-attachment" style="display: none; margin-bottom: 0.5rem; color: #666; font-size: 0.9rem;">
+                Current attachment: <span id="current-attachment-name"></span>
+                <button type="button" id="clear-attachment-btn" class="btn btn-outline" style="margin-left: 1rem; padding: 0.25rem 0.5rem; font-size: 0.8rem;">Clear</button>
+              </div>
+              {{ form.attachment }}
+            </div>
+            <div class="form-group">
+              <label for="{{ form.target_students.id_for_label }}">Target Students (for Individual notices)</label>
+              {{ form.target_students }}
+            </div>
+            <button type="submit" class="btn btn-primary" id="submit-btn">Create Notice</button>
+          </form>
+        </div>
+      </div>
+    {% endif %}
   </div>
+
+  {% if role == 'Admin' %}
+    <script>
+      // Modal functionality
+      const modal = document.getElementById('notice-modal')
+      const modalTitle = modal.querySelector('h2')
+      const form = document.getElementById('notice-form')
+      const submitBtn = document.getElementById('submit-btn')
+      const noticeIdField = document.getElementById('notice-id')
+      const currentAttachment = document.getElementById('current-attachment')
+      const currentAttachmentName = document.getElementById('current-attachment-name')
+      const createBtn = document.getElementById('create-notice-btn')
+      const span = document.getElementsByClassName('close')[0]
+      
+      if (createBtn) {
+        createBtn.onclick = function () {
+          resetModal()
+          modal.style.display = 'block'
+        }
+      }
+      
+      document.querySelectorAll('.edit-btn').forEach((btn) => {
+        btn.onclick = function () {
+          const data = this.dataset
+          populateModal(data)
+          modal.style.display = 'block'
+        }
+      })
+      
+      function resetModal() {
+        form.reset()
+        noticeIdField.value = ''
+        modalTitle.textContent = 'Create New Notice'
+        submitBtn.textContent = 'Create Notice'
+        currentAttachment.style.display = 'none'
+      }
+      
+      function populateModal(data) {
+        document.getElementById('id_title').value = data.title
+        document.getElementById('id_content').value = data.content
+        document.getElementById('id_notice_type').value = data.noticeType
+      
+        if (data.targetStudents) {
+          const studentIds = data.targetStudents.split(',')
+          const select = document.getElementById('id_target_students')
+          Array.from(select.options).forEach((option) => {
+            option.selected = studentIds.includes(option.value)
+          })
+        }
+      
+        noticeIdField.value = data.noticeId
+        modalTitle.textContent = 'Edit Notice'
+        submitBtn.textContent = 'Update Notice'
+      
+        if (data.noticeId && data.attachment) {
+          const filename = data.attachment.split('/').pop()
+          currentAttachmentName.textContent = filename
+          currentAttachment.style.display = 'block'
+        } else {
+          currentAttachment.style.display = 'none'
+        }
+      }
+      
+      span.onclick = function () {
+        modal.style.display = 'none'
+      }
+      
+      window.onclick = function (event) {
+        if (event.target == modal) {
+          modal.style.display = 'none'
+        }
+      }
+      
+      const checkboxes = document.querySelectorAll('.notice-checkbox')
+      const bulkActions = document.querySelector('.bulk-actions')
+      
+      checkboxes.forEach((checkbox) => {
+        checkbox.addEventListener('change', function () {
+          const checkedBoxes = document.querySelectorAll('.notice-checkbox:checked')
+          bulkActions.style.display = checkedBoxes.length > 0 ? 'block' : 'none'
+        })
+      })
+      
+      document.getElementById('notices-form').addEventListener('submit', function (e) {
+        const action = e.submitter.value
+        if (action === 'disable') {
+          this.action = '{% url "notices:bulk_disable_notices" %}'
+        } else if (action === 'delete') {
+          this.action = '{% url "notices:bulk_delete_notices" %}'
+        }
+      })
+    </script>
+  {% endif %}
 {% endblock %}
