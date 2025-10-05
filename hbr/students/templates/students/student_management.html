@@ -1,0 +1,454 @@
+{% extends 'dashboard/layout.html' %}
+{% load static %}
+
+{% block content %}
+  <div class="student-management-container">
+    <div class="header-section">
+      <h1>Student Management</h1>
+      <a href="{% url 'students:add_student' %}" class="btn btn-primary">
+        <i class="bx bx-plus"></i> Add New Student
+      </a>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="filters-section">
+      <form method="get" class="filters-form">
+        <div class="filter-row">
+          <div class="filter-group">
+            <label for="classroom">Filter by Class:</label>
+            <div class="custom-multiselect">
+              <div class="multiselect-header" onclick="toggleMultiselect()">
+                <span id="selected-text">Select classes...</span>
+                <i class="bx bx-chevron-down"></i>
+              </div>
+              <div class="multiselect-options" id="multiselect-options">
+                {% for classroom in classrooms %}
+                  <label class="option-item">
+                    <input type="checkbox" name="classroom" value="{{ classroom.id }}" {% if classroom.id in selected_classes %}checked{% endif %} />
+                    <span>{{ classroom }}</span>
+                  </label>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+          <div class="filter-group">
+            <label for="search">Search by Name:</label>
+            <input type="text" name="search" id="search" value="{{ search_query }}" placeholder="Enter student name...">
+          </div>
+          <div class="filter-group">
+            <label for="order">Sort by:</label>
+            <select name="order" id="order">
+              <option value="user__first_name" {% if current_order == 'user__first_name' %}selected{% endif %}>Name (A-Z)</option>
+              <option value="-user__first_name" {% if current_order == '-user__first_name' %}selected{% endif %}>Name (Z-A)</option>
+              <option value="roll_no" {% if current_order == 'roll_no' %}selected{% endif %}>Roll No (Low-High)</option>
+              <option value="-roll_no" {% if current_order == '-roll_no' %}selected{% endif %}>Roll No (High-Low)</option>
+            </select>
+          </div>
+          <div class="filter-actions">
+            <button type="submit" class="btn btn-primary">Apply Filters</button>
+            <a href="{% url 'students:student_management' %}" class="btn btn-secondary">Clear Filters</a>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <!-- Results Summary -->
+    <div class="results-summary">
+      <p>Showing {{ page_obj.start_index }}-{{ page_obj.end_index }} of {{ page_obj.paginator.count }} students</p>
+    </div>
+
+    <div class="students-table-container">
+      <table class="students-table">
+        <thead>
+          <tr>
+            <th>Profile</th>
+            <th>Name</th>
+            <th>Roll No</th>
+            <th>Admission No</th>
+            <th>Class</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for student in page_obj %}
+            <tr>
+              <td class="profile-cell">
+                {% if student.profile_photo %}
+                  <img src="{{ student.profile_photo.url }}" alt="Profile" class="profile-thumb">
+                {% else %}
+                  <div class="profile-avatar">
+                    <i class="bx bx-user"></i>
+                  </div>
+                {% endif %}
+              </td>
+              <td>{{ student.user.get_full_name }}</td>
+              <td>{{ student.roll_no }}</td>
+              <td>{{ student.admission_no }}</td>
+              <td>{{ student.classroom }}</td>
+              <td class="actions">
+                <a href="{% url 'students:profile' %}?student_id={{ student.id }}" class="btn btn-view btn-sm">
+                  <i class="bx bx-show"></i> View
+                </a>
+                <a href="{% url 'students:edit_student' student.id %}" class="btn btn-edit btn-sm">
+                  <i class="bx bx-edit"></i> Edit
+                </a>
+                <a href="{% url 'students:manage_student_documents' student.id %}" class="btn btn-docs btn-sm">
+                  <i class="bx bx-folder"></i> Docs
+                </a>
+                <a href="{% url 'students:manage_student_payments' student.id %}" class="btn btn-payment btn-sm">
+                  <i class="bx bx-money"></i> Fees
+                </a>
+                <a href="{% url 'students:manage_student_certificates' student.id %}" class="btn btn-cert btn-sm">
+                  <i class="bx bx-trophy"></i> Certs
+                </a>
+                <a href="{% url 'students:delete_student' student.id %}" class="btn btn-delete btn-sm">
+                  <i class="bx bx-trash"></i> Delete
+                </a>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="7">No students found matching your criteria.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+      <div class="pagination">
+        <span class="step-links">
+          {% if page_obj.has_previous %}
+            <a href="?{% for key,value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}" class="btn btn-secondary btn-sm">Previous</a>
+          {% endif %}
+
+          <span class="current">
+            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+          </span>
+
+          {% if page_obj.has_next %}
+            <a href="?{% for key,value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}" class="btn btn-secondary btn-sm">Next</a>
+          {% endif %}
+        </span>
+      </div>
+    {% endif %}
+  </div>
+
+  <style>
+    .student-management-container {
+      padding: 2rem;
+    }
+    
+    .header-section {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+    }
+    
+    .header-section h1 {
+      margin: 0;
+    }
+    
+    .students-table-container {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+    }
+    
+    .students-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    .students-table th,
+    .students-table td {
+      padding: 1rem;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .students-table th {
+      background: #f8f9fa;
+      font-weight: 600;
+    }
+    
+    .profile-cell {
+      text-align: center;
+    }
+    
+    .profile-thumb {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+    
+    .profile-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--color-primary);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      margin: 0 auto;
+    }
+    
+    .actions {
+      white-space: nowrap;
+    }
+    
+    .btn {
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      justify-self: center;
+      margin-right: 0.5rem;
+      vertical-align: middle;
+      text-align: center;
+    }
+    
+    .btn-primary {
+      background: #007bff;
+      color: white;
+    }
+    
+    .btn-view {
+      background: #6f42c1;
+      color: white;
+    }
+    
+    .btn-edit {
+      background: #28a745;
+      color: white;
+    }
+    
+    .btn-docs {
+      background: #17a2b8;
+      color: white;
+    }
+    
+    .btn-payment {
+      background: #ffc107;
+      color: #212529;
+    }
+    
+    .btn-cert {
+      background: #fd7e14;
+      color: white;
+    }
+    
+    .btn-delete {
+      background: #dc3545;
+      color: white;
+    }
+    
+    .btn-sm {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.875rem;
+    }
+
+    /* Filters Section */
+    .filters-section {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .filters-form {
+      width: 100%;
+    }
+
+    .filter-row {
+      display: flex;
+      gap: 1rem;
+      align-items: end;
+      flex-wrap: wrap;
+    }
+
+    .filter-group {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .filter-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .filter-group select,
+    .filter-group input {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 1rem;
+    }
+
+    .filter-group select[multiple] {
+      height: 120px;
+    }
+
+    .filter-actions {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    /* Results Summary */
+    .results-summary {
+      margin-bottom: 1rem;
+      color: #666;
+      font-size: 0.9rem;
+    }
+
+    /* Pagination */
+    .pagination {
+      margin-top: 2rem;
+      display: flex;
+      justify-content: center;
+    }
+
+    .step-links {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .current {
+      font-weight: 600;
+      color: #007bff;
+    }
+
+    @media (max-width: 768px) {
+      .filter-row {
+        flex-direction: column;
+      }
+
+      .filter-group {
+        min-width: auto;
+      }
+
+      .filter-actions {
+        justify-content: center;
+      }
+
+      .step-links {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+    }
+
+    /* Custom Multi-select */
+    .custom-multiselect {
+      position: relative;
+      width: 100%;
+    }
+
+    .multiselect-header {
+      padding: 0.75rem;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background: white;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .multiselect-header:hover {
+      border-color: #007bff;
+    }
+
+    .multiselect-options {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid #ddd;
+      border-top: none;
+      border-radius: 0 0 4px 4px;
+      max-height: 200px;
+      overflow-y: auto;
+      z-index: 1000;
+      display: none;
+    }
+
+    .multiselect-options.show {
+      display: block;
+    }
+
+    .option-item {
+      display: flex;
+      align-items: center;
+      padding: 0.5rem 0.75rem;
+      cursor: pointer;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .option-item:hover {
+      background: #f8f9fa;
+    }
+
+    .option-item input[type="checkbox"] {
+      margin-right: 0.5rem;
+    }
+
+    .option-item span {
+      flex: 1;
+    }
+  </style>
+
+  <script>
+    function toggleMultiselect() {
+      const options = document.getElementById('multiselect-options');
+      options.classList.toggle('show');
+    }
+
+    function updateSelectedText() {
+      const checkboxes = document.querySelectorAll('#multiselect-options input[type="checkbox"]');
+      const selectedText = document.getElementById('selected-text');
+      const selected = Array.from(checkboxes).filter(cb => cb.checked);
+
+      if (selected.length === 0) {
+        selectedText.textContent = 'Select classes...';
+      } else if (selected.length === 1) {
+        selectedText.textContent = selected[0].nextElementSibling.textContent;
+      } else {
+        selectedText.textContent = `${selected.length} classes selected`;
+      }
+    }
+
+    // Initialize selected text on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      updateSelectedText();
+
+      // Add event listeners to checkboxes
+      document.querySelectorAll('#multiselect-options input[type="checkbox"]').forEach(checkbox => {
+        checkbox.addEventListener('change', updateSelectedText);
+      });
+
+      // Close dropdown when clicking outside
+      document.addEventListener('click', function(e) {
+        const multiselect = document.querySelector('.custom-multiselect');
+        if (!multiselect.contains(e.target)) {
+          document.getElementById('multiselect-options').classList.remove('show');
+        }
+      });
+    });
+  </script>
+{% endblock %}

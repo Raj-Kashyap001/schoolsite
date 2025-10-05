@@ -33,4 +33,24 @@ urlpatterns = [
         views.manage_teacher_notifications,
         name="manage_teacher_notifications",
     ),
+    # Student Management URLs (Admin only)
+    path("management/", views.student_management, name="student_management"),
+    path("add/", views.add_student, name="add_student"),
+    path("edit/<int:student_id>/", views.edit_student, name="edit_student"),
+    path("delete/<int:student_id>/", views.delete_student, name="delete_student"),
+    path(
+        "documents/<int:student_id>/",
+        views.manage_student_documents,
+        name="manage_student_documents",
+    ),
+    path(
+        "payments/<int:student_id>/",
+        views.manage_student_payments,
+        name="manage_student_payments",
+    ),
+    path(
+        "certificates/<int:student_id>/",
+        views.manage_student_certificates,
+        name="manage_student_certificates",
+    ),
 ]

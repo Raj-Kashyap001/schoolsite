@@ -3,12 +3,17 @@
 {% block content %}
   <div class="profile-container">
     {% csrf_token %}
+    {% if is_admin_viewing %}
+      <div class="admin-actions">
+        <a href="{% url 'students:student_management' %}" class="btn btn-secondary"><i class="bx bx-arrow-back"></i> Back to Student Management</a>
+      </div>
+    {% endif %}
     <h1>{{ user.first_name }} {{ user.last_name }}'s Profile</h1>
 
     <div class="profile-cards">
       <!-- Profile Card -->
       <div class="profile-card profile-info">
-        {% if role == 'Student' %}
+        {% if role == 'Student' or is_admin_viewing %}
           <h2><i class="bx bx-user"></i> Student Info</h2>
           {% if student %}
             <div class="profile-photo-section">

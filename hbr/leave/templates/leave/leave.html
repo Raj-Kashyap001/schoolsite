@@ -48,6 +48,50 @@
             <p>No teacher leave requests found.</p>
           {% endif %}
         </div>
+
+        <!-- Admin View - Manage Student Leaves -->
+        <div class="admin-leave-section">
+          <h2>Student Leave Management</h2>
+          {% if all_student_leaves %}
+            <table class="leave-table">
+              <thead>
+                <tr>
+                  <th>Student</th>
+                  <th>Class</th>
+                  <th>Apply Date</th>
+                  <th>Reason</th>
+                  <th>From</th>
+                  <th>To</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for leave in all_student_leaves %}
+                  <tr>
+                    <td>{{ leave.student.user.get_full_name }}</td>
+                    <td>{{ leave.student.classroom }}</td>
+                    <td>{{ leave.apply_date|date:'d/m/Y H:i' }}</td>
+                    <td>{{ leave.reason }}</td>
+                    <td>{{ leave.from_date|date:'d/m/Y' }}</td>
+                    <td>{{ leave.to_date|date:'d/m/Y' }}</td>
+                    <td class="status-{{ leave.status|lower }}">{{ leave.status }}</td>
+                    <td>
+                      {% if leave.status == 'PENDING' %}
+                        <button class="btn btn-success approve-btn" data-id="{{ leave.id }}"><i class="bx bx-check"></i> Approve</button>
+                        <button class="btn btn-danger reject-btn" data-id="{{ leave.id }}"><i class="bx bx-x"></i> Reject</button>
+                      {% else %}
+                        <small>Approved by: {{ leave.approved_by.get_full_name|default:'N/A' }}</small>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          {% else %}
+            <p>No student leave requests found.</p>
+          {% endif %}
+        </div>
       {% else %}
         <!-- Student/Teacher View - Apply and View Own Leaves -->
         <div class="apply-leave-section">

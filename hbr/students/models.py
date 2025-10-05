@@ -65,13 +65,13 @@ class Student(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     sr_no = models.IntegerField()
     roll_no = models.IntegerField()
-    admission_no = models.CharField()
-    father_name = models.CharField()
-    mother_name = models.CharField()
+    admission_no = models.CharField(max_length=50)
+    father_name = models.CharField(max_length=100)
+    mother_name = models.CharField(max_length=100)
     dob = models.DateField()
     mobile_no = models.BigIntegerField()
-    category = models.CharField(choices=Categories.choices, blank=True)
-    gender = models.CharField(choices=Genders.choices)
+    category = models.CharField(max_length=20, choices=Categories.choices, blank=True)
+    gender = models.CharField(max_length=10, choices=Genders.choices)
     profile_photo = models.ImageField(
         upload_to=student_profile_photo_path, null=True, blank=True
     )

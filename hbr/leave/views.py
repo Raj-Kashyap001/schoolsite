@@ -276,6 +276,12 @@ def leave(request: HttpRequest):
             .select_related("teacher", "approved_by")
             .order_by("-apply_date")
         )
+        all_student_leaves = (
+            Leave.objects.filter(student__isnull=False)
+            .select_related("student", "approved_by")
+            .order_by("-apply_date")
+        )
         context["all_teacher_leaves"] = all_teacher_leaves
+        context["all_student_leaves"] = all_student_leaves
 
     return render(request, "leave/leave.html", context)

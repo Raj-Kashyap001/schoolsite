@@ -12,7 +12,7 @@
         <a href="{% url 'apply_enroll' %}" class="{% if url_name == 'apply_enroll' %}active{% endif %}">Apply & Enroll</a>
         <div class="login-cta">
           <a href="{% url 'login' 'Student' %}" class="{% if url_name == 'student_login' %}active{% endif %}"><i class="bx bxs-user"></i> <div>Student Login</div></a>
-          <a href="{% url 'login' 'Teacher' %}" class="{% if url_name == 'teacher_login' %}active{% endif %}"><i class="bx bxs-education"></i><div>Teacher Login</div></a>
+          <a href="{% url 'login' 'Teacher' %}" class="{% if url_name == 'teacher_login' %}active{% endif %}"><i class="bx bxs-graduation"></i><div>Teacher Login</div></a>
           <a href="{% url 'login' 'Admin' %}" class="{% if url_name == 'admin_login' %}active{% endif %}"><i class="bx bxs-cog"></i><div>Admin Login</div></a>
         </div>
       </div>
@@ -27,7 +27,7 @@
         <button class="dropdown-trigger">Login <i class="dropdown-arrow bx bx-chevron-down"></i></button>
         <div class="dropdown-content">
           <a href="{% url 'login' 'Student' %}"><i class="bx bxs-user"></i> Student Login</a>
-          <a href="{% url 'login' 'Teacher' %}"><i class="bx bxs-education"></i> Teacher Login</a>
+          <a href="{% url 'login' 'Teacher' %}"><i class="bx bxs-graduation"></i> Teacher Login</a>
           <a href="{% url 'login' 'Admin' %}"><i class="bx bxs-cog"></i> Admin Login</a>
         </div>
       </div>

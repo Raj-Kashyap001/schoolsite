@@ -1,0 +1,332 @@
+{% extends 'dashboard/layout.html' %}
+{% load static %}
+
+{% block content %}
+  <div class="manage-certificates-container">
+    <div class="header-section">
+      <h1>Certificate Management: {{ student.user.get_full_name }}</h1>
+      <a href="{% url 'students:student_management' %}" class="btn btn-secondary"><i class="bx bx-arrow-back"></i> Back to Management</a>
+    </div>
+
+    <div class="content-grid">
+      <!-- Certificate Management Info -->
+      <div class="form-section">
+        <h2>Certificate Management</h2>
+        <p>As an administrator, you can approve or reject certificate requests, and generate certificates for students.</p>
+        <div class="certificate-stats">
+          <div class="stat-item">
+            <strong>{{ certificates|length }}</strong>
+            <span>Total Requests</span>
+          </div>
+          <div class="stat-item">
+            <strong>{{ available_types|length }}</strong>
+            <span>Available Types</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Certificates List -->
+      <div class="certificates-section">
+        <h2>Certificate Requests</h2>
+        <div class="certificates-list">
+          {% for certificate in certificates %}
+            <div class="certificate-item">
+              <div class="certificate-info">
+                <h4>{{ certificate.certificate_type.name }}</h4>
+                <p>Requested: {{ certificate.issued_date|date:'M d, Y' }}</p>
+                <p class="status status-{{ certificate.status|lower }}">Status: {{ certificate.get_status_display }}</p>
+              </div>
+              <div class="certificate-actions">
+                {% if certificate.status == 'PENDING' %}
+                  <form method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="approve_certificate" value="1" />
+                    <input type="hidden" name="certificate_id" value="{{ certificate.id }}" />
+                    <button type="submit" class="btn btn-approve btn-sm"><i class="bx bx-check"></i> Approve</button>
+                  </form>
+                  <form method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="reject_certificate" value="1" />
+                    <input type="hidden" name="certificate_id" value="{{ certificate.id }}" />
+                    <button type="submit" class="btn btn-reject btn-sm"><i class="bx bx-x"></i> Reject</button>
+                  </form>
+                {% elif certificate.status == 'APPROVED' and certificate.file %}
+                  <a href="{{ certificate.file.url }}" target="_blank" class="btn btn-view btn-sm"><i class="bx bx-show"></i> View</a>
+                  <a href="{{ certificate.file.url }}" download class="btn btn-download btn-sm"><i class="bx bx-download"></i> Download</a>
+                {% endif %}
+              </div>
+            </div>
+          {% empty %}
+            <p class="no-certificates">No certificate requests found.</p>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Available Certificate Types -->
+    <div class="available-types-section">
+      <h2>Available Certificate Types</h2>
+      <div class="types-grid">
+        {% for cert_type in available_types %}
+          <div class="cert-type-card">
+            <h4>{{ cert_type.name }}</h4>
+            {% if cert_type.description %}
+              <p>{{ cert_type.description }}</p>
+            {% endif %}
+          </div>
+        {% empty %}
+          <p>All certificate types have been requested.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <style>
+    .manage-certificates-container {
+      padding: 2rem;
+    }
+    
+    .header-section {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+    }
+    
+    .content-grid {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+    
+    .form-section,
+    .certificates-section {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      padding: 1.5rem;
+    }
+    
+    .form-section h2,
+    .certificates-section h2 {
+      margin-bottom: 1rem;
+      color: #333;
+      border-bottom: 2px solid #fd7e14;
+      padding-bottom: 0.5rem;
+    }
+    
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+    }
+    
+    .form-group select {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 1rem;
+    }
+    
+    .error {
+      color: #dc3545;
+      font-size: 0.875rem;
+      margin-top: 0.25rem;
+    }
+    
+    .certificates-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    
+    .certificate-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem;
+      border: 1px solid #e1e5e9;
+      border-radius: 8px;
+      background: #f8f9fa;
+    }
+    
+    .certificate-info h4 {
+      margin: 0 0 0.5rem 0;
+      color: #333;
+    }
+    
+    .certificate-info p {
+      margin: 0.25rem 0;
+      font-size: 0.9rem;
+      color: #666;
+    }
+    
+    .status {
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    
+    .status-pending {
+      color: #ffc107;
+    }
+    
+    .status-approved {
+      color: #28a745;
+    }
+    
+    .status-rejected {
+      color: #dc3545;
+    }
+    
+    .certificate-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    
+    .available-types-section {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      padding: 1.5rem;
+    }
+    
+    .available-types-section h2 {
+      margin-bottom: 1rem;
+      color: #333;
+      border-bottom: 2px solid #6f42c1;
+      padding-bottom: 0.5rem;
+    }
+    
+    .types-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 1rem;
+    }
+    
+    .cert-type-card {
+      padding: 1rem;
+      border: 1px solid #e1e5e9;
+      border-radius: 8px;
+      background: #f8f9fa;
+    }
+    
+    .cert-type-card h4 {
+      margin: 0 0 0.5rem 0;
+      color: #333;
+    }
+    
+    .cert-type-card p {
+      margin: 0;
+      font-size: 0.9rem;
+      color: #666;
+    }
+    
+    .btn {
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-size: 0.9rem;
+    }
+    
+    .btn-primary {
+      background: #007bff;
+      color: white;
+    }
+    
+    .btn-secondary {
+      background: #6c757d;
+      color: white;
+    }
+    
+    .btn-approve {
+      background: #28a745;
+      color: white;
+    }
+    
+    .btn-reject {
+      background: #dc3545;
+      color: white;
+    }
+    
+    .btn-view {
+      background: #6f42c1;
+      color: white;
+    }
+    
+    .btn-download {
+      background: #17a2b8;
+      color: white;
+    }
+    
+    .btn-sm {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.8rem;
+    }
+    
+    .certificate-stats {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    
+    .stat-item {
+      background: #f8f9fa;
+      padding: 1rem;
+      border-radius: 8px;
+      text-align: center;
+      flex: 1;
+    }
+    
+    .stat-item strong {
+      display: block;
+      font-size: 2rem;
+      color: #007bff;
+      margin-bottom: 0.5rem;
+    }
+    
+    .stat-item span {
+      color: #666;
+      font-size: 0.9rem;
+    }
+    
+    .no-certificates {
+      text-align: center;
+      color: #666;
+      font-style: italic;
+      padding: 2rem;
+    }
+    
+    @media (max-width: 768px) {
+      .content-grid {
+        grid-template-columns: 1fr;
+      }
+    
+      .certificate-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+      }
+    
+      .certificate-actions {
+        align-self: stretch;
+        justify-content: center;
+      }
+    
+      .types-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+{% endblock %}

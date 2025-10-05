@@ -1,14 +1,32 @@
 from django.http import HttpRequest, HttpResponse, JsonResponse
-from django.shortcuts import render
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.contrib.auth.models import User
+from django.db import transaction
 from base.views import get_user_role
-from .forms import StudentProfileForm
+from .forms import (
+    StudentProfileForm,
+    StudentUserCreationForm,
+    StudentProfileForm as StudentDetailsForm,
+    StudentEditForm,
+    DocumentUploadForm,
+    PaymentForm,
+    CertificateRequestForm,
+    generate_student_credentials,
+    generate_admission_number,
+    generate_roll_number,
+)
 from .models import (
     Student,
     Classroom,
     DailyTimetable,
     ExamTimetable,
     TeacherNotification,
+    Document,
+    Payment,
+    Certificate,
+    CertificateType,
 )
 from teachers.models import Teacher
 from .data_utils import (
@@ -28,17 +46,32 @@ def profile(request: HttpRequest):
     user = request.user
     role = get_user_role(user)
 
+    # Check if admin is viewing a specific student's profile
+    student_id = request.GET.get("student_id")
+    if student_id and role == "Admin":
+        try:
+            student = Student.objects.get(id=student_id)
+            view_user = student.user
+            view_role = "Student"
+            is_admin_viewing = True
+        except Student.DoesNotExist:
+            return HttpResponse("Student not found", status=404)
+    else:
+        view_user = user
+        view_role = role
+        is_admin_viewing = False
+
     if (
         request.method == "POST"
         and request.headers.get("X-Requested-With") == "XMLHttpRequest"
     ):
         # Handle AJAX photo upload
-        if role not in ["Student", "Teacher"]:
+        if view_role not in ["Student", "Teacher"]:
             return JsonResponse({"success": False, "error": "Access denied"})
 
-        if role == "Student":
+        if view_role == "Student":
             try:
-                student = Student.objects.get(user=user)
+                student = Student.objects.get(user=view_user)
             except Student.DoesNotExist:  # type: ignore
                 return JsonResponse(
                     {"success": False, "error": "Student profile not found"}
@@ -77,11 +110,11 @@ def profile(request: HttpRequest):
 
         return JsonResponse({"success": False, "error": "Invalid request"})
 
-    context = {"user": user}
+    context = {"user": view_user, "is_admin_viewing": is_admin_viewing}
 
-    if role == "Student":
+    if view_role == "Student":
         try:
-            student = Student.objects.get(user=user)
+            student = Student.objects.get(user=view_user)
             context["student"] = student
         except Student.DoesNotExist:
             context["student"] = None
@@ -183,7 +216,13 @@ def class_management(request: HttpRequest):
     if role != "Admin":
         return HttpResponse("Access denied", status=403)
 
-    classrooms = Classroom.objects.all().order_by("grade")
+    def get_grade_number(grade):
+        digits = "".join(filter(str.isdigit, grade))
+        return int(digits) if digits else 0
+
+    classrooms = sorted(
+        Classroom.objects.all(), key=lambda c: get_grade_number(c.grade)
+    )
     context = {
         "classrooms": classrooms,
         "role": role,
@@ -352,3 +391,449 @@ def manage_teacher_notifications(request: HttpRequest, classroom_id: int):
         "role": role,
     }
     return render(request, "students/manage_teacher_notifications.html", context)
+
+
+@login_required
+def student_management(request: HttpRequest):
+    """Admin view for managing students"""
+    role = get_user_role(request.user)
+
+    if role != "Admin":
+        return HttpResponse("Access denied", status=403)
+
+    from django.core.paginator import Paginator
+    from django.db.models import Q
+
+    # Get filter parameters
+    selected_classes = request.GET.getlist("classroom")
+    search_query = request.GET.get("search", "").strip()
+    order_by = request.GET.get("order", "user__first_name")
+    page_number = request.GET.get("page", 1)
+
+    # Base queryset
+    students = Student.objects.select_related("user", "classroom")
+
+    # Apply classroom filter
+    if selected_classes:
+        students = students.filter(classroom__id__in=selected_classes)
+
+    # Apply search filter
+    if search_query:
+        students = students.filter(
+            Q(user__first_name__icontains=search_query)
+            | Q(user__last_name__icontains=search_query)
+            | Q(user__username__icontains=search_query)
+        )
+
+    # Apply ordering
+    if order_by.startswith("-"):
+        students = students.order_by(order_by, "user__first_name")
+    else:
+        students = students.order_by(order_by, "user__first_name")
+
+    # Pagination
+    paginator = Paginator(students, 15)  # 15 students per page
+    page_obj = paginator.get_page(page_number)
+
+    # Get all classrooms for filter dropdown
+    def get_grade_number(grade):
+        digits = "".join(filter(str.isdigit, grade))
+        return int(digits) if digits else 0
+
+    classrooms = sorted(
+        Classroom.objects.all(), key=lambda c: get_grade_number(c.grade)
+    )
+
+    context = {
+        "page_obj": page_obj,
+        "classrooms": classrooms,
+        "selected_classes": selected_classes,
+        "search_query": search_query,
+        "current_order": order_by,
+        "role": role,
+    }
+    return render(request, "students/student_management.html", context)
+
+
+@login_required
+def add_student(request: HttpRequest):
+    """Admin view for adding a new student"""
+    role = get_user_role(request.user)
+
+    if role != "Admin":
+        return HttpResponse("Access denied", status=403)
+
+    if request.method == "POST":
+        print("DEBUG: POST request received")
+        print(f"DEBUG: POST data keys: {list(request.POST.keys())}")
+
+        # Create modified POST data with first_name and last_name from full_name
+        modified_post = request.POST.copy()
+
+        # Handle full_name field
+        full_name = request.POST.get("full_name", "").strip()
+        print(f"DEBUG: full_name from POST: '{full_name}'")
+
+        if full_name:
+            name_parts = full_name.split()
+            first_name = name_parts[0] if name_parts else ""
+            last_name = " ".join(name_parts[1:]) if len(name_parts) > 1 else ""
+        else:
+            first_name = ""
+            last_name = ""
+
+        print(f"DEBUG: first_name: '{first_name}', last_name: '{last_name}'")
+        modified_post["first_name"] = first_name
+        modified_post["last_name"] = last_name
+
+        # Generate credentials and add them to the form data
+        # We need to generate them early so the form validation passes
+        if full_name and request.POST.get("dob"):
+            from datetime import datetime
+
+            dob = datetime.strptime(request.POST.get("dob"), "%Y-%m-%d").date()
+            username, password = generate_student_credentials(
+                first_name, last_name, dob
+            )
+            modified_post["username"] = username
+            modified_post["password1"] = password
+            modified_post["password2"] = password
+            print(f"DEBUG: Generated and set credentials - username: {username}")
+
+        user_form = StudentUserCreationForm(modified_post)
+        profile_form = StudentDetailsForm(modified_post, request.FILES)
+
+        print(f"DEBUG: user_form.is_valid(): {user_form.is_valid()}")
+        print(f"DEBUG: profile_form.is_valid(): {profile_form.is_valid()}")
+
+        if not user_form.is_valid():
+            print(f"DEBUG: user_form.errors: {user_form.errors}")
+            print(f"DEBUG: user_form.non_field_errors: {user_form.non_field_errors}")
+
+        if not profile_form.is_valid():
+            print(f"DEBUG: profile_form.errors: {profile_form.errors}")
+            print(
+                f"DEBUG: profile_form.non_field_errors: {profile_form.non_field_errors}"
+            )
+
+        if user_form.is_valid() and profile_form.is_valid():
+            try:
+                print("DEBUG: Starting student creation process")
+
+                # Generate credentials
+                dob = profile_form.cleaned_data["dob"]
+                username, password = generate_student_credentials(
+                    first_name, last_name, dob
+                )
+                print(f"DEBUG: Generated - {username}, {password}")
+
+                # Generate IDs
+                classroom = profile_form.cleaned_data["classroom"]
+                existing_students = Student.objects.filter(classroom=classroom)
+                sequence = existing_students.count() + 1
+                admission_no = generate_admission_number(classroom.grade)
+                roll_no = generate_roll_number(classroom, sequence)
+                print(
+                    f"DEBUG: Generated IDs - Admission: {admission_no}, Roll: {roll_no}"
+                )
+
+                # Create user
+                user = User.objects.create_user(
+                    username=username,
+                    first_name=first_name,
+                    last_name=last_name,
+                    email=user_form.cleaned_data.get("email", ""),
+                    password=password,
+                )
+                print(f"DEBUG: User created: {user.id}")
+
+                # Create student
+                student = Student.objects.create(
+                    user=user,
+                    sr_no=sequence,
+                    roll_no=roll_no,
+                    admission_no=admission_no,
+                    father_name=profile_form.cleaned_data["father_name"],
+                    mother_name=profile_form.cleaned_data["mother_name"],
+                    dob=dob,
+                    mobile_no=profile_form.cleaned_data["mobile_no"],
+                    category=profile_form.cleaned_data.get("category"),
+                    gender=profile_form.cleaned_data["gender"],
+                    profile_photo=profile_form.cleaned_data.get("profile_photo"),
+                    current_address=profile_form.cleaned_data.get("current_address"),
+                    permanent_address=profile_form.cleaned_data.get(
+                        "permanent_address"
+                    ),
+                    weight=profile_form.cleaned_data.get("weight"),
+                    height=profile_form.cleaned_data.get("height"),
+                    classroom=classroom,
+                )
+                print(f"DEBUG: Student created: {student.id}")
+
+                # Set many-to-many relationships
+                if profile_form.cleaned_data.get("subjects"):
+                    student.subjects.set(profile_form.cleaned_data["subjects"])
+
+                if profile_form.cleaned_data.get("stream"):
+                    student.stream = profile_form.cleaned_data["stream"]
+                    student.save()
+
+                print("DEBUG: Student creation completed successfully")
+                messages.success(
+                    request,
+                    f"Student {user.get_full_name()} added successfully. "
+                    f"Username: {username}, Password: {password}, "
+                    f"Admission No: {admission_no}, Roll No: {roll_no}",
+                )
+                return redirect("students:student_management")
+
+            except Exception as e:
+                print(f"DEBUG: Exception: {type(e).__name__}: {e}")
+                import traceback
+
+                print(f"DEBUG: Traceback: {traceback.format_exc()}")
+                messages.error(request, f"Error creating student: {e}")
+        else:
+            print("DEBUG: Forms are not valid")
+            print(f"DEBUG: user_form errors: {user_form.errors}")
+            print(f"DEBUG: profile_form errors: {profile_form.errors}")
+            messages.error(request, "Please correct the errors below.")
+    else:
+        user_form = StudentUserCreationForm()
+        profile_form = StudentDetailsForm()
+
+    context = {
+        "user_form": user_form,
+        "profile_form": profile_form,
+        "role": role,
+    }
+    return render(request, "students/add_student.html", context)
+
+
+@login_required
+def edit_student(request: HttpRequest, student_id: int):
+    """Admin view for editing a student"""
+    role = get_user_role(request.user)
+
+    if role != "Admin":
+        return HttpResponse("Access denied", status=403)
+
+    student = get_object_or_404(Student, id=student_id)
+
+    if request.method == "POST":
+        form = StudentEditForm(request.POST, request.FILES, instance=student)
+
+        if form.is_valid():
+            with transaction.atomic():
+                # Update user fields
+                student.user.first_name = form.cleaned_data["first_name"]
+                student.user.last_name = form.cleaned_data["last_name"]
+                student.user.email = form.cleaned_data.get("email", "")
+                student.user.save()
+
+                # Update student fields
+                form.save()
+
+                # Update many-to-many relationships
+                if form.cleaned_data.get("subjects"):
+                    student.subjects.set(form.cleaned_data["subjects"])
+                else:
+                    student.subjects.clear()
+
+                if form.cleaned_data.get("stream"):
+                    student.stream = form.cleaned_data["stream"]
+                    student.save()
+                else:
+                    student.stream = None
+                    student.save()
+
+                messages.success(
+                    request,
+                    f"Student {student.user.get_full_name()} updated successfully.",
+                )
+                return redirect("students:student_management")
+        else:
+            messages.error(request, "Please correct the errors below.")
+    else:
+        form = StudentEditForm(instance=student)
+
+    context = {
+        "form": form,
+        "student": student,
+        "role": role,
+    }
+    return render(request, "students/edit_student.html", context)
+
+
+@login_required
+def delete_student(request: HttpRequest, student_id: int):
+    """Admin view for deleting a student"""
+    role = get_user_role(request.user)
+
+    if role != "Admin":
+        return HttpResponse("Access denied", status=403)
+
+    student = get_object_or_404(Student, id=student_id)
+
+    if request.method == "POST":
+        user = student.user
+        student.delete()
+        user.delete()  # Also delete the user account
+        messages.success(
+            request, f"Student {user.get_full_name()} deleted successfully."
+        )
+        return redirect("students:student_management")
+
+    context = {
+        "student": student,
+        "role": role,
+    }
+    return render(request, "students/delete_student.html", context)
+
+
+@login_required
+def manage_student_documents(request: HttpRequest, student_id: int):
+    """Admin view for managing student documents"""
+    role = get_user_role(request.user)
+
+    if role != "Admin":
+        return HttpResponse("Access denied", status=403)
+
+    student = get_object_or_404(Student, id=student_id)
+
+    if request.method == "POST":
+        form = DocumentUploadForm(request.POST, request.FILES)
+        if form.is_valid():
+            document = form.save(commit=False)
+            document.student = student
+            document.save()
+            messages.success(request, "Document uploaded successfully.")
+            return redirect("students:manage_student_documents", student_id=student.id)
+        else:
+            messages.error(request, "Please correct the errors below.")
+    else:
+        form = DocumentUploadForm()
+
+    documents = Document.objects.filter(student=student).order_by("-uploaded_at")
+
+    context = {
+        "student": student,
+        "form": form,
+        "documents": documents,
+        "role": role,
+    }
+    return render(request, "students/manage_student_documents.html", context)
+
+
+@login_required
+def manage_student_payments(request: HttpRequest, student_id: int):
+    """Admin view for managing student payments"""
+    role = get_user_role(request.user)
+
+    if role != "Admin":
+        return HttpResponse("Access denied", status=403)
+
+    student = get_object_or_404(Student, id=student_id)
+
+    if request.method == "POST":
+        form = PaymentForm(request.POST)
+        if form.is_valid():
+            payment = form.save(commit=False)
+            payment.student = student
+            payment.save()
+            messages.success(request, "Payment record added successfully.")
+            return redirect("students:manage_student_payments", student_id=student.id)
+        else:
+            messages.error(request, "Please correct the errors below.")
+    else:
+        form = PaymentForm()
+
+    payments = Payment.objects.filter(student=student).order_by("-created_at")
+
+    context = {
+        "student": student,
+        "form": form,
+        "payments": payments,
+        "role": role,
+    }
+    return render(request, "students/manage_student_payments.html", context)
+
+
+@login_required
+def manage_student_certificates(request: HttpRequest, student_id: int):
+    """Admin view for managing student certificates"""
+    role = get_user_role(request.user)
+
+    if role != "Admin":
+        return HttpResponse("Access denied", status=403)
+
+    student = get_object_or_404(Student, id=student_id)
+
+    if request.method == "POST":
+        if "request_certificate" in request.POST:
+            form = CertificateRequestForm(request.POST)
+            if form.is_valid():
+                certificate_type = form.cleaned_data["certificate_type"]
+                # Check if certificate already exists
+                if not Certificate.objects.filter(
+                    student=student, certificate_type=certificate_type
+                ).exists():
+                    Certificate.objects.create(
+                        student=student,
+                        certificate_type=certificate_type,
+                        status="PENDING",
+                    )
+                    messages.success(
+                        request,
+                        f"{certificate_type.name} certificate requested successfully.",
+                    )
+                else:
+                    messages.warning(
+                        request,
+                        f"{certificate_type.name} certificate already requested.",
+                    )
+                return redirect(
+                    "students:manage_student_certificates", student_id=student.id
+                )
+        elif "approve_certificate" in request.POST:
+            certificate_id = request.POST.get("certificate_id")
+            try:
+                certificate = Certificate.objects.get(
+                    id=certificate_id, student=student
+                )
+                from .pdf_utils import generate_certificate_pdf
+                from django.core.files.base import ContentFile
+
+                buffer = generate_certificate_pdf(student, certificate.certificate_type)
+                filename = f"{certificate.certificate_type.name.replace(' ', '_')}_{student.roll_no}.pdf"
+                certificate.file.save(filename, ContentFile(buffer.getvalue()))
+                certificate.status = "APPROVED"
+                certificate.save()
+                messages.success(request, "Certificate approved and generated.")
+            except Certificate.DoesNotExist:
+                messages.error(request, "Certificate not found.")
+        elif "reject_certificate" in request.POST:
+            certificate_id = request.POST.get("certificate_id")
+            try:
+                certificate = Certificate.objects.get(
+                    id=certificate_id, student=student
+                )
+                certificate.status = "REJECTED"
+                certificate.save()
+                messages.success(request, "Certificate rejected.")
+            except Certificate.DoesNotExist:
+                messages.error(request, "Certificate not found.")
+
+    certificates = Certificate.objects.filter(student=student).order_by("-issued_date")
+    available_types = CertificateType.objects.filter(is_active=True).exclude(
+        id__in=certificates.values_list("certificate_type_id", flat=True)
+    )
+
+    context = {
+        "student": student,
+        "certificates": certificates,
+        "available_types": available_types,
+        "certificate_form": CertificateRequestForm(),
+        "role": role,
+    }
+    return render(request, "students/manage_student_certificates.html", context)

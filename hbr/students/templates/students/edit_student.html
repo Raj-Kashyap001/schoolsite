@@ -1,0 +1,294 @@
+{% extends 'dashboard/layout.html' %}
+{% load static %}
+
+{% block content %}
+  <div class="edit-student-container">
+    <div class="header-section">
+      <h1>Edit Student: {{ student.user.get_full_name }}</h1>
+      <a href="{% url 'students:student_management' %}" class="btn btn-secondary"><i class="bx bx-arrow-back"></i> Back to Management</a>
+    </div>
+
+    <div class="form-container">
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <div class="form-section">
+          <h2>Account Information</h2>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="id_first_name">First Name</label>
+              <input type="text" name="first_name" value="{{ form.first_name.value|default:student.user.first_name }}" required id="id_first_name" />
+              {% if form.first_name.errors %}
+                <div class="error">{{ form.first_name.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="form-group">
+              <label for="id_last_name">Last Name</label>
+              <input type="text" name="last_name" value="{{ form.last_name.value|default:student.user.last_name }}" required id="id_last_name" />
+              {% if form.last_name.errors %}
+                <div class="error">{{ form.last_name.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="id_email">Email</label>
+            <input type="email" name="email" value="{{ form.email.value|default:student.user.email }}" id="id_email" />
+            {% if form.email.errors %}
+              <div class="error">{{ form.email.errors }}</div>
+            {% endif %}
+          </div>
+          <div class="info-section">
+            <p>
+              <strong>Username:</strong> {{ student.user.username }}
+            </p>
+            <p>
+              <strong>Admission No:</strong> {{ student.admission_no }}
+            </p>
+            <p>
+              <strong>Roll No:</strong> {{ student.roll_no }}
+            </p>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h2>Personal Information</h2>
+          <div class="form-row">
+            <div class="form-group">
+              {{ form.father_name.label_tag }}
+              {{ form.father_name }}
+              {% if form.father_name.errors %}
+                <div class="error">{{ form.father_name.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="form-group">
+              {{ form.mother_name.label_tag }}
+              {{ form.mother_name }}
+              {% if form.mother_name.errors %}
+                <div class="error">{{ form.mother_name.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              {{ form.dob.label_tag }}
+              {{ form.dob }}
+              {% if form.dob.errors %}
+                <div class="error">{{ form.dob.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="form-group">
+              {{ form.mobile_no.label_tag }}
+              {{ form.mobile_no }}
+              {% if form.mobile_no.errors %}
+                <div class="error">{{ form.mobile_no.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              {{ form.category.label_tag }}
+              {{ form.category }}
+              {% if form.category.errors %}
+                <div class="error">{{ form.category.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="form-group">
+              {{ form.gender.label_tag }}
+              {{ form.gender }}
+              {% if form.gender.errors %}
+                <div class="error">{{ form.gender.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              {{ form.weight.label_tag }}
+              {{ form.weight }}
+              {% if form.weight.errors %}
+                <div class="error">{{ form.weight.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="form-group">
+              {{ form.height.label_tag }}
+              {{ form.height }}
+              {% if form.height.errors %}
+                <div class="error">{{ form.height.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h2>Academic Information</h2>
+          <div class="form-row">
+            <div class="form-group">
+              {{ form.classroom.label_tag }}
+              {{ form.classroom }}
+              {% if form.classroom.errors %}
+                <div class="error">{{ form.classroom.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="form-group">
+              {{ form.stream.label_tag }}
+              {{ form.stream }}
+              {% if form.stream.errors %}
+                <div class="error">{{ form.stream.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+          <div class="form-group">
+            {{ form.subjects.label_tag }}
+            {{ form.subjects }}
+            {% if form.subjects.errors %}
+              <div class="error">{{ form.subjects.errors }}</div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h2>Address Information</h2>
+          <div class="form-group">
+            {{ form.current_address.label_tag }}
+            {{ form.current_address }}
+            {% if form.current_address.errors %}
+              <div class="error">{{ form.current_address.errors }}</div>
+            {% endif %}
+          </div>
+          <div class="form-group">
+            {{ form.permanent_address.label_tag }}
+            {{ form.permanent_address }}
+            {% if form.permanent_address.errors %}
+              <div class="error">{{ form.permanent_address.errors }}</div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h2>Profile Photo</h2>
+          <div class="form-group">
+            {{ form.profile_photo.label_tag }}
+            {{ form.profile_photo }}
+            {% if form.profile_photo.errors %}
+              <div class="error">{{ form.profile_photo.errors }}</div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary"><i class="bx bx-save"></i> Update Student</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <style>
+    .edit-student-container {
+      padding: 2rem;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    
+    .header-section {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+    }
+    
+    .form-container {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      padding: 2rem;
+    }
+    
+    .form-section {
+      margin-bottom: 2rem;
+    }
+    
+    .form-section h2 {
+      margin-bottom: 1rem;
+      color: #333;
+      border-bottom: 2px solid #28a745;
+      padding-bottom: 0.5rem;
+    }
+    
+    .form-row {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    
+    .form-group {
+      flex: 1;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+    }
+    
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 1rem;
+    }
+    
+    .form-group select[multiple] {
+      height: 120px;
+    }
+    
+    .form-group textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+    
+    .info-section {
+      background: #f8f9fa;
+      padding: 1rem;
+      border-radius: 4px;
+      margin-top: 1rem;
+    }
+    
+    .info-section p {
+      margin: 0.5rem 0;
+      font-size: 0.9rem;
+    }
+    
+    .error {
+      color: #dc3545;
+      font-size: 0.875rem;
+      margin-top: 0.25rem;
+    }
+    
+    .form-actions {
+      text-align: center;
+      margin-top: 2rem;
+    }
+    
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 1rem;
+    }
+    
+    .btn-primary {
+      background: #28a745;
+      color: white;
+    }
+    
+    .btn-secondary {
+      background: #6c757d;
+      color: white;
+    }
+  </style>
+{% endblock %}

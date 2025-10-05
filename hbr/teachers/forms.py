@@ -51,10 +51,17 @@ class TeacherProfileForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
         # All classrooms for teaching subjects
-        self.fields["classroom"].queryset = Classroom.objects.all().order_by(
-            "grade", "section"
+        def get_grade_number(grade):
+            digits = "".join(filter(str.isdigit, grade))
+            return int(digits) if digits else 0
+
+        classrooms = sorted(
+            Classroom.objects.all(),
+            key=lambda c: (get_grade_number(c.grade), c.section or ""),
         )
+        self.fields["classroom"].queryset = classrooms
         # Only classrooms without class teachers for class teacher assignment
         self.fields["class_teacher_class"].queryset = Classroom.objects.filter(
             class_teacher__isnull=True
@@ -108,9 +115,15 @@ class TeacherEditForm(forms.ModelForm):
             self.fields["email"].initial = self.instance.user.email
 
         # All classrooms for teaching subjects
-        self.fields["classroom"].queryset = Classroom.objects.all().order_by(
-            "grade", "section"
+        def get_grade_number(grade):
+            digits = "".join(filter(str.isdigit, grade))
+            return int(digits) if digits else 0
+
+        classrooms = sorted(
+            Classroom.objects.all(),
+            key=lambda c: (get_grade_number(c.grade), c.section or ""),
         )
+        self.fields["classroom"].queryset = classrooms
         # Only classrooms without class teachers for class teacher assignment
         # Include current class teacher assignment if editing
         current_class_teacher_class = None
