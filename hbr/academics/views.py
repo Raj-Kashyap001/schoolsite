@@ -1169,12 +1169,16 @@ def get_class_results(request: HttpRequest, exam_id: int, classroom_id: int):
             ).exists():
                 return JsonResponse({"error": "Access denied"}, status=403)
 
-        # Get published results for this exam and classroom
+        # Get results for this exam and classroom (SUBMITTED and above for review)
         results = (
             ExamResult.objects.filter(
                 exam=exam,
                 student__classroom=classroom,
-                status=ExamResult.Status.PUBLISHED,
+                status__in=[
+                    ExamResult.Status.SUBMITTED,
+                    ExamResult.Status.LOCKED,
+                    ExamResult.Status.PUBLISHED,
+                ],
             )
             .select_related("student")
             .order_by("student__roll_no", "subject")
@@ -1277,12 +1281,16 @@ def declare_class_results(request: HttpRequest, exam_id: int, classroom_id: int)
             ).exists():
                 return HttpResponse("Access denied", status=403)
 
-        # Get published results
+        # Get results for review/declaration
         results = (
             ExamResult.objects.filter(
                 exam=exam,
                 student__classroom=classroom,
-                status=ExamResult.Status.PUBLISHED,
+                status__in=[
+                    ExamResult.Status.SUBMITTED,
+                    ExamResult.Status.LOCKED,
+                    ExamResult.Status.PUBLISHED,
+                ],
             )
             .select_related("student")
             .order_by("student__roll_no", "subject")
