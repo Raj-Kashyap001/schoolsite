@@ -55,7 +55,7 @@
                 {% endif %}
               </td>
               <td class="actions">
-                <a href="{% url 'teachers:profile' %}?teacher_id={{ teacher.id }}" class="btn btn-view btn-sm"><i class="bx bx-eye"></i> View</a>
+                <a href="{% url 'teachers:profile' %}?teacher_id={{ teacher.id }}" class="btn btn-view btn-sm"><i class="bx bx-user"></i> View</a>
                 <a href="{% url 'teachers:edit_teacher' teacher.id %}" class="btn btn-edit btn-sm"><i class="bx bx-edit"></i> Edit</a>
                 <a href="{% url 'teachers:manage_salary' teacher.id %}" class="btn btn-salary btn-sm"><i class="bx bx-rupee"></i> Salary</a>
                 <a href="{% url 'teachers:delete_teacher' teacher.id %}" class="btn btn-delete btn-sm"><i class="bx bx-trash"></i> Delete</a>

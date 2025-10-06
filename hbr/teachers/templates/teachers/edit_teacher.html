@@ -15,19 +15,29 @@
         <!-- Profile Photo Section -->
         <div class="form-section profile-section">
           <div class="profile-upload-area">
-            <div class="profile-preview">
-              {% if teacher.profile_photo %}
-                <img src="{{ teacher.profile_photo.url }}" alt="Current Profile" class="current-profile-img" />
-              {% else %}
-                <div class="profile-placeholder">
-                  <i class="bx bx-user"></i>
+            <div class="profile-drop-zone" id="profile-drop-zone">
+              <div class="profile-preview">
+                {% if teacher.profile_photo %}
+                  <img src="{{ teacher.profile_photo.url }}" alt="Current Profile" class="current-profile-img" />
+                {% else %}
+                  <div class="profile-placeholder">
+                    <i class="bx bx-user"></i>
+                  </div>
+                {% endif %}
+              </div>
+              <div class="drop-zone-overlay">
+                <div class="drop-zone-content">
+                  <i class="bx bx-cloud-upload"></i>
+                  <p>Drag & drop a photo here or click to browse</p>
+                  <span class="file-types">Supported: JPG, PNG, GIF (Max 5MB)</span>
                 </div>
-              {% endif %}
+              </div>
             </div>
             <div class="upload-controls">
-              <label for="id_profile_photo" class="upload-btn"><i class="bx bx-camera"></i> Change Photo</label>
-              {{ form.profile_photo }}
-              <button type="button" class="clear-btn" id="clear-photo-btn" style="display: none;"><i class="bx bx-x"></i> Clear</button>
+              <label for="id_profile_photo" class="upload-btn"><i class="bx bx-camera"></i> Choose Photo</label>
+              <button type="button" class="clear-btn" id="clear-photo-btn" {% if teacher.profile_photo %}style="display: inline-flex;"{% else %}style="display: none;"{% endif %}><i class="bx bx-x"></i> Remove Photo</button>
+              <div style="display: none;">{{ form.profile_photo }}</div>
+
               {% if form.profile_photo.errors %}
                 <div class="error">{{ form.profile_photo.errors }}</div>
               {% endif %}
@@ -200,13 +210,14 @@
 
       // Handle profile photo preview and clear
       const profileInput = document.getElementById('id_profile_photo');
-      const profilePlaceholder = document.querySelector('.current-profile-img') ? document.querySelector('.current-profile-img').parentElement : document.querySelector('.profile-placeholder');
+      const profileDropZone = document.getElementById('profile-drop-zone');
+      const profilePlaceholder = document.querySelector('.profile-placeholder');
       const clearBtn = document.getElementById('clear-photo-btn');
       let currentPreview = document.querySelector('.current-profile-img');
       let originalContent = profilePlaceholder.innerHTML;
 
       function updatePhotoPreview(file) {
-        if (file) {
+        if (file && file.type.startsWith('image/')) {
           const reader = new FileReader();
           reader.onload = function(e) {
             if (currentPreview) {
@@ -214,10 +225,6 @@
             }
             currentPreview = document.createElement('img');
             currentPreview.src = e.target.result;
-            currentPreview.style.width = '100%';
-            currentPreview.style.height = '100%';
-            currentPreview.style.borderRadius = '50%';
-            currentPreview.style.objectFit = 'cover';
             currentPreview.alt = 'Profile Preview';
             currentPreview.className = 'current-profile-img';
             profilePlaceholder.innerHTML = '';
@@ -236,6 +243,49 @@
         profilePlaceholder.innerHTML = originalContent;
         profileInput.value = '';
         clearBtn.style.display = 'none';
+      }
+
+      // Drag and drop functionality
+      ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        profileDropZone.addEventListener(eventName, preventDefaults, false);
+      });
+
+      function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+
+      ['dragenter', 'dragover'].forEach(eventName => {
+        profileDropZone.addEventListener(eventName, highlight, false);
+      });
+
+      ['dragleave', 'drop'].forEach(eventName => {
+        profileDropZone.addEventListener(eventName, unhighlight, false);
+      });
+
+      function highlight(e) {
+        profileDropZone.classList.add('drag-over');
+      }
+
+      function unhighlight(e) {
+        profileDropZone.classList.remove('drag-over');
+      }
+
+      profileDropZone.addEventListener('drop', handleDrop, false);
+
+      function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        if (files.length > 0) {
+          const file = files[0];
+          if (file.type.startsWith('image/')) {
+            // Create a DataTransfer to set the file to the input
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            profileInput.files = dt.files;
+            updatePhotoPreview(file);
+          }
+        }
       }
 
       profileInput.addEventListener('change', function(e) {

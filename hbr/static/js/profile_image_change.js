@@ -59,7 +59,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
               // Update button text
               changePhotoBtn.innerHTML =
-                '<i class="bx bx-image-portrait"></i> Change Profile Image';
+                '<i class="bx bx-image-add"></i> Change Profile Image';
 
               // Show success message
               showMessage("Profile photo updated successfully!", "success");
