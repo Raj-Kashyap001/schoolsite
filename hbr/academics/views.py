@@ -28,6 +28,7 @@ from dashboard.pdf_utils import (
 )
 
 from django import template
+import pdfkit
 
 register = template.Library()
 
@@ -1100,3 +1101,634 @@ def admin_delete_exam(request: HttpRequest, exam_id: int):
         return JsonResponse({"error": "Exam not found"}, status=404)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
+
+# ===== RESULT MANAGEMENT VIEWS =====
+
+
+@login_required
+def result_management(request: HttpRequest):
+    """Main result management page for admins"""
+    role = get_user_role(request.user)
+    if role != "Admin":
+        return HttpResponse("Access denied", status=403)
+
+    current_session = get_current_session(request)
+    exams = (
+        Exam.objects.filter(term__academic_session=current_session)
+        .select_related("term")
+        .order_by("term__start_date", "name")
+    )
+
+    context = {
+        "exams": exams,
+        "current_session": current_session,
+    }
+    return render(request, "academics/result_management.html", context)
+
+
+@login_required
+def search_class_results(request: HttpRequest):
+    """Search and view results for a particular class"""
+    role = get_user_role(request.user)
+    if role not in ["Teacher", "Admin"]:
+        return HttpResponse("Access denied", status=403)
+
+    current_session = get_current_session(request)
+    exams = (
+        Exam.objects.filter(term__academic_session=current_session)
+        .select_related("term")
+        .order_by("term__start_date", "name")
+    )
+    classrooms = Classroom.objects.all().order_by("grade", "section")
+
+    context = {
+        "exams": exams,
+        "classrooms": classrooms,
+        "current_session": current_session,
+    }
+    return render(request, "academics/search_class_results.html", context)
+
+
+@login_required
+def get_class_results(request: HttpRequest, exam_id: int, classroom_id: int):
+    """Get results data for a specific exam and classroom"""
+    role = get_user_role(request.user)
+    if role not in ["Teacher", "Admin"]:
+        return JsonResponse({"error": "Access denied"}, status=403)
+
+    try:
+        exam = Exam.objects.get(id=exam_id)
+        classroom = Classroom.objects.get(id=classroom_id)
+
+        if role == "Teacher":
+            teacher = Teacher.objects.get(user=request.user)
+            # Check if teacher is assigned to this classroom
+            if not ExamAssignment.objects.filter(
+                teacher=teacher, exam=exam, classroom=classroom
+            ).exists():
+                return JsonResponse({"error": "Access denied"}, status=403)
+
+        # Get published results for this exam and classroom
+        results = (
+            ExamResult.objects.filter(
+                exam=exam,
+                student__classroom=classroom,
+                status=ExamResult.Status.PUBLISHED,
+            )
+            .select_related("student")
+            .order_by("student__roll_no", "subject")
+        )
+
+        # Group results by student
+        students_data = {}
+        subjects = set()
+
+        for result in results:
+            student_id = result.student.id
+            if student_id not in students_data:
+                students_data[student_id] = {
+                    "student": result.student,
+                    "results": {},
+                    "total_marks": 0,
+                    "obtained_marks": 0,
+                }
+
+            students_data[student_id]["results"][result.subject] = result
+            students_data[student_id]["total_marks"] += float(result.total_marks)
+            if result.marks_obtained:
+                students_data[student_id]["obtained_marks"] += float(
+                    result.marks_obtained
+                )
+            subjects.add(result.subject)
+
+        # Calculate percentages and ranks
+        students_list = list(students_data.values())
+        for student_data in students_list:
+            if student_data["total_marks"] > 0:
+                student_data["percentage"] = (
+                    student_data["obtained_marks"] / student_data["total_marks"]
+                ) * 100
+            else:
+                student_data["percentage"] = 0
+
+        # Sort by percentage for ranking
+        students_list.sort(key=lambda x: x["percentage"], reverse=True)
+        for rank, student_data in enumerate(students_list, 1):
+            student_data["rank"] = rank
+
+        # Prepare response data
+        response_data = {
+            "exam": {
+                "name": exam.name,
+                "term": exam.term.name,
+                "session": exam.term.academic_session.year,
+            },
+            "classroom": {
+                "grade": classroom.grade,
+                "section": classroom.section,
+            },
+            "subjects": sorted(list(subjects)),
+            "students": [
+                {
+                    "id": student_data["student"].id,
+                    "roll_no": student_data["student"].roll_no,
+                    "name": student_data["student"].user.get_full_name(),
+                    "total_marks": student_data["total_marks"],
+                    "obtained_marks": student_data["obtained_marks"],
+                    "percentage": round(student_data["percentage"], 2),
+                    "rank": student_data["rank"],
+                    "results": {
+                        subject: (
+                            {
+                                "marks_obtained": result.marks_obtained,
+                                "grade": result.grade,
+                            }
+                            if result
+                            else None
+                        )
+                        for subject, result in student_data["results"].items()
+                    },
+                }
+                for student_data in students_list
+            ],
+        }
+
+        return JsonResponse(response_data)
+    except (Exam.DoesNotExist, Classroom.DoesNotExist):
+        return JsonResponse({"error": "Not found"}, status=404)
+
+
+@login_required
+def declare_class_results(request: HttpRequest, exam_id: int, classroom_id: int):
+    """Declare results for a class and generate PDF"""
+    role = get_user_role(request.user)
+    if role not in ["Teacher", "Admin"]:
+        return HttpResponse("Access denied", status=403)
+
+    try:
+        exam = Exam.objects.get(id=exam_id)
+        classroom = Classroom.objects.get(id=classroom_id)
+
+        if role == "Teacher":
+            teacher = Teacher.objects.get(user=request.user)
+            if not ExamAssignment.objects.filter(
+                teacher=teacher, exam=exam, classroom=classroom
+            ).exists():
+                return HttpResponse("Access denied", status=403)
+
+        # Get published results
+        results = (
+            ExamResult.objects.filter(
+                exam=exam,
+                student__classroom=classroom,
+                status=ExamResult.Status.PUBLISHED,
+            )
+            .select_related("student")
+            .order_by("student__roll_no", "subject")
+        )
+
+        if not results:
+            messages.error(
+                request, "No published results found for this exam and class."
+            )
+            return redirect("academics:search_class_results")
+
+        # Generate HTML content for PDF
+        html_content = generate_result_declaration_html(exam, classroom, results)
+
+        # Generate PDF using pdfkit
+        pdf_options = {
+            "page-size": "A4",
+            "margin-top": "1in",
+            "margin-right": "1in",
+            "margin-bottom": "1in",
+            "margin-left": "1in",
+        }
+
+        pdf_buffer = pdfkit.from_string(html_content, False, options=pdf_options)
+
+        # Return PDF response
+        response = HttpResponse(pdf_buffer, content_type="application/pdf")
+        response["Content-Disposition"] = (
+            f'attachment; filename="result_declaration_{exam.name}_{classroom.grade}{classroom.section or ""}.pdf"'
+        )
+        return response
+
+    except (Exam.DoesNotExist, Classroom.DoesNotExist):
+        messages.error(request, "Exam or classroom not found.")
+        return redirect("academics:search_class_results")
+
+
+@login_required
+def annual_result_sheet(request: HttpRequest):
+    """Generate annual result sheet for a class"""
+    role = get_user_role(request.user)
+    if role != "Admin":
+        return HttpResponse("Access denied", status=403)
+
+    current_session = get_current_session(request)
+    classrooms = Classroom.objects.all().order_by("grade", "section")
+
+    context = {
+        "classrooms": classrooms,
+        "current_session": current_session,
+    }
+    return render(request, "academics/annual_result_sheet.html", context)
+
+
+@login_required
+def generate_annual_result_sheet(request: HttpRequest, classroom_id: int):
+    """Generate annual result sheet PDF for a classroom"""
+    role = get_user_role(request.user)
+    if role != "Admin":
+        return HttpResponse("Access denied", status=403)
+
+    try:
+        classroom = Classroom.objects.get(id=classroom_id)
+        current_session = get_current_session(request)
+
+        # Get all published exams for the current session
+        exams = Exam.objects.filter(
+            term__academic_session=current_session, is_yearly_final=True
+        ).order_by("term__start_date")
+
+        if not exams:
+            messages.error(request, "No final exams found for the current session.")
+            return redirect("academics:annual_result_sheet")
+
+        # Get all students in the classroom
+        students = Student.objects.filter(classroom=classroom).order_by("roll_no")
+
+        # Generate HTML content
+        html_content = generate_annual_result_sheet_html(
+            classroom, current_session, exams, students
+        )
+
+        # Generate PDF
+        pdf_options = {
+            "page-size": "A4",
+            "orientation": "landscape",
+            "margin-top": "0.5in",
+            "margin-right": "0.5in",
+            "margin-bottom": "0.5in",
+            "margin-left": "0.5in",
+        }
+
+        pdf_buffer = pdfkit.from_string(html_content, False, options=pdf_options)
+
+        # Return PDF response
+        response = HttpResponse(pdf_buffer, content_type="application/pdf")
+        response["Content-Disposition"] = (
+            f'attachment; filename="annual_result_sheet_{classroom.grade}{classroom.section or ""}_{current_session.year}.pdf"'
+        )
+        return response
+
+    except Classroom.DoesNotExist:
+        messages.error(request, "Classroom not found.")
+        return redirect("academics:annual_result_sheet")
+
+
+def generate_result_declaration_html(exam, classroom, results):
+    """Generate HTML content for result declaration PDF"""
+    # Group results by student
+    students_data = {}
+    subjects = set()
+
+    for result in results:
+        student_id = result.student.id
+        if student_id not in students_data:
+            students_data[student_id] = {
+                "student": result.student,
+                "results": {},
+                "total_marks": 0,
+                "obtained_marks": 0,
+            }
+
+        students_data[student_id]["results"][result.subject] = result
+        students_data[student_id]["total_marks"] += float(result.total_marks)
+        if result.marks_obtained:
+            students_data[student_id]["obtained_marks"] += float(result.marks_obtained)
+        subjects.add(result.subject)
+
+    # Calculate percentages and determine results
+    students_list = list(students_data.values())
+    for student_data in students_list:
+        if student_data["total_marks"] > 0:
+            student_data["percentage"] = (
+                student_data["obtained_marks"] / student_data["total_marks"]
+            ) * 100
+            student_data["result"] = (
+                "Pass" if student_data["percentage"] >= 33 else "Fail"
+            )
+        else:
+            student_data["percentage"] = 0
+            student_data["result"] = "N/A"
+
+    # Sort by roll number
+    students_list.sort(key=lambda x: x["student"].roll_no)
+
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <title>Result Declaration - {exam.name}</title>
+        <style>
+            body {{
+                font-family: Arial, sans-serif;
+                margin: 0;
+                padding: 20px;
+                line-height: 1.6;
+            }}
+            .header {{
+                text-align: center;
+                border-bottom: 2px solid #333;
+                padding-bottom: 20px;
+                margin-bottom: 30px;
+            }}
+            .school-name {{
+                font-size: 24px;
+                font-weight: bold;
+                margin-bottom: 10px;
+            }}
+            .exam-info {{
+                font-size: 18px;
+                margin-bottom: 10px;
+            }}
+            .class-info {{
+                font-size: 16px;
+                margin-bottom: 20px;
+            }}
+            table {{
+                width: 100%;
+                border-collapse: collapse;
+                margin-bottom: 30px;
+            }}
+            th, td {{
+                border: 1px solid #333;
+                padding: 8px;
+                text-align: left;
+            }}
+            th {{
+                background-color: #f0f0f0;
+                font-weight: bold;
+            }}
+            .text-center {{
+                text-align: center;
+            }}
+            .pass {{
+                color: green;
+            }}
+            .fail {{
+                color: red;
+            }}
+            .footer {{
+                margin-top: 50px;
+                display: flex;
+                justify-content: space-between;
+            }}
+            .signature {{
+                width: 200px;
+                text-align: center;
+                border-top: 1px solid #333;
+                padding-top: 10px;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <div class="school-name">HBR Public School</div>
+            <div class="exam-info">Result Declaration - {exam.name}</div>
+            <div class="class-info">Class: {classroom.grade} {classroom.section or ""} | Session: {exam.term.academic_session.year}</div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>S.No.</th>
+                    <th>Admission/Roll No.</th>
+                    <th>Student Name</th>
+                    <th>Total Marks</th>
+                    <th>Obtained Marks</th>
+                    <th>Percentage</th>
+                    <th>Result</th>
+                </tr>
+            </thead>
+            <tbody>
+    """
+
+    for i, student_data in enumerate(students_list, 1):
+        student = student_data["student"]
+        result_class = "pass" if student_data["result"] == "Pass" else "fail"
+
+        html += f"""
+                <tr>
+                    <td class="text-center">{i}</td>
+                    <td class="text-center">{student.roll_no}</td>
+                    <td>{student.user.get_full_name()}</td>
+                    <td class="text-center">{student_data["total_marks"]:.0f}</td>
+                    <td class="text-center">{student_data["obtained_marks"]:.0f}</td>
+                    <td class="text-center">{student_data["percentage"]:.2f}%</td>
+                    <td class="text-center {result_class}">{student_data["result"]}</td>
+                </tr>
+        """
+
+    html += """
+            </tbody>
+        </table>
+
+        <div class="footer">
+            <div class="signature">
+                <div>Checked By</div>
+            </div>
+            <div class="signature">
+                <div>Controller of Exam</div>
+            </div>
+            <div class="signature">
+                <div>Principal</div>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
+    return html
+
+
+def generate_annual_result_sheet_html(classroom, session, exams, students):
+    """Generate HTML content for annual result sheet PDF"""
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <title>Annual Result Sheet - Class {classroom.grade}</title>
+        <style>
+            body {{
+                font-family: Arial, sans-serif;
+                margin: 0;
+                padding: 10px;
+                font-size: 12px;
+                line-height: 1.4;
+            }}
+            .header {{
+                text-align: center;
+                border-bottom: 2px solid #333;
+                padding-bottom: 10px;
+                margin-bottom: 20px;
+            }}
+            .school-name {{
+                font-size: 20px;
+                font-weight: bold;
+                margin-bottom: 5px;
+            }}
+            .sheet-title {{
+                font-size: 16px;
+                margin-bottom: 5px;
+            }}
+            .class-info {{
+                font-size: 14px;
+                margin-bottom: 15px;
+            }}
+            table {{
+                width: 100%;
+                border-collapse: collapse;
+                margin-bottom: 20px;
+                font-size: 10px;
+            }}
+            th, td {{
+                border: 1px solid #333;
+                padding: 4px;
+                text-align: center;
+            }}
+            th {{
+                background-color: #f0f0f0;
+                font-weight: bold;
+                font-size: 9px;
+            }}
+            .student-name {{
+                text-align: left;
+            }}
+            .footer {{
+                margin-top: 30px;
+                display: flex;
+                justify-content: space-between;
+            }}
+            .signature {{
+                width: 150px;
+                text-align: center;
+                border-top: 1px solid #333;
+                padding-top: 5px;
+                font-size: 10px;
+            }}
+            .page-break {{
+                page-break-before: always;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <div class="school-name">HBR Public School</div>
+            <div class="sheet-title">Annual Result Sheet</div>
+            <div class="class-info">Class: {classroom.grade} {classroom.section or ""} | Session: {session.year}</div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th rowspan="2">S.No.</th>
+                    <th rowspan="2">Admission/<br>Roll No.</th>
+                    <th rowspan="2">Student Name</th>
+                    <th rowspan="2">Total<br>Marks</th>
+                    <th rowspan="2">Obtained<br>Marks</th>
+                    <th rowspan="2">Result</th>
+                    <th rowspan="2">Percentage</th>
+                    <th rowspan="2">Rank</th>
+                    <th rowspan="2">Signature of<br>Parents</th>
+                </tr>
+            </thead>
+            <tbody>
+    """
+
+    # Get all results for this classroom and exams
+    all_results = ExamResult.objects.filter(
+        exam__in=exams, student__classroom=classroom, status=ExamResult.Status.PUBLISHED
+    ).select_related("student", "exam")
+
+    # Group by student
+    student_results = {}
+    for result in all_results:
+        student_id = result.student.id
+        if student_id not in student_results:
+            student_results[student_id] = {
+                "student": result.student,
+                "results": {},
+                "total_marks": 0,
+                "obtained_marks": 0,
+            }
+        student_results[student_id]["results"][result.exam.id] = result
+        student_results[student_id]["total_marks"] += float(result.total_marks)
+        if result.marks_obtained:
+            student_results[student_id]["obtained_marks"] += float(
+                result.marks_obtained
+            )
+
+    # Calculate percentages and ranks
+    students_list = list(student_results.values())
+    for student_data in students_list:
+        if student_data["total_marks"] > 0:
+            student_data["percentage"] = (
+                student_data["obtained_marks"] / student_data["total_marks"]
+            ) * 100
+            student_data["result"] = (
+                "Pass" if student_data["percentage"] >= 33 else "Fail"
+            )
+        else:
+            student_data["percentage"] = 0
+            student_data["result"] = "N/A"
+
+    # Sort by percentage for ranking
+    students_list.sort(key=lambda x: x["percentage"], reverse=True)
+    for rank, student_data in enumerate(students_list, 1):
+        student_data["rank"] = rank
+
+    # Sort by roll number for display
+    students_list.sort(key=lambda x: x["student"].roll_no)
+
+    for i, student_data in enumerate(students_list, 1):
+        student = student_data["student"]
+        html += f"""
+                <tr>
+                    <td>{i}</td>
+                    <td>{student.roll_no}</td>
+                    <td class="student-name">{student.user.get_full_name()}</td>
+                    <td>{student_data["total_marks"]:.0f}</td>
+                    <td>{student_data["obtained_marks"]:.0f}</td>
+                    <td>{student_data["result"]}</td>
+                    <td>{student_data["percentage"]:.1f}%</td>
+                    <td>{student_data["rank"]}</td>
+                    <td></td>
+                </tr>
+        """
+
+    html += """
+            </tbody>
+        </table>
+
+        <div class="footer">
+            <div class="signature">
+                <div>Checked By</div>
+            </div>
+            <div class="signature">
+                <div>Controller of Exam</div>
+            </div>
+            <div class="signature">
+                <div>Principal</div>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
+    return html

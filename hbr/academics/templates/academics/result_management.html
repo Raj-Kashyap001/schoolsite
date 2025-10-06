@@ -1,0 +1,177 @@
+{% extends 'dashboard/layout.html' %}
+{% load static %}
+
+{% block content %}
+  <div class="result-management-container">
+    <!-- Header -->
+    <div class="page-header">
+      <div class="breadcrumb">
+        <span>Result Management</span>
+      </div>
+      <h1>Result Management</h1>
+      <p class="page-subtitle">Search, review, and declare exam results</p>
+    </div>
+
+    <!-- Management Options -->
+    <div class="management-grid">
+      <div class="management-card" onclick="window.location.href='{% url 'academics:search_class_results' %}'">
+        <div class="card-icon">
+          <i class="bx bx-search"></i>
+        </div>
+        <div class="card-content">
+          <h3>Search Class Results</h3>
+          <p>View and search results for a particular class</p>
+        </div>
+        <div class="card-arrow">
+          <i class="bx bx-chevron-right"></i>
+        </div>
+      </div>
+
+      <div class="management-card" onclick="window.location.href='{% url 'academics:annual_result_sheet' %}'">
+        <div class="card-icon">
+          <i class="bx bx-file"></i>
+        </div>
+        <div class="card-content">
+          <h3>Annual Result Sheet</h3>
+          <p>Generate printable annual result sheets</p>
+        </div>
+        <div class="card-arrow">
+          <i class="bx bx-chevron-right"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block inline_css %}
+  <style>
+    .result-management-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem 1rem;
+    }
+    
+    .page-header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+    
+    .breadcrumb {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+      color: #666;
+    }
+    
+    .page-header h1 {
+      margin: 0 0 0.5rem 0;
+      color: var(--color-black);
+      font-size: 2.5rem;
+      font-weight: 700;
+    }
+    
+    .page-subtitle {
+      margin: 0;
+      color: #666;
+      font-size: 1.1rem;
+    }
+    
+    .management-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2rem;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    
+    .management-card {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      padding: 2rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+    
+    .management-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+      border: 1px solid var(--color-primary);
+    }
+    
+    .card-icon {
+      width: 4rem;
+      height: 4rem;
+      background: var(--color-primary);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 2rem;
+      flex-shrink: 0;
+    }
+    
+    .card-content {
+      flex: 1;
+    }
+    
+    .card-content h3 {
+      margin: 0 0 0.5rem 0;
+      color: var(--color-black);
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+    
+    .card-content p {
+      margin: 0;
+      color: #666;
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+    
+    .card-arrow {
+      color: #ccc;
+      font-size: 1.5rem;
+      transition: color 0.3s ease;
+    }
+    
+    .management-card:hover .card-arrow {
+      color: var(--color-primary);
+    }
+    
+    @media (max-width: 768px) {
+      .result-management-container {
+        padding: 1rem;
+      }
+    
+      .page-header h1 {
+        font-size: 2rem;
+      }
+    
+      .management-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+      }
+    
+      .management-card {
+        padding: 1.5rem;
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+      }
+    
+      .card-icon {
+        width: 3rem;
+        height: 3rem;
+        font-size: 1.5rem;
+      }
+    }
+  </style>
+{% endblock %}

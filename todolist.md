@@ -8,3 +8,5 @@
 - [ ] Certificate Type Generation using HTML for easier design
 - [ ] Bulk Delete Students in Student Management
 - [ ] Make My Exams Page query result more intuitive.
+
+- [ ] Auto calculate grade based on marks

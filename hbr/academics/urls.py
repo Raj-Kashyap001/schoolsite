@@ -108,4 +108,35 @@ urlpatterns = [
         views.admin_delete_exam,
         name="admin_delete_exam",
     ),
+    # Result Management
+    path(
+        "result-management/",
+        views.result_management,
+        name="result_management",
+    ),
+    path(
+        "search-class-results/",
+        views.search_class_results,
+        name="search_class_results",
+    ),
+    path(
+        "get-class-results/<int:exam_id>/<int:classroom_id>/",
+        views.get_class_results,
+        name="get_class_results",
+    ),
+    path(
+        "declare-class-results/<int:exam_id>/<int:classroom_id>/",
+        views.declare_class_results,
+        name="declare_class_results",
+    ),
+    path(
+        "annual-result-sheet/",
+        views.annual_result_sheet,
+        name="annual_result_sheet",
+    ),
+    path(
+        "generate-annual-result-sheet/<int:classroom_id>/",
+        views.generate_annual_result_sheet,
+        name="generate_annual_result_sheet",
+    ),
 ]
