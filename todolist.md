@@ -1,7 +1,7 @@
-[ ] Have Teacher a Class Teacher Feature (apply this in attendance)
-[ ] Individuals Notice sending
-[ ] Make setting section last
-[x] Fix highlight of active link in sidebar if goes to nested route
-[ ] Ask if the created user are assigned to there respective groups
-[x] Add student form is not working.
-[x] Sidebar link highlight is broken brut.
+- [ ] Have Teacher a Class Teacher Feature (apply this in attendance)
+- [ ] Individuals Notice sending
+- [x] Make setting section last
+- [ ] Ask if the created user are assigned to there respective groups
+- [ ] Fix ux issue in class management
+- [ ] Salary Management page have description in textarea
+- [ ] Salary Management page have add option to edit and delete record
