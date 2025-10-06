@@ -23,6 +23,8 @@
           <strong>Status:</strong>
           {% if is_locked %}
             <span class="status-locked">Locked</span>
+          {% elif not marks_entry_open %}
+            <span class="status-closed">Marks Entry Closed</span>
           {% else %}
             <span class="status-open">Open for Marking</span>
           {% endif %}
@@ -33,6 +35,10 @@
     {% if is_locked %}
       <div class="locked-message">
         <p>This exam has been locked and cannot be modified. Only administrators can unlock it.</p>
+      </div>
+    {% elif not marks_entry_open %}
+      <div class="closed-message">
+        <p>Marks entry for this exam is currently closed. Contact your administrator to open marks entry.</p>
       </div>
     {% else %}
       <div class="toolbar">
@@ -324,30 +330,30 @@
           .then((data) => {
             if (data.success) {
               importMessage.innerHTML = `
-                                                  <div style="color: #28a745; padding: 10px; background: #d4edda; border-radius: 4px; margin-bottom: 10px;">
-                                                    <strong>Success!</strong> Bulk import completed successfully.
-                                                  </div>
-                                                  <p style="margin-bottom: 10px;">Refreshing page to show imported data...</p>
-                                                `
+                                                          <div style="color: #28a745; padding: 10px; background: #d4edda; border-radius: 4px; margin-bottom: 10px;">
+                                                            <strong>Success!</strong> Bulk import completed successfully.
+                                                          </div>
+                                                          <p style="margin-bottom: 10px;">Refreshing page to show imported data...</p>
+                                                        `
               // Auto-refresh after 2 seconds to show the imported data
               setTimeout(() => {
                 location.reload()
               }, 2000)
             } else {
               importMessage.innerHTML = `
-                                                  <div style="color: #dc3545; padding: 10px; background: #f8d7da; border-radius: 4px;">
-                                                    <strong>Error:</strong> ${data.error}
-                                                  </div>
-                                                `
+                                                          <div style="color: #dc3545; padding: 10px; background: #f8d7da; border-radius: 4px;">
+                                                            <strong>Error:</strong> ${data.error}
+                                                          </div>
+                                                        `
             }
           })
           .catch((error) => {
             console.error('Error:', error)
             importMessage.innerHTML = `
-                                                <div style="color: #dc3545; padding: 10px; background: #f8d7da; border-radius: 4px;">
-                                                  <strong>Error:</strong> An error occurred during bulk import. Please try again.
-                                                </div>
-                                              `
+                                                        <div style="color: #dc3545; padding: 10px; background: #f8d7da; border-radius: 4px;">
+                                                          <strong>Error:</strong> An error occurred during bulk import. Please try again.
+                                                        </div>
+                                                      `
           })
       }
     

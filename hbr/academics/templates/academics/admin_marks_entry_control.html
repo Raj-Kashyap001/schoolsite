@@ -1,0 +1,764 @@
+{% extends 'dashboard/layout.html' %}
+{% load static %}
+
+{% block content %}
+  <div class="marks-control-container">
+    <!-- Header -->
+    <div class="page-header">
+      <div class="breadcrumb">
+        <a href="{% url 'academics:admin_exam_management' %}">Exam Management</a>
+        <span class="separator">></span>
+        <span>Marks Entry Control</span>
+      </div>
+      <h1>Marks Entry Control</h1>
+      <p class="page-subtitle">Control when teachers can enter marks for different exams</p>
+    </div>
+
+    <!-- Control Panel -->
+    <div class="control-panel">
+      <div class="panel-header">
+        <h2>Exam Status Overview</h2>
+        <div class="legend">
+          <div class="legend-item">
+            <div class="status-indicator open"></div>
+            <span>Entry Open</span>
+          </div>
+          <div class="legend-item">
+            <div class="status-indicator closed"></div>
+            <span>Entry Closed</span>
+          </div>
+        </div>
+      </div>
+
+      {% if exams %}
+        <div class="exams-grid">
+          {% for exam in exams %}
+            <div class="exam-control-card {% if exam.marks_entry_open %}
+                
+                entry-open
+
+              {% else %}
+                
+                entry-closed
+
+              {% endif %}">
+              <div class="card-header">
+                <div class="exam-info">
+                  <h3>{{ exam.name }}</h3>
+                  <p>{{ exam.term.name }} - {{ exam.term.academic_session.year }}</p>
+                </div>
+                <div class="status-badge {% if exam.marks_entry_open %}
+                    
+                    badge-success
+
+                  {% else %}
+                    
+                    badge-danger
+
+                  {% endif %}">
+                  <i class="bx {% if exam.marks_entry_open %}
+                      
+                      bx-lock-open
+
+                    {% else %}
+                      
+                      bx-lock
+
+                    {% endif %}">
+
+                  </i>
+                  {% if exam.marks_entry_open %}
+                    Open
+                  {% else %}
+                    Closed
+                  {% endif %}
+                </div>
+              </div>
+
+              {% if exam.description %}
+                <div class="exam-description">
+                  <p>{{ exam.description|truncatechars:80 }}</p>
+                </div>
+              {% endif %}
+
+              <div class="exam-details">
+                <div class="detail-item">
+                  <i class="bx bx-calendar"></i>
+                  <span>{{ exam.term.start_date|date:'M d, Y' }} - {{ exam.term.end_date|date:'M d, Y' }}</span>
+                </div>
+                {% if exam.is_yearly_final %}
+                  <div class="detail-item">
+                    <i class="bx bx-trophy"></i>
+                    <span>Final Exam</span>
+                  </div>
+                {% endif %}
+              </div>
+
+              <div class="card-actions">
+                <button class="btn btn-lg {% if exam.marks_entry_open %}
+                    
+                    btn-danger
+
+                  {% else %}
+                    
+                    btn-success
+
+                  {% endif %}"
+                  onclick="toggleMarksEntry({{ exam.id }}, {{ exam.marks_entry_open|lower }})">
+                  <i class="bx {% if exam.marks_entry_open %}
+                      
+                      bx-lock
+
+                    {% else %}
+                      
+                      bx-lock-open
+
+                    {% endif %}">
+
+                  </i>
+                  {% if exam.marks_entry_open %}
+                    Close Entry
+                  {% else %}
+                    Open Entry
+                  {% endif %}
+                </button>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <div class="empty-icon">
+            <i class="bx bx-lock"></i>
+          </div>
+          <h3>No Exams Available</h3>
+          <p>Create exams first to control their marks entry settings.</p>
+          <a href="{% url 'academics:admin_create_exam' %}" class="btn btn-primary">
+            <i class="bx bx-plus"></i>
+            Create Exam
+          </a>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="stats-section">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon">
+            <i class="bx bx-lock-open"></i>
+          </div>
+          <div class="stat-info">
+            <h3>{{ exams|length|add:0 }}</h3>
+            <p>Total Exams</p>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon open">
+            <i class="bx bx-check-circle"></i>
+          </div>
+          <div class="stat-info">
+            <h3>{{ exams|length|add:0 }}</h3>
+            <p>Entry Open</p>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon closed">
+            <i class="bx bx-x-circle"></i>
+          </div>
+          <div class="stat-info">
+            <h3>0</h3>
+            <p>Entry Closed</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirmation Modal -->
+  <div id="confirmModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="modalTitle">Confirm Action</h2>
+        <button class="close-btn" onclick="closeModal()"><i class="bx bx-x"></i></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="confirm-icon">
+          <i class="bx bx-question-circle"></i>
+        </div>
+        <p id="modalMessage">Are you sure you want to perform this action?</p>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" id="confirmBtn" onclick="executeToggle()">Confirm</button>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block inline_js %}
+  <script>
+    let pendingToggle = null
+    
+    function toggleMarksEntry(examId, currentlyOpen) {
+      const action = currentlyOpen ? 'close' : 'open'
+      const examName = event.target.closest('.exam-control-card').querySelector('h3').textContent
+    
+      const modal = document.getElementById('confirmModal')
+      const modalTitle = document.getElementById('modalTitle')
+      const modalMessage = document.getElementById('modalMessage')
+    
+      modalTitle.textContent = `${currentlyOpen ? 'Close' : 'Open'} Marks Entry`
+      modalMessage.textContent = `Are you sure you want to ${action} marks entry for "${examName}"? ${currentlyOpen ? 'Teachers will no longer be able to enter marks.' : 'Teachers will be able to enter marks.'}`
+    
+      pendingToggle = { examId, currentlyOpen }
+      modal.style.display = 'block'
+    }
+    
+    function executeToggle() {
+      if (!pendingToggle) return
+    
+      const { examId, currentlyOpen } = pendingToggle
+    
+      fetch(`/academics/admin/toggle-marks-entry/${examId}/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.success) {
+            closeModal()
+            location.reload()
+          } else {
+            alert('Error updating marks entry status.')
+            closeModal()
+          }
+        })
+        .catch((error) => {
+          console.error('Error:', error)
+          alert('An error occurred while updating marks entry status.')
+          closeModal()
+        })
+    }
+    
+    function closeModal() {
+      document.getElementById('confirmModal').style.display = 'none'
+      pendingToggle = null
+    }
+    
+    // Close modal when clicking outside
+    window.onclick = function (event) {
+      const modal = document.getElementById('confirmModal')
+      if (event.target == modal) {
+        closeModal()
+      }
+    }
+  </script>
+{% endblock %}
+
+{% block inline_css %}
+  <style>
+    .marks-control-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem 1rem;
+    }
+    
+    /* Header */
+    .page-header {
+      margin-bottom: 3rem;
+      text-align: center;
+    }
+    
+    .breadcrumb {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+      color: #666;
+    }
+    
+    .breadcrumb a {
+      color: var(--color-primary);
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.3s ease;
+    }
+    
+    .breadcrumb a:hover {
+      color: color-mix(in srgb, var(--color-primary), var(--color-black) 20%);
+    }
+    
+    .separator {
+      color: #999;
+      font-weight: bold;
+    }
+    
+    .page-header h1 {
+      margin: 0 0 0.5rem 0;
+      color: var(--color-black);
+      font-size: 2.5rem;
+      font-weight: 700;
+    }
+    
+    .page-subtitle {
+      margin: 0;
+      color: #666;
+      font-size: 1.1rem;
+    }
+    
+    /* Control Panel */
+    .control-panel {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      padding: 2rem;
+      margin-bottom: 3rem;
+    }
+    
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 2px solid var(--color-secondary);
+    }
+    
+    .panel-header h2 {
+      margin: 0;
+      color: var(--color-primary);
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+    
+    .legend {
+      display: flex;
+      gap: 1.5rem;
+    }
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+      color: #666;
+    }
+    
+    .status-indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+    
+    .status-indicator.open {
+      background: #28a745;
+    }
+    
+    .status-indicator.closed {
+      background: #dc3545;
+    }
+    
+    /* Exams Grid */
+    .exams-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+      gap: 1.5rem;
+    }
+    
+    .exam-control-card {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      border: 2px solid #e1e5e9;
+    
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .exam-control-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: var(--color-primary);
+    }
+    
+    .exam-control-card.entry-open::before {
+      background: #28a745;
+    }
+    
+    .exam-control-card.entry-closed::before {
+      background: #dc3545;
+    }
+    
+    .exam-control-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
+    
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 1rem;
+    }
+    
+    .exam-info h3 {
+      margin: 0 0 0.25rem 0;
+      color: var(--color-black);
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+    
+    .exam-info p {
+      margin: 0;
+      color: #666;
+      font-size: 0.9rem;
+    }
+    
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    
+    .badge-success {
+      background: rgba(40, 167, 69, 0.1);
+      color: #28a745;
+    }
+    
+    .badge-danger {
+      background: rgba(220, 53, 69, 0.1);
+      color: #dc3545;
+    }
+    
+    .exam-description {
+      margin-bottom: 1rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .exam-description p {
+      margin: 0;
+      color: #666;
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+    
+    .exam-details {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .detail-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+      color: #666;
+    }
+    
+    .detail-item i {
+      color: var(--color-primary);
+      font-size: 1rem;
+    }
+    
+    .card-actions {
+      text-align: center;
+    }
+    
+    .btn-lg {
+      padding: 0.875rem 2rem;
+      font-size: 1rem;
+      font-weight: 600;
+      min-width: 140px;
+    }
+    
+    /* Stats Section */
+    .stats-section {
+      margin-top: 3rem;
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
+    }
+    
+    .stat-card {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    
+    .stat-icon {
+      width: 3rem;
+      height: 3rem;
+      border-radius: 12px;
+      background: var(--color-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      color: var(--color-primary);
+    }
+    
+    .stat-icon.open {
+      background: rgba(40, 167, 69, 0.1);
+      color: #28a745;
+    }
+    
+    .stat-icon.closed {
+      background: rgba(220, 53, 69, 0.1);
+      color: #dc3545;
+    }
+    
+    .stat-info h3 {
+      margin: 0 0 0.25rem 0;
+      color: var(--color-black);
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+    
+    .stat-info p {
+      margin: 0;
+      color: #666;
+      font-size: 0.9rem;
+    }
+    
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: #666;
+    }
+    
+    .empty-icon {
+      font-size: 4rem;
+      color: var(--color-primary);
+      margin-bottom: 1rem;
+      opacity: 0.5;
+    }
+    
+    .empty-state h3 {
+      margin: 0 0 0.5rem 0;
+      color: var(--color-black);
+      font-size: 1.5rem;
+    }
+    
+    .empty-state p {
+      margin: 0 0 2rem 0;
+      font-size: 1rem;
+    }
+    
+    /* Modal Styles */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+    }
+    
+    .modal-content {
+      background-color: white;
+      margin: 15% auto;
+      border-radius: 16px;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+      overflow: hidden;
+    }
+    
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.5rem 2rem;
+      border-bottom: 1px solid #e1e5e9;
+    }
+    
+    .modal-header h2 {
+      margin: 0;
+      color: var(--color-primary);
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+    
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      color: #666;
+      cursor: pointer;
+      padding: 0.5rem;
+      border-radius: 50%;
+    }
+    
+    .close-btn:hover {
+      background: #f8f9fa;
+      color: var(--color-black);
+    }
+    
+    .modal-body {
+      padding: 2rem;
+      text-align: center;
+    }
+    
+    .confirm-icon {
+      font-size: 3rem;
+      color: var(--color-primary);
+      margin-bottom: 1rem;
+    }
+    
+    .modal-body p {
+      margin: 0;
+      color: #666;
+      font-size: 1rem;
+      line-height: 1.5;
+    }
+    
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 1rem;
+      padding: 1.5rem 2rem;
+      background: #f8f9fa;
+    }
+    
+    /* Button Styles */
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+    }
+    
+    .btn-primary {
+      background: var(--color-primary);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: color-mix(in srgb, var(--color-primary), var(--color-black) 10%);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(3, 104, 53, 0.3);
+    }
+    
+    .btn-outline {
+      background: transparent;
+      color: var(--color-primary);
+      border: 2px solid var(--color-primary);
+    }
+    
+    .btn-outline:hover {
+      background: var(--color-primary);
+      color: white;
+    }
+    
+    .btn-success {
+      background: #28a745;
+      color: white;
+    }
+    
+    .btn-success:hover {
+      background: color-mix(in srgb, #28a745, var(--color-black) 10%);
+    }
+    
+    .btn-danger {
+      background: #dc3545;
+      color: white;
+    }
+    
+    .btn-danger:hover {
+      background: color-mix(in srgb, #dc3545, var(--color-black) 10%);
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .marks-control-container {
+        padding: 1rem;
+      }
+    
+      .page-header h1 {
+        font-size: 2rem;
+      }
+    
+      .control-panel {
+        padding: 1rem;
+      }
+    
+      .panel-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+      }
+    
+      .legend {
+        justify-content: flex-start;
+      }
+    
+      .exams-grid {
+        grid-template-columns: 1fr;
+      }
+    
+      .exam-control-card {
+        padding: 1rem;
+      }
+    
+      .card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+      }
+    
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    
+      .modal-content {
+        margin: 10% auto;
+        width: 95%;
+      }
+    
+      .modal-body {
+        padding: 1.5rem;
+      }
+    
+      .modal-actions {
+        padding: 1rem 1.5rem;
+      }
+    }
+  </style>
+{% endblock %}

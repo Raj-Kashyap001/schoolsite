@@ -5,3 +5,6 @@
 - [ ] Fix ux issue in class management
 - [ ] Salary Management page have description in textarea
 - [ ] Salary Management page have add option to edit and delete record
+- [ ] Certificate Type Generation using HTML for easier design
+- [ ] Bulk Delete Students in Student Management
+- [ ] Make My Exams Page query result more intuitive.

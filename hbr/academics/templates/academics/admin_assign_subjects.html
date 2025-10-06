@@ -1,0 +1,902 @@
+{% extends 'dashboard/layout.html' %}
+{% load static %}
+
+{% block content %}
+  <div class="assign-subjects-container">
+    <!-- Header -->
+    <div class="page-header">
+      <div class="breadcrumb">
+        <a href="{% url 'academics:admin_exam_management' %}">Exam Management</a>
+        <span class="separator">></span>
+        <span>Subject Assignments</span>
+      </div>
+      <h1>Subject Assignments</h1>
+      <p class="page-subtitle">Assign teachers to subjects for different exams and classrooms</p>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+      <button class="btn btn-primary" onclick="showCreateModal()">
+        <i class="bx bx-plus-circle"></i>
+        Create Assignment
+      </button>
+      <button class="btn btn-outline" onclick="toggleBulkMode()">
+        <i class="bx bx-select-multiple"></i>
+        Bulk Operations
+      </button>
+    </div>
+
+    <!-- Bulk Actions Bar (Hidden by default) -->
+    <div class="bulk-actions-bar" id="bulkActionsBar" style="display: none;">
+      <div class="bulk-info">
+        <span id="selectedCount">0</span> assignments selected
+      </div>
+      <div class="bulk-buttons">
+        <button class="btn btn-danger btn-sm" onclick="bulkDelete()" disabled id="bulkDeleteBtn">
+          <i class="bx bx-trash"></i>
+          Delete Selected
+        </button>
+        <button class="btn btn-outline btn-sm" onclick="clearSelection()">
+          <i class="bx bx-x"></i>
+          Clear
+        </button>
+      </div>
+    </div>
+
+    <!-- Assignments List -->
+    <div class="assignments-section">
+      <div class="section-header">
+        <h2>Current Assignments</h2>
+        <div class="section-stats">
+          <span class="stat-badge">{{ assignments|length }} Assignments</span>
+        </div>
+      </div>
+
+      {% if assignments %}
+        <div class="assignments-table-container">
+          <table class="assignments-table">
+            <thead>
+              <tr>
+                <th class="checkbox-column">
+                  <input type="checkbox" id="selectAll" onchange="toggleSelectAll()" />
+                </th>
+                <th>Exam</th>
+                <th>Teacher</th>
+                <th>Classroom</th>
+                <th>Assigned Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for assignment in assignments %}
+                <tr class="assignment-row" data-id="{{ assignment.id }}">
+                  <td class="checkbox-column">
+                    <input type="checkbox" class="assignment-checkbox" value="{{ assignment.id }}" onchange="updateBulkActions()" />
+                  </td>
+                  <td>
+                    <div class="exam-info">
+                      <strong>{{ assignment.exam.name }}</strong>
+                      <small>{{ assignment.exam.term.name }}</small>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="teacher-info">
+                      <div class="teacher-avatar">
+                        <i class="bx bx-user"></i>
+                      </div>
+                      <div class="teacher-details">
+                        <strong>{{ assignment.teacher.user.get_full_name }}</strong>
+                        <small>{{ assignment.teacher.employee_id }}</small>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="classroom-badge">{{ assignment.classroom.grade }} {{ assignment.classroom.section|default:'' }}</span>
+                  </td>
+                  <td>
+                    <div class="date-info">
+                      <span>{{ assignment.assigned_at|date:'M d, Y' }}</span>
+                      <small>{{ assignment.assigned_at|date:'H:i' }}</small>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="actions-dropdown">
+                      <button class="btn btn-sm btn-outline dropdown-trigger" onclick="toggleDropdown({{ assignment.id }})"><i class="bx bx-dots-vertical-rounded"></i></button>
+                      <div class="dropdown-menu" id="dropdown-{{ assignment.id }}">
+                        <button class="dropdown-item" onclick="deleteAssignment({{ assignment.id }})">
+                          <i class="bx bx-trash"></i>
+                          Delete Assignment
+                        </button>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <div class="empty-icon">
+            <i class="bx bx-user-check"></i>
+          </div>
+          <h3>No Assignments Found</h3>
+          <p>Create assignments to allow teachers to enter marks for specific exams and classrooms.</p>
+          <button class="btn btn-primary" onclick="showCreateModal()">
+            <i class="bx bx-plus"></i>
+            Create First Assignment
+          </button>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Create Assignment Modal -->
+  <div id="createModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Create New Assignment</h2>
+        <button class="close-btn" onclick="closeModal()"><i class="bx bx-x"></i></button>
+      </div>
+
+      <form id="assignmentForm" class="assignment-form">
+        {% csrf_token %}
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="exam">
+              <i class="bx bx-book"></i>
+              Exam
+            </label>
+            <select id="exam" name="exam" required>
+              <option value="">Select Exam</option>
+              {% for exam in exams %}
+                <option value="{{ exam.id }}">{{ exam.name }} - {{ exam.term.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="teacher">
+              <i class="bx bx-user"></i>
+              Teacher
+            </label>
+            <select id="teacher" name="teacher" required>
+              <option value="">Select Teacher</option>
+              {% for teacher in teachers %}
+                <option value="{{ teacher.id }}">{{ teacher.user.get_full_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="classroom">
+            <i class="bx bx-group"></i>
+            Classroom
+          </label>
+          <select id="classroom" name="classroom" required>
+            <option value="">Select Classroom</option>
+            {% for classroom in classrooms %}
+              <option value="{{ classroom.id }}">{{ classroom.grade }} {{ classroom.section|default:'' }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-outline" onclick="closeModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Create Assignment</button>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock %}
+
+{% block inline_js %}
+  <script>
+    let bulkMode = false
+    
+    function showCreateModal() {
+      document.getElementById('createModal').style.display = 'block'
+    }
+    
+    function closeModal() {
+      document.getElementById('createModal').style.display = 'none'
+      document.getElementById('assignmentForm').reset()
+    }
+    
+    function toggleBulkMode() {
+      bulkMode = !bulkMode
+      const bulkBar = document.getElementById('bulkActionsBar')
+      const checkboxes = document.querySelectorAll('.assignment-checkbox')
+      const selectAll = document.getElementById('selectAll')
+    
+      if (bulkMode) {
+        bulkBar.style.display = 'flex'
+        checkboxes.forEach((cb) => (cb.style.display = 'block'))
+        selectAll.style.display = 'block'
+      } else {
+        bulkBar.style.display = 'none'
+        checkboxes.forEach((cb) => {
+          cb.style.display = 'none'
+          cb.checked = false
+        })
+        selectAll.style.display = 'none'
+        selectAll.checked = false
+        updateBulkActions()
+      }
+    }
+    
+    function toggleSelectAll() {
+      const selectAll = document.getElementById('selectAll')
+      const checkboxes = document.querySelectorAll('.assignment-checkbox')
+    
+      checkboxes.forEach((cb) => {
+        cb.checked = selectAll.checked
+      })
+    
+      updateBulkActions()
+    }
+    
+    function updateBulkActions() {
+      const checkboxes = document.querySelectorAll('.assignment-checkbox:checked')
+      const count = checkboxes.length
+      const bulkDeleteBtn = document.getElementById('bulkDeleteBtn')
+    
+      document.getElementById('selectedCount').textContent = count
+      bulkDeleteBtn.disabled = count === 0
+    }
+    
+    function toggleDropdown(id) {
+      const dropdown = document.getElementById(`dropdown-${id}`)
+      const isVisible = dropdown.style.display === 'block'
+    
+      // Hide all dropdowns
+      document.querySelectorAll('.dropdown-menu').forEach((menu) => {
+        menu.style.display = 'none'
+      })
+    
+      // Show clicked dropdown
+      if (!isVisible) {
+        dropdown.style.display = 'block'
+      }
+    }
+    
+    function deleteAssignment(assignmentId) {
+      if (confirm('Are you sure you want to delete this assignment?')) {
+        fetch(`/academics/admin/delete-assignment/${assignmentId}/`, {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+          }
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              location.reload()
+            } else {
+              alert('Error deleting assignment.')
+            }
+          })
+          .catch((error) => {
+            console.error('Error:', error)
+            alert('An error occurred while deleting the assignment.')
+          })
+      }
+    }
+    
+    function bulkDelete() {
+      const selectedIds = Array.from(document.querySelectorAll('.assignment-checkbox:checked')).map((cb) => cb.value)
+    
+      if (selectedIds.length === 0) {
+        alert('Please select assignments to delete.')
+        return
+      }
+    
+      if (confirm(`Are you sure you want to delete ${selectedIds.length} assignment(s)?`)) {
+        Promise.all(
+          selectedIds.map((id) =>
+            fetch(`/academics/admin/delete-assignment/${id}/`, {
+              method: 'POST',
+              headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+              }
+            })
+          )
+        )
+          .then(() => {
+            location.reload()
+          })
+          .catch((error) => {
+            console.error('Error:', error)
+            alert('An error occurred during bulk deletion.')
+          })
+      }
+    }
+    
+    function clearSelection() {
+      document.querySelectorAll('.assignment-checkbox').forEach((cb) => {
+        cb.checked = false
+      })
+      document.getElementById('selectAll').checked = false
+      updateBulkActions()
+    }
+    
+    // Handle form submission
+    document.getElementById('assignmentForm').addEventListener('submit', function (e) {
+      e.preventDefault()
+    
+      const formData = new FormData(this)
+    
+      fetch('{% url "academics:admin_create_assignment" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.success) {
+            closeModal()
+            location.reload()
+          } else {
+            alert('Error: ' + data.message)
+          }
+        })
+        .catch((error) => {
+          console.error('Error:', error)
+          alert('An error occurred while creating the assignment.')
+        })
+    })
+    
+    // Close modal when clicking outside
+    window.onclick = function (event) {
+      const modal = document.getElementById('createModal')
+      if (event.target == modal) {
+        closeModal()
+      }
+    }
+    
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', function (e) {
+      if (!e.target.closest('.actions-dropdown')) {
+        document.querySelectorAll('.dropdown-menu').forEach((menu) => {
+          menu.style.display = 'none'
+        })
+      }
+    })
+  </script>
+{% endblock %}
+
+{% block inline_css %}
+  <style>
+    .assign-subjects-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem 1rem;
+    }
+    
+    /* Header */
+    .page-header {
+      margin-bottom: 3rem;
+      text-align: center;
+    }
+    
+    .breadcrumb {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+      color: #666;
+    }
+    
+    .breadcrumb a {
+      color: var(--color-primary);
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.3s ease;
+    }
+    
+    .breadcrumb a:hover {
+      color: color-mix(in srgb, var(--color-primary), var(--color-black) 20%);
+    }
+    
+    .separator {
+      color: #999;
+      font-weight: bold;
+    }
+    
+    .page-header h1 {
+      margin: 0 0 0.5rem 0;
+      color: var(--color-black);
+      font-size: 2.5rem;
+      font-weight: 700;
+    }
+    
+    .page-subtitle {
+      margin: 0;
+      color: #666;
+      font-size: 1.1rem;
+    }
+    
+    /* Quick Actions */
+    .quick-actions {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      justify-content: center;
+    }
+    
+    /* Bulk Actions Bar */
+    .bulk-actions-bar {
+      background: #fff3cd;
+      border: 1px solid #ffeaa7;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .bulk-info {
+      font-weight: 600;
+      color: #856404;
+    }
+    
+    .bulk-buttons {
+      display: flex;
+      gap: 0.5rem;
+    }
+    
+    /* Assignments Section */
+    .assignments-section {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      padding: 2rem;
+    }
+    
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 2px solid var(--color-secondary);
+    }
+    
+    .section-header h2 {
+      margin: 0;
+      color: var(--color-primary);
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+    
+    .section-stats .stat-badge {
+      background: var(--color-secondary);
+      color: var(--color-primary);
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    
+    /* Table Styles */
+    .assignments-table-container {
+      overflow-x: auto;
+      border-radius: 8px;
+      border: 1px solid #e1e5e9;
+    }
+    
+    .assignments-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+    }
+    
+    .assignments-table th,
+    .assignments-table td {
+      padding: 1rem;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+      vertical-align: middle;
+    }
+    
+    .assignments-table th {
+      background: var(--color-secondary);
+      color: var(--color-black);
+      font-weight: 600;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .checkbox-column {
+      width: 50px;
+      text-align: center;
+    }
+    
+    .assignment-checkbox,
+    #selectAll {
+      display: none;
+    }
+    
+    .bulk-mode .assignment-checkbox,
+    .bulk-mode #selectAll {
+      display: block;
+    }
+    
+    /* Row Styles */
+    .assignment-row:hover {
+      background: #f8f9fa;
+    }
+    
+    .exam-info strong {
+      display: block;
+      color: var(--color-black);
+      margin-bottom: 0.25rem;
+    }
+    
+    .exam-info small {
+      color: #666;
+      font-size: 0.8rem;
+    }
+    
+    /* Teacher Info */
+    .teacher-info {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    
+    .teacher-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--color-primary);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+    }
+    
+    .teacher-details strong {
+      display: block;
+      color: var(--color-black);
+      font-size: 0.9rem;
+      margin-bottom: 0.25rem;
+    }
+    
+    .teacher-details small {
+      color: #666;
+      font-size: 0.8rem;
+    }
+    
+    /* Classroom Badge */
+    .classroom-badge {
+      background: var(--color-secondary);
+      color: var(--color-primary);
+      padding: 0.25rem 0.5rem;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    
+    /* Date Info */
+    .date-info span {
+      display: block;
+      color: var(--color-black);
+      font-weight: 500;
+      margin-bottom: 0.25rem;
+    }
+    
+    .date-info small {
+      color: #666;
+      font-size: 0.8rem;
+    }
+    
+    /* Actions Dropdown */
+    .actions-dropdown {
+      position: relative;
+    }
+    
+    .dropdown-trigger {
+      padding: 0.5rem;
+      background: transparent;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      cursor: pointer;
+      color: #666;
+    }
+    
+    .dropdown-trigger:hover {
+      background: #f8f9fa;
+    }
+    
+    .dropdown-menu {
+      position: absolute;
+      right: 0;
+      top: 100%;
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      z-index: 1000;
+      min-width: 160px;
+      display: none;
+    }
+    
+    .dropdown-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      width: 100%;
+      padding: 0.75rem 1rem;
+      background: none;
+      border: none;
+      text-align: left;
+      cursor: pointer;
+      color: var(--color-black);
+      font-size: 0.9rem;
+      transition: background-color 0.3s ease;
+    }
+    
+    .dropdown-item:hover {
+      background: #f8f9fa;
+    }
+    
+    .dropdown-item:first-child:hover {
+      color: #dc3545;
+    }
+    
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: #666;
+    }
+    
+    .empty-icon {
+      font-size: 4rem;
+      color: var(--color-primary);
+      margin-bottom: 1rem;
+      opacity: 0.5;
+    }
+    
+    .empty-state h3 {
+      margin: 0 0 0.5rem 0;
+      color: var(--color-black);
+      font-size: 1.5rem;
+    }
+    
+    .empty-state p {
+      margin: 0 0 2rem 0;
+      font-size: 1rem;
+    }
+    
+    /* Modal Styles */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+    }
+    
+    .modal-content {
+      background-color: white;
+      margin: 10% auto;
+      border-radius: 16px;
+      width: 90%;
+      max-width: 500px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+      overflow: hidden;
+    }
+    
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.5rem 2rem;
+      border-bottom: 1px solid #e1e5e9;
+    }
+    
+    .modal-header h2 {
+      margin: 0;
+      color: var(--color-primary);
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+    
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      color: #666;
+      cursor: pointer;
+      padding: 0.5rem;
+      border-radius: 50%;
+    }
+    
+    .close-btn:hover {
+      background: #f8f9fa;
+      color: var(--color-black);
+    }
+    
+    /* Form Styles */
+    .assignment-form {
+      padding: 2rem;
+    }
+    
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .form-group label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 600;
+      color: var(--color-black);
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+    }
+    
+    .form-group label i {
+      color: var(--color-primary);
+      font-size: 1rem;
+    }
+    
+    .form-group select {
+      padding: 0.875rem 1rem;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 1rem;
+      background: white;
+      color: var(--color-black);
+      cursor: pointer;
+      transition: border-color 0.3s ease;
+    }
+    
+    .form-group select:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px rgba(3, 104, 53, 0.1);
+    }
+    
+    /* Modal Actions */
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 1rem;
+      margin-top: 2rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid #e1e5e9;
+    }
+    
+    /* Button Styles */
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+    }
+    
+    .btn-primary {
+      background: var(--color-primary);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: color-mix(in srgb, var(--color-primary), var(--color-black) 10%);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(3, 104, 53, 0.3);
+    }
+    
+    .btn-outline {
+      background: transparent;
+      color: var(--color-primary);
+      border: 2px solid var(--color-primary);
+    }
+    
+    .btn-outline:hover {
+      background: var(--color-primary);
+      color: white;
+    }
+    
+    .btn-danger {
+      background: #dc3545;
+      color: white;
+    }
+    
+    .btn-danger:hover {
+      background: color-mix(in srgb, #dc3545, var(--color-black) 10%);
+    }
+    
+    .btn-sm {
+      padding: 0.5rem 1rem;
+      font-size: 0.8rem;
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .assign-subjects-container {
+        padding: 1rem;
+      }
+    
+      .page-header h1 {
+        font-size: 2rem;
+      }
+    
+      .quick-actions {
+        flex-direction: column;
+        align-items: center;
+      }
+    
+      .assignments-section {
+        padding: 1rem;
+      }
+    
+      .assignments-table th,
+      .assignments-table td {
+        padding: 0.5rem;
+        font-size: 0.9rem;
+      }
+    
+      .teacher-info {
+        flex-direction: column;
+        text-align: center;
+        gap: 0.5rem;
+      }
+    
+      .teacher-avatar {
+        width: 35px;
+        height: 35px;
+      }
+    
+      .modal-content {
+        margin: 5% auto;
+        width: 95%;
+      }
+    
+      .assignment-form {
+        padding: 1.5rem;
+      }
+    
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+    
+      .modal-actions {
+        flex-direction: column;
+      }
+    
+      .btn {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+  </style>
+{% endblock %}

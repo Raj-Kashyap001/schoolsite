@@ -37,6 +37,9 @@ class Exam(models.Model):
     admit_card_available = models.BooleanField(
         default=False
     )  # Whether admit card is available for download
+    marks_entry_open = models.BooleanField(
+        default=False, help_text="Whether teachers can enter marks for this exam"
+    )
 
     def __str__(self):
         return f"{self.name} - {self.term}"
@@ -77,6 +80,7 @@ class ExamResult(models.Model):
         DRAFT = "DRAFT", "Draft"
         SUBMITTED = "SUBMITTED", "Submitted"
         LOCKED = "LOCKED", "Locked"
+        PUBLISHED = "PUBLISHED", "Published"
 
     student = models.ForeignKey("students.Student", on_delete=models.CASCADE)
     exam = models.ForeignKey(Exam, on_delete=models.CASCADE)

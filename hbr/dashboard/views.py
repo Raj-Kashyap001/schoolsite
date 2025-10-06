@@ -65,6 +65,11 @@ def get_dashboard_sections(role):
         "Admin": [
             {"name": "Profile", "url": "/administration/profile/", "icon": "user"},
             {
+                "name": "Exam Management",
+                "url": "/academics/admin/exam-management/",
+                "icon": "book",
+            },
+            {
                 "name": "Teacher Management",
                 "url": "/teachers/management/",
                 "icon": "users",

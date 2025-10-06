@@ -104,13 +104,17 @@ def exams(request: HttpRequest):
                     .distinct()
                 )
 
-                # Exam results for current term
+                # Exam results for current term (only published results)
                 current_results = ExamResult.objects.filter(
-                    student=student, exam__term=current_term
+                    student=student,
+                    exam__term=current_term,
+                    status=ExamResult.Status.PUBLISHED,
                 ).select_related("exam")
 
                 # For modal: all terms for the current session
-                all_terms = session_terms
+                all_terms = Term.objects.filter(
+                    academic_session=current_term.academic_session
+                )
 
                 context.update(
                     {
@@ -430,6 +434,12 @@ def bulk_import_results(request: HttpRequest, exam_id: int, classroom_id: int):
         ).exists():
             return JsonResponse({"error": "Exam results are locked"}, status=403)
 
+        # Check if marks entry is open
+        if not exam.marks_entry_open:
+            return JsonResponse(
+                {"error": "Marks entry is currently closed for this exam"}, status=403
+            )
+
         file = request.FILES.get("file")
         if not file:
             return JsonResponse({"error": "No file provided"}, status=400)
@@ -567,7 +577,7 @@ def get_exam_results(request: HttpRequest, term_id: int):
         student = Student.objects.get(user=request.user)
         term = Term.objects.get(id=term_id)
         results = ExamResult.objects.filter(
-            student=student, exam__term=term
+            student=student, exam__term=term, status=ExamResult.Status.PUBLISHED
         ).select_related("exam")
 
         results_data = [
@@ -672,6 +682,9 @@ def teacher_mark_exam(request: HttpRequest, exam_id: int, classroom_id: int):
             result.status == ExamResult.Status.LOCKED for result in existing_results
         )
 
+        # Check if marks entry is open
+        marks_entry_open = exam.marks_entry_open
+
         context = {
             "exam": exam,
             "classroom": classroom,
@@ -679,6 +692,7 @@ def teacher_mark_exam(request: HttpRequest, exam_id: int, classroom_id: int):
             "exam_schedules": exam_schedules,
             "results_dict": results_dict,
             "is_locked": is_locked,
+            "marks_entry_open": marks_entry_open,
             "user_role": role,
         }
         return render(request, "academics/teacher_mark_exam.html", context)
@@ -712,6 +726,12 @@ def save_exam_results(request: HttpRequest, exam_id: int, classroom_id: int):
         )
         if locked_results.exists():
             return JsonResponse({"error": "Exam results are locked"}, status=403)
+
+        # Check if marks entry is open
+        if not exam.marks_entry_open:
+            return JsonResponse(
+                {"error": "Marks entry is currently closed for this exam"}, status=403
+            )
 
         data = json.loads(request.body)
         action = data.get("action")  # "save_draft", "commit", "lock"
@@ -758,5 +778,325 @@ def save_exam_results(request: HttpRequest, exam_id: int, classroom_id: int):
         return JsonResponse({"success": True})
     except (Teacher.DoesNotExist, Exam.DoesNotExist, Classroom.DoesNotExist):
         return JsonResponse({"error": "Not found"}, status=404)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@login_required
+def admin_exam_management(request: HttpRequest):
+    role = get_user_role(request.user)
+    if role != "Admin":
+        return HttpResponse("Access denied", status=403)
+
+    current_session = get_current_session(request)
+    terms = Term.objects.filter(academic_session=current_session).order_by("start_date")
+    exams = (
+        Exam.objects.filter(term__academic_session=current_session)
+        .select_related("term")
+        .order_by("term__start_date", "name")
+    )
+
+    context = {
+        "terms": terms,
+        "exams": exams,
+        "current_session": current_session,
+    }
+    return render(request, "academics/admin_exam_management.html", context)
+
+
+@login_required
+def admin_create_exam(request: HttpRequest):
+    role = get_user_role(request.user)
+    if role != "Admin":
+        return HttpResponse("Access denied", status=403)
+
+    if request.method == "POST":
+        term_id = request.POST.get("term")
+        name = request.POST.get("name")
+        description = request.POST.get("description", "")
+        is_yearly_final = request.POST.get("is_yearly_final") == "on"
+
+        try:
+            term = Term.objects.get(id=term_id)
+            exam = Exam.objects.create(
+                term=term,
+                name=name,
+                description=description,
+                is_yearly_final=is_yearly_final,
+            )
+            messages.success(request, f"Exam '{exam.name}' created successfully.")
+            return redirect("academics:admin_exam_management")
+        except Term.DoesNotExist:
+            messages.error(request, "Invalid term selected.")
+        except Exception as e:
+            messages.error(request, f"Error creating exam: {str(e)}")
+
+    current_session = get_current_session(request)
+    terms = Term.objects.filter(academic_session=current_session).order_by("start_date")
+
+    context = {
+        "terms": terms,
+        "current_session": current_session,
+    }
+    return render(request, "academics/admin_create_exam.html", context)
+
+
+@login_required
+def admin_edit_exam(request: HttpRequest, exam_id: int):
+    role = get_user_role(request.user)
+    if role != "Admin":
+        return HttpResponse("Access denied", status=403)
+
+    try:
+        exam = Exam.objects.get(id=exam_id)
+    except Exam.DoesNotExist:
+        messages.error(request, "Exam not found.")
+        return redirect("academics:admin_exam_management")
+
+    if request.method == "POST":
+        name = request.POST.get("name")
+        description = request.POST.get("description", "")
+        is_yearly_final = request.POST.get("is_yearly_final") == "on"
+        marks_entry_open = request.POST.get("marks_entry_open") == "on"
+
+        exam.name = name
+        exam.description = description
+        exam.is_yearly_final = is_yearly_final
+        exam.marks_entry_open = marks_entry_open
+        exam.save()
+
+        messages.success(request, f"Exam '{exam.name}' updated successfully.")
+        return redirect("academics:admin_exam_management")
+
+    context = {
+        "exam": exam,
+    }
+    return render(request, "academics/admin_edit_exam.html", context)
+
+
+@login_required
+def admin_assign_subjects(request: HttpRequest):
+    role = get_user_role(request.user)
+    if role != "Admin":
+        return HttpResponse("Access denied", status=403)
+
+    current_session = get_current_session(request)
+    exams = (
+        Exam.objects.filter(term__academic_session=current_session)
+        .select_related("term")
+        .order_by("term__start_date", "name")
+    )
+    teachers = Teacher.objects.all().order_by("user__first_name", "user__last_name")
+    classrooms = Classroom.objects.all().order_by("grade", "section")
+
+    assignments = ExamAssignment.objects.filter(
+        exam__term__academic_session=current_session
+    ).select_related("exam", "teacher", "classroom")
+
+    context = {
+        "exams": exams,
+        "teachers": teachers,
+        "classrooms": classrooms,
+        "assignments": assignments,
+        "current_session": current_session,
+    }
+    return render(request, "academics/admin_assign_subjects.html", context)
+
+
+@login_required
+def admin_create_assignment(request: HttpRequest):
+    role = get_user_role(request.user)
+    if role != "Admin":
+        return JsonResponse({"error": "Access denied"}, status=403)
+
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    exam_id = request.POST.get("exam")
+    teacher_id = request.POST.get("teacher")
+    classroom_id = request.POST.get("classroom")
+
+    try:
+        exam = Exam.objects.get(id=exam_id)
+        teacher = Teacher.objects.get(id=teacher_id)
+        classroom = Classroom.objects.get(id=classroom_id)
+
+        assignment, created = ExamAssignment.objects.get_or_create(
+            exam=exam,
+            teacher=teacher,
+            classroom=classroom,
+        )
+
+        if created:
+            return JsonResponse(
+                {"success": True, "message": "Assignment created successfully."}
+            )
+        else:
+            return JsonResponse(
+                {"success": False, "message": "Assignment already exists."}
+            )
+
+    except (Exam.DoesNotExist, Teacher.DoesNotExist, Classroom.DoesNotExist):
+        return JsonResponse({"error": "Invalid data provided"}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@login_required
+def admin_delete_assignment(request: HttpRequest, assignment_id: int):
+    role = get_user_role(request.user)
+    if role != "Admin":
+        return JsonResponse({"error": "Access denied"}, status=403)
+
+    try:
+        assignment = ExamAssignment.objects.get(id=assignment_id)
+        assignment.delete()
+        return JsonResponse({"success": True})
+    except ExamAssignment.DoesNotExist:
+        return JsonResponse({"error": "Assignment not found"}, status=404)
+
+
+@login_required
+def admin_marks_entry_control(request: HttpRequest):
+    role = get_user_role(request.user)
+    if role != "Admin":
+        return HttpResponse("Access denied", status=403)
+
+    current_session = get_current_session(request)
+    exams = (
+        Exam.objects.filter(term__academic_session=current_session)
+        .select_related("term")
+        .order_by("term__start_date", "name")
+    )
+
+    context = {
+        "exams": exams,
+        "current_session": current_session,
+    }
+    return render(request, "academics/admin_marks_entry_control.html", context)
+
+
+@login_required
+def admin_toggle_marks_entry(request: HttpRequest, exam_id: int):
+    role = get_user_role(request.user)
+    if role != "Admin":
+        return JsonResponse({"error": "Access denied"}, status=403)
+
+    try:
+        exam = Exam.objects.get(id=exam_id)
+        exam.marks_entry_open = not exam.marks_entry_open
+        exam.save()
+        return JsonResponse(
+            {"success": True, "marks_entry_open": exam.marks_entry_open}
+        )
+    except Exam.DoesNotExist:
+        return JsonResponse({"error": "Exam not found"}, status=404)
+
+
+@login_required
+def admin_review_results(request: HttpRequest):
+    role = get_user_role(request.user)
+    if role != "Admin":
+        return HttpResponse("Access denied", status=403)
+
+    current_session = get_current_session(request)
+    exams = (
+        Exam.objects.filter(term__academic_session=current_session)
+        .select_related("term")
+        .order_by("term__start_date", "name")
+    )
+
+    context = {
+        "exams": exams,
+        "current_session": current_session,
+    }
+    return render(request, "academics/admin_review_results.html", context)
+
+
+@login_required
+def admin_get_exam_results(request: HttpRequest, exam_id: int):
+    role = get_user_role(request.user)
+    if role != "Admin":
+        return JsonResponse({"error": "Access denied"}, status=403)
+
+    try:
+        exam = Exam.objects.get(id=exam_id)
+        results = (
+            ExamResult.objects.filter(exam=exam)
+            .select_related("student", "student__classroom")
+            .order_by(
+                "student__classroom__grade",
+                "student__classroom__section",
+                "student__roll_no",
+                "subject",
+            )
+        )
+
+        results_data = []
+        for result in results:
+            results_data.append(
+                {
+                    "id": result.id,
+                    "student_name": result.student.user.get_full_name(),
+                    "roll_no": result.student.roll_no,
+                    "classroom": f"{result.student.classroom.grade} {result.student.classroom.section or ''}",
+                    "subject": result.subject,
+                    "marks_obtained": (
+                        str(result.marks_obtained) if result.marks_obtained else None
+                    ),
+                    "total_marks": str(result.total_marks),
+                    "grade": result.grade,
+                    "status": result.status,
+                    "submitted_by": (
+                        result.submitted_by.get_full_name()
+                        if result.submitted_by
+                        else None
+                    ),
+                    "submitted_at": (
+                        result.submitted_at.strftime("%Y-%m-%d %H:%M")
+                        if result.submitted_at
+                        else None
+                    ),
+                }
+            )
+
+        return JsonResponse({"results": results_data})
+    except Exam.DoesNotExist:
+        return JsonResponse({"error": "Exam not found"}, status=404)
+
+
+@login_required
+def admin_publish_results(request: HttpRequest, exam_id: int):
+    role = get_user_role(request.user)
+    if role != "Admin":
+        return JsonResponse({"error": "Access denied"}, status=403)
+
+    try:
+        exam = Exam.objects.get(id=exam_id)
+        # Update all results for this exam to PUBLISHED
+        ExamResult.objects.filter(exam=exam).update(status=ExamResult.Status.PUBLISHED)
+        return JsonResponse({"success": True})
+    except Exam.DoesNotExist:
+        return JsonResponse({"error": "Exam not found"}, status=404)
+
+
+@login_required
+def admin_delete_exam(request: HttpRequest, exam_id: int):
+    role = get_user_role(request.user)
+    if role != "Admin":
+        return JsonResponse({"error": "Access denied"}, status=403)
+
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    try:
+        exam = Exam.objects.get(id=exam_id)
+        exam_name = exam.name
+        exam.delete()
+        return JsonResponse(
+            {"success": True, "message": f"Exam '{exam_name}' deleted successfully."}
+        )
+    except Exam.DoesNotExist:
+        return JsonResponse({"error": "Exam not found"}, status=404)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
