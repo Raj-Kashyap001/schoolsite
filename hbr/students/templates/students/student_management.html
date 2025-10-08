@@ -22,6 +22,9 @@
             </a>
           </div>
         </div>
+        <button type="button" class="btn btn-warning" onclick="showPromoteModal()">
+          <i class="bx bx-up-arrow-alt"></i> Promote Students
+        </button>
         <a href="{% url 'students:add_student' %}" class="btn btn-primary">
           <i class="bx bx-plus"></i> Add New Student
         </a>
@@ -104,24 +107,32 @@
               <td>{{ student.admission_no }}</td>
               <td>{{ student.classroom }}</td>
               <td class="actions">
-                <a href="{% url 'students:profile' %}?student_id={{ student.id }}" class="btn btn-view btn-sm">
-                  <i class="bx bx-show"></i> View
-                </a>
-                <a href="{% url 'students:edit_student' student.id %}" class="btn btn-edit btn-sm">
-                  <i class="bx bx-edit"></i> Edit
-                </a>
-                <a href="{% url 'students:manage_student_documents' student.id %}" class="btn btn-docs btn-sm">
-                  <i class="bx bx-folder"></i> Docs
-                </a>
-                <a href="{% url 'students:manage_student_payments' student.id %}" class="btn btn-payment btn-sm">
-                  <i class="bx bx-money"></i> Fees
-                </a>
-                <a href="{% url 'students:manage_student_certificates' student.id %}" class="btn btn-cert btn-sm">
-                  <i class="bx bx-trophy"></i> Certs
-                </a>
-                <a href="{% url 'students:delete_student' student.id %}" class="btn btn-delete btn-sm">
-                  <i class="bx bx-trash"></i> Delete
-                </a>
+                <div class="dropdown">
+                  <button class="btn btn-secondary btn-sm dropdown-toggle" type="button" onclick="toggleActionDropdown({{ student.id }})">
+                    <i class="bx bx-dots-vertical-rounded"></i> Actions
+                  </button>
+                  <div class="dropdown-menu action-dropdown" id="dropdown-{{ student.id }}">
+                    <a href="{% url 'students:profile' %}?student_id={{ student.id }}" class="dropdown-item">
+                      <i class="bx bx-show"></i> View Profile
+                    </a>
+                    <a href="{% url 'students:edit_student' student.id %}" class="dropdown-item">
+                      <i class="bx bx-edit"></i> Edit Student
+                    </a>
+                    <a href="{% url 'students:manage_student_documents' student.id %}" class="dropdown-item">
+                      <i class="bx bx-folder"></i> Documents
+                    </a>
+                    <a href="{% url 'students:manage_student_payments' student.id %}" class="dropdown-item">
+                      <i class="bx bx-money"></i> Payments
+                    </a>
+                    <a href="{% url 'students:manage_student_certificates' student.id %}" class="dropdown-item">
+                      <i class="bx bx-trophy"></i> Certificates
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <a href="{% url 'students:delete_student' student.id %}" class="dropdown-item text-danger">
+                      <i class="bx bx-trash"></i> Delete Student
+                    </a>
+                  </div>
+                </div>
               </td>
             </tr>
           {% empty %}
@@ -209,6 +220,61 @@
         </span>
       </div>
     {% endif %}
+  </div>
+
+  <!-- Promote Modal -->
+  <div id="promoteModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Promote Students</h2>
+        <button class="close-btn" onclick="closePromoteModal()">
+          <i class="bx bx-x"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <form id="promoteForm" method="post" action="{% url 'students:promote_students' %}">
+          {% csrf_token %}
+          <div class="form-group">
+            <label for="from_classroom">From Class:</label>
+            <select name="from_classroom" id="from_classroom" required>
+              <option value="">Select class...</option>
+              {% for classroom in classrooms %}
+                <option value="{{ classroom.id }}">{{ classroom }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="to_classroom">To Class:</label>
+            <select name="to_classroom" id="to_classroom" required>
+              <option value="">Select class...</option>
+              {% for classroom in classrooms %}
+                <option value="{{ classroom.id }}">{{ classroom }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>
+              <input type="checkbox" name="passed_only" id="passed_only" checked>
+              Promote only students who passed final exams
+            </label>
+          </div>
+
+          <div class="promote-preview" id="promotePreview">
+            <!-- Preview will be loaded here -->
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="closePromoteModal()">Cancel</button>
+        <button class="btn btn-success" id="confirmPromoteBtn" onclick="confirmPromotion()">
+          <i class="bx bx-up-arrow-alt"></i> Promote Students
+        </button>
+      </div>
+    </div>
   </div>
 
   <style>
@@ -385,7 +451,17 @@
       background: #fd7e14;
       color: white;
     }
-    
+
+    .btn-info {
+      background: #17a2b8;
+      color: white;
+    }
+
+    .btn-info:hover {
+      background: #138496;
+      color: white;
+    }
+
     .btn-delete {
       background: #dc3545;
       color: white;
@@ -533,9 +609,45 @@
       }
     }
 
+    /* Responsive Table */
+    @media (max-width: 1024px) {
+      .students-table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .students-table {
+        min-width: 800px; /* Prevent table from shrinking too much */
+      }
+
+      .actions {
+        min-width: 120px;
+      }
+    }
+
     @media (max-width: 768px) {
+      .student-management-container {
+        padding: 1rem 0.5rem;
+      }
+
+      .header-section {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+      }
+
+      .header-actions {
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      .filters-section {
+        padding: 1rem;
+      }
+
       .filter-row {
         flex-direction: column;
+        gap: 1rem;
       }
 
       .filter-group {
@@ -544,12 +656,186 @@
 
       .filter-actions {
         justify-content: center;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .students-table th,
+      .students-table td {
+        padding: 0.75rem 0.5rem;
+        font-size: 0.85rem;
+      }
+
+      .profile-thumb {
+        width: 35px;
+        height: 35px;
+      }
+
+      .profile-avatar {
+        width: 35px;
+        height: 35px;
+        font-size: 1rem;
+      }
+
+      .btn {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.8rem;
+      }
+
+      .btn-sm {
+        padding: 0.2rem 0.4rem;
+        font-size: 0.75rem;
+      }
+
+      .pagination {
+        padding: 1rem 0.5rem;
       }
 
       .step-links {
         flex-direction: column;
         gap: 0.5rem;
+        align-items: center;
       }
+
+      .page-numbers {
+        order: 3;
+        width: 100%;
+        justify-content: center;
+        margin-top: 1rem;
+      }
+
+      .page-info {
+        order: 2;
+        margin: 0.5rem 0;
+        font-size: 0.9rem;
+      }
+
+      /* Action dropdown responsive */
+      .action-dropdown {
+        min-width: 160px;
+        right: -20px; /* Adjust position on small screens */
+      }
+
+      .dropdown-item {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.85rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .student-management-container {
+        padding: 0.5rem 0.25rem;
+      }
+
+      .header-section h1 {
+        font-size: 1.5rem;
+      }
+
+      .filters-section {
+        padding: 0.75rem;
+      }
+
+      .students-table th,
+      .students-table td {
+        padding: 0.5rem 0.25rem;
+        font-size: 0.8rem;
+      }
+
+      .profile-cell {
+        padding: 0.5rem;
+      }
+
+      .profile-thumb,
+      .profile-avatar {
+        width: 30px;
+        height: 30px;
+        font-size: 0.9rem;
+      }
+
+      .actions {
+        min-width: 100px;
+      }
+
+      .btn {
+        padding: 0.3rem 0.5rem;
+        font-size: 0.75rem;
+      }
+
+      .dropdown-item {
+        padding: 0.3rem 0.6rem;
+        font-size: 0.8rem;
+      }
+
+      .dropdown-item i {
+        margin-right: 0.3rem;
+        width: 14px;
+      }
+
+      /* Hide some columns on very small screens if needed */
+      .students-table th:nth-child(4),
+      .students-table td:nth-child(4) {
+        display: none;
+      }
+
+      .modal-content {
+        width: 95%;
+        margin: 5% auto;
+      }
+
+      .modal-body {
+        padding: 1rem;
+      }
+    }
+
+    /* Action Dropdown */
+    .action-dropdown {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      min-width: 180px;
+      z-index: 1000;
+      display: none;
+    }
+
+    .action-dropdown.show {
+      display: block;
+    }
+
+    .dropdown-item {
+      display: flex;
+      align-items: center;
+      padding: 0.5rem 1rem;
+      color: #333;
+      text-decoration: none;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 0.9rem;
+    }
+
+    .dropdown-item:hover {
+      background: #f8f9fa;
+    }
+
+    .dropdown-item i {
+      margin-right: 0.5rem;
+      width: 16px;
+    }
+
+    .dropdown-item.text-danger {
+      color: #dc3545;
+    }
+
+    .dropdown-item.text-danger:hover {
+      background: #f8d7da;
+    }
+
+    .dropdown-divider {
+      height: 1px;
+      background: #e9ecef;
+      margin: 0.25rem 0;
     }
 
     /* Custom Multi-select */
@@ -611,6 +897,108 @@
     .option-item span {
       flex: 1;
     }
+
+    /* Modal Styles */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-content {
+      background-color: white;
+      margin: 10% auto;
+      border-radius: 16px;
+      width: 90%;
+      max-width: 500px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+      overflow: hidden;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.5rem 2rem;
+      border-bottom: 1px solid #e1e5e9;
+    }
+
+    .modal-header h2 {
+      margin: 0;
+      color: var(--color-primary);
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      color: #666;
+      cursor: pointer;
+      padding: 0.5rem;
+      border-radius: 50%;
+    }
+
+    .close-btn:hover {
+      background: #f8f9fa;
+      color: var(--color-black);
+    }
+
+    .modal-body {
+      padding: 2rem;
+    }
+
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .form-group select,
+    .form-group input[type="checkbox"] {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 1rem;
+    }
+
+    .promote-preview {
+      margin-top: 1rem;
+      padding: 1rem;
+      background: #f8f9fa;
+      border-radius: 8px;
+      min-height: 50px;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 1rem;
+      padding: 1.5rem 2rem;
+      background: #f8f9fa;
+    }
+
+    .btn-warning {
+      background: #ffc107;
+      color: #212529;
+    }
+
+    .btn-warning:hover {
+      background: #e0a800;
+      color: #212529;
+    }
   </style>
 
   <script>
@@ -621,6 +1009,19 @@
 
     function toggleDropdown() {
       const dropdown = document.getElementById('import-export-dropdown');
+      dropdown.classList.toggle('show');
+    }
+
+    function toggleActionDropdown(studentId) {
+      // Close all other dropdowns first
+      document.querySelectorAll('.action-dropdown').forEach(dropdown => {
+        if (dropdown.id !== `dropdown-${studentId}`) {
+          dropdown.classList.remove('show');
+        }
+      });
+
+      // Toggle the clicked dropdown
+      const dropdown = document.getElementById(`dropdown-${studentId}`);
       dropdown.classList.toggle('show');
     }
 
@@ -635,6 +1036,22 @@
         selectedText.textContent = selected[0].nextElementSibling.textContent;
       } else {
         selectedText.textContent = `${selected.length} classes selected`;
+      }
+    }
+
+    function showPromoteModal() {
+      document.getElementById('promoteModal').style.display = 'block';
+    }
+
+    function closePromoteModal() {
+      document.getElementById('promoteModal').style.display = 'none';
+      document.getElementById('promoteForm').reset();
+      document.getElementById('promotePreview').innerHTML = '';
+    }
+
+    function confirmPromotion() {
+      if (confirm('Are you sure you want to promote the selected students? This action cannot be undone.')) {
+        document.getElementById('promoteForm').submit();
       }
     }
 
@@ -653,7 +1070,23 @@
         if (!multiselect.contains(e.target)) {
           document.getElementById('multiselect-options').classList.remove('show');
         }
+
+        // Close action dropdowns when clicking outside
+        const actionDropdowns = document.querySelectorAll('.action-dropdown');
+        actionDropdowns.forEach(dropdown => {
+          if (!dropdown.parentElement.contains(e.target)) {
+            dropdown.classList.remove('show');
+          }
+        });
       });
+
+      // Close modal when clicking outside
+      window.onclick = function(event) {
+        const modal = document.getElementById('promoteModal');
+        if (event.target == modal) {
+          closePromoteModal();
+        }
+      }
     });
   </script>
 {% endblock %}

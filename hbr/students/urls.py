@@ -41,6 +41,7 @@ urlpatterns = [
     # Bulk operations
     path("export/", views.export_students, name="export_students"),
     path("import/", views.import_students, name="import_students"),
+    path("promote/", views.promote_students, name="promote_students"),
     path(
         "documents/<int:student_id>/",
         views.manage_student_documents,

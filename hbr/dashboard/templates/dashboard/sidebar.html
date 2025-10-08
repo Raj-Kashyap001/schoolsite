@@ -49,7 +49,7 @@
         <a href="{% url 'students:class_management' %}" class="{% if url_name == 'class_management' %}active{% endif %}"><i class="bx bx-group"></i> Class Management</a>
         <a href="{% url 'students:student_management' %}" class="{% if url_name == 'student_management' or request.path|slice:':10' == '/students/' and url_name != 'class_management' %}active{% endif %}"><i class="bx bxs-user-detail"></i> Student Management</a>
         <a href="{% url 'academics:admin_exam_management' %}" class="{% if url_name == 'admin_exam_management' or request.path|slice:':10' == '/academics/' and 'result' not in request.path %}active{% endif %}"><i class="bx bx-book"></i> Exam Management</a>
-        <a href="{% url 'academics:result_management' %}" class="{% if url_name == 'result_management' or 'result' in request.path %}active{% endif %}"><i class="bx bx-file"></i> Result Management</a>
+        <a href="{% url 'academics:result_management' %}" class="{% if url_name == 'result_management' or url_name == 'student_marksheets' or url_name == 'search_class_results' or url_name == 'annual_result_sheet' or 'result' in request.path %}active{% endif %}"><i class="bx bx-file"></i> Result Management</a>
         <a href="{% url 'teachers:teacher_management' %}" class="{% if url_name == 'teacher_management' or request.path|slice:':10' == '/teachers/' %}active{% endif %}"><i class="bx bx-chalkboard"></i> Teacher Management</a>
         <a href="{% url 'notices:notice_board' %}" class="{% if url_name == 'notice_board' %}active{% endif %}"><i class="bx bx-bell"></i> Notice Board</a>
         <a href="{% url 'dashboard:settings' %}" class="{% if url_name == 'settings' %}active{% endif %}"><i class="bx bx-cog"></i> Settings</a>

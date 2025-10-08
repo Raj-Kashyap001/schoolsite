@@ -139,4 +139,19 @@ urlpatterns = [
         views.generate_annual_result_sheet,
         name="generate_annual_result_sheet",
     ),
+    path(
+        "generate-marksheet/<int:student_id>/",
+        views.generate_marksheet,
+        name="generate_marksheet",
+    ),
+    path(
+        "student-marksheets/",
+        views.student_marksheets,
+        name="student_marksheets",
+    ),
+    path(
+        "get-students-for-marksheet/<int:classroom_id>/",
+        views.get_students_for_marksheet,
+        name="get_students_for_marksheet",
+    ),
 ]

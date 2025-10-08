@@ -9,6 +9,9 @@ import csv
 import pandas as pd
 from io import StringIO, BytesIO
 import openpyxl
+import pdfkit
+from academics.models import Exam, ExamResult
+from academics.views import get_current_session
 from base.views import get_user_role
 from .forms import (
     StudentProfileForm,
@@ -36,14 +39,25 @@ from .models import (
 )
 from teachers.models import Teacher
 from .data_utils import (
-    prepare_student_profile_data,
     handle_certificate_request,
     get_student_documents,
     get_student_certificates,
     get_student_payments,
-    validate_payment_receipt_download,
+)
+from .generation_utils import (
+    prepare_student_profile_data,
     generate_profile_pdf_response,
+    validate_payment_receipt_download,
     generate_receipt_pdf_response,
+    process_certificate_actions,
+)
+
+from academics.result_utils import (
+    calculate_student_results,
+    generate_marksheet_html,
+    generate_marksheet_pdf,
+    get_class_results_summary,
+    generate_annual_result_sheet_pdf,
 )
 
 
@@ -658,17 +672,6 @@ def edit_student(request: HttpRequest, student_id: int):
                     f"Student {student.user.get_full_name()} updated successfully.",
                 )
                 return redirect("students:student_management")
-        else:
-            messages.error(request, "Please correct the errors below.")
-    else:
-        form = StudentEditForm(instance=student)
-
-    context = {
-        "form": form,
-        "student": student,
-        "role": role,
-    }
-    return render(request, "students/edit_student.html", context)
 
 
 @login_required
@@ -776,59 +779,7 @@ def manage_student_certificates(request: HttpRequest, student_id: int):
     student = get_object_or_404(Student, id=student_id)
 
     if request.method == "POST":
-        if "request_certificate" in request.POST:
-            form = CertificateRequestForm(request.POST)
-            if form.is_valid():
-                certificate_type = form.cleaned_data["certificate_type"]
-                # Check if certificate already exists
-                if not Certificate.objects.filter(
-                    student=student, certificate_type=certificate_type
-                ).exists():
-                    Certificate.objects.create(
-                        student=student,
-                        certificate_type=certificate_type,
-                        status="PENDING",
-                    )
-                    messages.success(
-                        request,
-                        f"{certificate_type.name} certificate requested successfully.",
-                    )
-                else:
-                    messages.warning(
-                        request,
-                        f"{certificate_type.name} certificate already requested.",
-                    )
-                return redirect(
-                    "students:manage_student_certificates", student_id=student.id
-                )
-        elif "approve_certificate" in request.POST:
-            certificate_id = request.POST.get("certificate_id")
-            try:
-                certificate = Certificate.objects.get(
-                    id=certificate_id, student=student
-                )
-                from .pdf_utils import generate_certificate_pdf
-                from django.core.files.base import ContentFile
-
-                buffer = generate_certificate_pdf(student, certificate.certificate_type)
-                filename = f"{certificate.certificate_type.name.replace(' ', '_')}_{student.roll_no}.pdf"
-                certificate.file.save(filename, ContentFile(buffer.getvalue()))
-                certificate.status = "APPROVED"
-                certificate.save()
-                messages.success(request, "Certificate approved and generated.")
-            except Certificate.DoesNotExist:
-                messages.error(request, "Certificate not found.")
-        elif "reject_certificate" in request.POST:
-            certificate_id = request.POST.get("certificate_id")
-            try:
-                certificate = Certificate.objects.get(
-                    id=certificate_id, student=student
-                )
-                certificate.status = "REJECTED"
-                certificate.save()
-                messages.success(request, "Certificate rejected.")
-            except Certificate.DoesNotExist:
-                messages.error(request, "Certificate not found.")
+        return process_certificate_actions(request, student)
 
     certificates = Certificate.objects.filter(student=student).order_by("-issued_date")
     available_types = CertificateType.objects.filter(is_active=True).exclude(
@@ -1212,3 +1163,88 @@ def import_students(request: HttpRequest):
         "role": role,
     }
     return render(request, "students/import_students.html", context)
+
+
+@login_required
+def promote_students(request: HttpRequest):
+    """Admin view for promoting students to next class"""
+    role = get_user_role(request.user)
+
+    if role != "Admin":
+        return HttpResponse("Access denied", status=403)
+
+    if request.method == "POST":
+        from_classroom_id = request.POST.get("from_classroom")
+        to_classroom_id = request.POST.get("to_classroom")
+        passed_only = request.POST.get("passed_only") == "on"
+
+        try:
+            from_classroom = Classroom.objects.get(id=from_classroom_id)
+            to_classroom = Classroom.objects.get(id=to_classroom_id)
+
+            # Get students to promote
+            students_to_promote = Student.objects.filter(classroom=from_classroom)
+
+            if passed_only:
+                # Only promote students who passed final exams
+                from academics.models import Exam, ExamResult
+
+                # Get final exams for the session
+                current_session = get_current_session(request)
+                final_exams = Exam.objects.filter(
+                    term__academic_session=current_session, is_yearly_final=True
+                )
+
+                if final_exams.exists():
+                    # Get students who passed final exams
+                    passed_students = set()
+                    for exam in final_exams:
+                        results = ExamResult.objects.filter(
+                            exam=exam,
+                            student__classroom=from_classroom,
+                            status=ExamResult.Status.PUBLISHED,
+                        ).select_related("student")
+
+                        for result in results:
+                            # Calculate percentage
+                            total_marks = sum(
+                                float(r.total_marks)
+                                for r in ExamResult.objects.filter(
+                                    exam=exam,
+                                    student=result.student,
+                                    status=ExamResult.Status.PUBLISHED,
+                                )
+                            )
+                            obtained_marks = sum(
+                                float(r.marks_obtained or 0)
+                                for r in ExamResult.objects.filter(
+                                    exam=exam,
+                                    student=result.student,
+                                    status=ExamResult.Status.PUBLISHED,
+                                )
+                            )
+
+                            if (
+                                total_marks > 0
+                                and (obtained_marks / total_marks * 100) >= 33
+                            ):
+                                passed_students.add(result.student.id)
+
+                    students_to_promote = students_to_promote.filter(
+                        id__in=passed_students
+                    )
+
+            # Promote students
+            promoted_count = students_to_promote.update(classroom=to_classroom)
+
+            messages.success(
+                request,
+                f"Successfully promoted {promoted_count} students from {from_classroom} to {to_classroom}.",
+            )
+
+        except Classroom.DoesNotExist:
+            messages.error(request, "Invalid classroom selection.")
+        except Exception as e:
+            messages.error(request, f"Error promoting students: {e}")
+
+    return redirect("students:student_management")
