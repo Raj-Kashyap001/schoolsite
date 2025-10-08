@@ -1,12 +1,9 @@
-- [ ] Have Teacher a Class Teacher Feature (apply this in attendance)
+- [ ] ON Students attendance marking page indicate for teacher indicate that he is class teacher of this following class he is marking , he can only marks attendance of class teacher he is
 - [ ] Individuals Notice sending
-- [x] Make setting section last
-- [ ] Ask if the created user are assigned to there respective groups
-- [x] Fix ux issue in class management
-- [ ] Salary Management page have description in textarea
-- [ ] Salary Management page have add option to edit and delete record
-- [ ] Certificate Type Generation using HTML for easier design
+- [ ] Update each roles profile page with available additional data
+- [ ] Salary Management page have description in textarea (admin)
+- [ ] Salary Management page have option to edit and delete record (admin)
 - [ ] Bulk Delete Students in Student Management
 - [ ] Make My Exams Page query result more intuitive.
-
-- [ ] Auto calculate grade based on marks
+- [x] Fix ux issue in class management
+- [x] Make setting section last

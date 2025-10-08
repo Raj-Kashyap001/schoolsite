@@ -2,8 +2,19 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.db.models import Count, Q, Sum, Avg
+from django.utils import timezone
+from datetime import datetime
+from datetime import timedelta
+from django.core.serializers.json import DjangoJSONEncoder
+import json
 from base.views import get_user_role
-from academics.models import AcademicSession
+from academics.models import AcademicSession, ExamResult, ExamAssignment
+from students.models import Student
+from teachers.models import Teacher
+from attendance.models import Attendance
+from leave.models import Leave
+from notices.models import Notice
 
 
 def get_current_session():
@@ -28,8 +39,16 @@ def dashboard_home(request: HttpRequest):
     user = request.user
     role = get_user_role(user)
 
+    # Get role-specific data and statistics
+    dashboard_data = get_dashboard_data(user, role)
+
     context = {
         "dashboard_sections": get_dashboard_sections(role),
+        "role": role,
+        "user": user,
+        "current_session": get_current_session(),
+        "current_time": datetime.now(),
+        **dashboard_data,
     }
     return render(request, "dashboard/index.html", context)
 
@@ -88,6 +107,404 @@ def get_dashboard_sections(role):
         ],
     }
     return sections.get(role, [])
+
+
+def get_dashboard_data(user, role):
+    """Get role-specific dashboard data and statistics"""
+    data = {
+        "stats": {},
+        "charts": {},
+        "recent_activity": [],
+        "quick_actions": [],
+    }
+
+    if role == "Admin":
+        # Admin statistics
+        data["stats"] = {
+            "total_students": Student.objects.count(),
+            "total_teachers": Teacher.objects.count(),
+            "total_exams": ExamAssignment.objects.count(),
+            "pending_leaves": Leave.objects.filter(status="pending").count(),
+            "active_notices": Notice.objects.filter(is_active=True).count(),
+        }
+
+        # Charts data for admin
+        data["charts"] = {
+            "attendance_trend": get_attendance_trend_data(),
+            "exam_performance": get_exam_performance_data(),
+            "leave_status": get_leave_status_data(),
+        }
+
+        # Recent activity for admin
+        data["recent_activity"] = get_recent_activity_admin()
+
+        # Quick actions for admin
+        data["quick_actions"] = [
+            {
+                "title": "Add New Student",
+                "url": "/students/add/",
+                "icon": "user-plus",
+                "color": "primary",
+            },
+            {
+                "title": "Create Exam",
+                "url": "/academics/admin/create-exam/",
+                "icon": "book",
+                "color": "success",
+            },
+            {
+                "title": "Approve Leaves",
+                "url": "/leave/manage/",
+                "icon": "check-circle",
+                "color": "warning",
+            },
+            {
+                "title": "Manage Notices",
+                "url": "/notices/manage/",
+                "icon": "bell",
+                "color": "info",
+            },
+        ]
+
+    elif role == "Teacher":
+        # Teacher statistics
+        teacher = Teacher.objects.get(user=user)
+        data["stats"] = {
+            "my_students": Attendance.objects.filter(teacher=teacher)
+            .values("student")
+            .distinct()
+            .count(),
+            "pending_results": ExamResult.objects.filter(
+                exam__teacher=teacher, marks__isnull=True
+            ).count(),
+            "total_exams": ExamAssignment.objects.filter(teacher=teacher).count(),
+            "my_leaves": Leave.objects.filter(student__user=user).count(),
+        }
+
+        # Charts data for teacher
+        data["charts"] = {
+            "class_performance": get_class_performance_data(teacher),
+            "attendance_overview": get_teacher_attendance_data(teacher),
+        }
+
+        # Recent activity for teacher
+        data["recent_activity"] = get_recent_activity_teacher(teacher)
+
+        # Quick actions for teacher
+        data["quick_actions"] = [
+            {
+                "title": "Mark Attendance",
+                "url": "/attendance/mark-student/",
+                "icon": "check-square",
+                "color": "primary",
+            },
+            {
+                "title": "Enter Results",
+                "url": "/academics/teacher/marking/",
+                "icon": "edit",
+                "color": "success",
+            },
+            {
+                "title": "Apply Leave",
+                "url": "/leave/apply/",
+                "icon": "calendar",
+                "color": "warning",
+            },
+            {
+                "title": "View Schedule",
+                "url": "/academics/schedule/",
+                "icon": "clock",
+                "color": "info",
+            },
+        ]
+
+    elif role == "Student":
+        # Student statistics
+        student = Student.objects.get(user=user)
+        data["stats"] = {
+            "my_attendance": calculate_student_attendance_percentage(student),
+            "total_exams": ExamResult.objects.filter(student=student).count(),
+            "pending_fees": 0,  # Placeholder for payment system
+            "my_leaves": Leave.objects.filter(teacher__user=user).count(),
+        }
+
+        # Charts data for student
+        data["charts"] = {
+            "performance_trend": get_student_performance_data(student),
+            "attendance_chart": get_student_attendance_data(student),
+        }
+
+        # Recent activity for student
+        data["recent_activity"] = get_recent_activity_student(student)
+
+        # Quick actions for student
+        data["quick_actions"] = [
+            {
+                "title": "View Results",
+                "url": "/academics/results/",
+                "icon": "chart-bar",
+                "color": "primary",
+            },
+            {
+                "title": "Check Attendance",
+                "url": "/attendance/view/",
+                "icon": "calendar",
+                "color": "success",
+            },
+            {
+                "title": "Download Certificates",
+                "url": "/students/certificates/",
+                "icon": "award",
+                "color": "warning",
+            },
+            {
+                "title": "Apply Leave",
+                "url": "/leave/apply/",
+                "icon": "calendar-plus",
+                "color": "info",
+            },
+        ]
+
+    return data
+
+
+def get_attendance_trend_data():
+    """Get attendance trend data for the last 7 days"""
+    today = timezone.now().date()
+    data = []
+
+    for i in range(6, -1, -1):
+        date = today - timedelta(days=i)
+        present = Attendance.objects.filter(date=date, status="present").count()
+        absent = Attendance.objects.filter(date=date, status="absent").count()
+        data.append(
+            {
+                "date": date.strftime("%b %d"),
+                "present": present,
+                "absent": absent,
+            }
+        )
+
+    return data
+
+
+def get_exam_performance_data():
+    """Get exam performance distribution"""
+    results = ExamResult.objects.all()
+    grade_distribution = {
+        "A": results.filter(grade="A").count(),
+        "B": results.filter(grade="B").count(),
+        "C": results.filter(grade="C").count(),
+        "D": results.filter(grade="D").count(),
+        "F": results.filter(grade="F").count(),
+    }
+    return grade_distribution
+
+
+def get_leave_status_data():
+    """Get leave status distribution"""
+    return {
+        "approved": Leave.objects.filter(status="APPROVED").count(),
+        "pending": Leave.objects.filter(status="PENDING").count(),
+        "rejected": Leave.objects.filter(status="REJECTED").count(),
+    }
+
+
+def get_class_performance_data(teacher):
+    """Get class performance data for teacher"""
+    exams = ExamAssignment.objects.filter(teacher=teacher)
+    data = []
+
+    for exam in exams[:5]:  # Last 5 exams
+        avg_marks = (
+            ExamResult.objects.filter(exam=exam).aggregate(avg=Avg("marks"))["avg"] or 0
+        )
+        data.append(
+            {
+                "exam": exam.title[:20] + "..." if len(exam.title) > 20 else exam.title,
+                "average": round(avg_marks, 1),
+            }
+        )
+
+    return data
+
+
+def get_teacher_attendance_data(teacher):
+    """Get attendance data marked by teacher"""
+    today = timezone.now().date()
+    data = []
+
+    for i in range(6, -1, -1):
+        date = today - timedelta(days=i)
+        marked = Attendance.objects.filter(date=date, teacher=teacher).count()
+        data.append(
+            {
+                "date": date.strftime("%b %d"),
+                "marked": marked,
+            }
+        )
+
+    return data
+
+
+def calculate_student_attendance_percentage(student):
+    """Calculate student's attendance percentage"""
+    total_classes = Attendance.objects.filter(student=student).count()
+    if total_classes == 0:
+        return 0
+
+    present_classes = Attendance.objects.filter(
+        student=student, status="present"
+    ).count()
+    return round((present_classes / total_classes) * 100, 1)
+
+
+def get_student_performance_data(student):
+    """Get student's performance trend"""
+    results = ExamResult.objects.filter(student=student).order_by("exam__exam_date")[
+        :10
+    ]
+    data = []
+
+    for result in results:
+        data.append(
+            {
+                "exam": (
+                    result.exam.title[:15] + "..."
+                    if len(result.exam.title) > 15
+                    else result.exam.title
+                ),
+                "marks": result.marks or 0,
+                "grade": result.grade or "N/A",
+            }
+        )
+
+    return data
+
+
+def get_student_attendance_data(student):
+    """Get student's attendance data for last 7 days"""
+    today = timezone.now().date()
+    data = []
+
+    for i in range(6, -1, -1):
+        date = today - timedelta(days=i)
+        attendance = Attendance.objects.filter(student=student, date=date).first()
+        status = attendance.status if attendance else "not_marked"
+        data.append(
+            {
+                "date": date.strftime("%b %d"),
+                "status": status,
+            }
+        )
+
+    return data
+
+
+def get_recent_activity_admin():
+    """Get recent activity for admin"""
+    activities = []
+
+    # Recent leaves
+    recent_leaves = Leave.objects.order_by("-apply_date")[:3]
+    for leave in recent_leaves:
+        if leave.student:
+            applicant_name = leave.student.user.get_full_name()
+        elif leave.teacher:
+            applicant_name = leave.teacher.user.get_full_name()
+        else:
+            applicant_name = "Unknown"
+
+        activities.append(
+            {
+                "type": "leave",
+                "message": f"{applicant_name} applied for leave",
+                "time": leave.apply_date,
+                "status": leave.status.lower(),
+            }
+        )
+
+    # Recent exam results
+    recent_results = ExamResult.objects.filter(submitted_at__isnull=False).order_by(
+        "-submitted_at"
+    )[:3]
+    for result in recent_results:
+        activities.append(
+            {
+                "type": "result",
+                "message": f"Result entered for {result.exam.name}",
+                "time": result.submitted_at,
+                "status": "completed",
+            }
+        )
+
+    return sorted(activities, key=lambda x: x["time"], reverse=True)[:5]
+
+
+def get_recent_activity_teacher(teacher):
+    """Get recent activity for teacher"""
+    activities = []
+
+    # Recent attendance marked
+    recent_attendance = Attendance.objects.filter(teacher=teacher).order_by("-date")[:3]
+    for att in recent_attendance:
+        activities.append(
+            {
+                "type": "attendance",
+                "message": f"Marked attendance for {att.student.user.get_full_name()}",
+                "time": att.created_at,
+                "status": "completed",
+            }
+        )
+
+    # Recent results entered
+    recent_results = ExamResult.objects.filter(
+        exam__examassignment__teacher=teacher, submitted_at__isnull=False
+    ).order_by("-submitted_at")[:3]
+    for result in recent_results:
+        activities.append(
+            {
+                "type": "result",
+                "message": f"Entered result for {result.exam.name}",
+                "time": result.submitted_at,
+                "status": "completed",
+            }
+        )
+
+    return sorted(activities, key=lambda x: x["time"], reverse=True)[:5]
+
+
+def get_recent_activity_student(student):
+    """Get recent activity for student"""
+    activities = []
+
+    # Recent attendance
+    recent_attendance = Attendance.objects.filter(student=student).order_by("-date")[:3]
+    for att in recent_attendance:
+        activities.append(
+            {
+                "type": "attendance",
+                "message": f"Attendance marked: {att.status.title()}",
+                "time": att.created_at,
+                "status": att.status,
+            }
+        )
+
+    # Recent results
+    recent_results = ExamResult.objects.filter(
+        student=student, submitted_at__isnull=False
+    ).order_by("-submitted_at")[:3]
+    for result in recent_results:
+        activities.append(
+            {
+                "type": "result",
+                "message": f"Result available for {result.exam.name}",
+                "time": result.submitted_at,
+                "status": "available",
+            }
+        )
+
+    return sorted(activities, key=lambda x: x["time"], reverse=True)[:5]
 
 
 @login_required

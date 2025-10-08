@@ -8,7 +8,8 @@
     "fullcalendar",
     "marksheet",
     "onclick",
-    "Requset"
+    "Requset",
+    "stttendance"
   ],
   "python.analysis.extraPaths": ["./hbr"]
 }
