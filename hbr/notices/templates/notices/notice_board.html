@@ -1,4 +1,5 @@
 {% extends 'dashboard/layout.html' %}
+{% load static %}
 
 {% block content %}
   <div class="notice-board-container">
@@ -31,20 +32,68 @@
                   <h3>{{ notice.title }}</h3>
                   <div class="notice-badges">
                     <span class="notice-type-badge {% if notice.notice_type == 'ANNOUNCEMENT' %}
+                        
+                        
+                        
+                        
+                        
+                        
                         announcement
+
+
+
+
+
+
                       {% else %}
+                        
+                        
+                        
+                        
+                        
+                        
                         individual
+
+
+
+
+
+
                       {% endif %}">
                       {{ notice.get_notice_type_display }}
                     </span>
                     {% if notice.attachment %}
-                      <span class="attachment-badge" title="Has Attachment"><i class="bx bx-paperclip"></i></span>
+                      <span class="attachment-badge" title="Attachment: {{ notice.attachment.name }}"><i class="bx bx-paperclip"></i> {{ notice.attachment.name|truncatechars:25 }}</span>
                     {% endif %}
                     {% if role == 'Admin' %}
                       <span class="notice-status {% if notice.is_active %}
+                          
+                          
+                          
+                          
+                          
+                          
                           active
+
+
+
+
+
+
                         {% else %}
+                          
+                          
+                          
+                          
+                          
+                          
                           inactive
+
+
+
+
+
+
                         {% endif %}">
                         {{ notice.is_active|yesno:'Active,Inactive' }}
                       </span>
@@ -55,7 +104,7 @@
                   <p>{{ notice.content|truncatechars:100 }}</p>
                   <div class="notice-actions">
                     {% if notice.attachment %}
-                      <a href="{% url 'notices:download_notice_attachment' notice.id %}" class="icon-btn" title="Download Attachment"><i class="bxr bx-arrow-down-stroke-circle"></i></a>
+                      <a href="{% url 'notices:download_notice_attachment' notice.id %}" class="btn btn-primary btn-sm download-btn" title="Download Attachment"><i class="bx bx-download"></i> Download</a>
                     {% endif %}
                     {% if role == 'Admin' %}
                       <button type="button" class="icon-btn edit-btn" title="Edit Notice" data-notice-id="{{ notice.id }}" data-title="{{ notice.title }}" data-content="{{ notice.content }}" data-notice-type="{{ notice.notice_type }}" data-target-students="{{ notice.target_students.all|join:',' }}" data-attachment="{% if notice.attachment %}{{ notice.attachment.name }}{% endif %}"><i class="bx bx-edit"></i></button>
@@ -206,4 +255,75 @@
       })
     </script>
   {% endif %}
+
+  <style>
+    .download-btn {
+      background: #28a745;
+      color: white;
+      border: none;
+      padding: 0.4rem 0.8rem;
+      border-radius: 4px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      font-size: 0.85rem;
+      transition: background-color 0.3s ease;
+    }
+    
+    .download-btn:hover {
+      background: #218838;
+      color: white;
+      text-decoration: none;
+    }
+    
+    .download-btn i {
+      font-size: 1rem;
+    }
+    
+    .notice-actions {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+    
+    .icon-btn {
+      background: none;
+      border: none;
+      color: #666;
+      padding: 0.5rem;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    
+    .icon-btn:hover {
+      background: #f8f9fa;
+    }
+    
+    .edit-btn {
+      color: #007bff;
+    }
+    
+    .edit-btn:hover {
+      background: #e3f2fd;
+    }
+    
+    .attachment-badge {
+      background: #e9ecef;
+      color: #495057;
+      padding: 0.2rem 0.5rem;
+      border-radius: 3px;
+      font-size: 0.75rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.2rem;
+      margin-left: 0.5rem;
+      border: 1px solid #dee2e6;
+    }
+    
+    .attachment-badge i {
+      font-size: 0.8rem;
+    }
+  </style>
 {% endblock %}

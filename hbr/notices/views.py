@@ -1,4 +1,4 @@
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, FileResponse
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -70,9 +70,9 @@ def download_notice_attachment(request: HttpRequest, notice_id: int):
         if not notice.attachment:
             return HttpResponse("No attachment found", status=404)
 
-        # Return the file
-        response = HttpResponse(
-            notice.attachment, content_type="application/octet-stream"
+        # Return the file using FileResponse for proper file serving
+        response = FileResponse(
+            notice.attachment.open("rb"), content_type="application/octet-stream"
         )
         response["Content-Disposition"] = (
             f'attachment; filename="{notice.attachment.name.split("/")[-1]}"'

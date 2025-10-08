@@ -1,0 +1,779 @@
+{% extends 'dashboard/layout.html' %}
+{% load static %}
+
+{% block content %}
+  <div class="popup-management-container">
+    <div class="page-header">
+      <div class="header-content">
+        <div>
+          <h1>Manage Popup Images</h1>
+          <p class="page-subtitle">Control homepage popup advertisements</p>
+        </div>
+        <button class="btn btn-primary" id="add-popup-btn"><i class="bx bx-plus"></i> Add New Popup</button>
+      </div>
+    </div>
+
+    <!-- Active Popup Status -->
+    {% if active_popup %}
+      <div class="active-popup-banner">
+        <div class="banner-content">
+          <div class="banner-icon">
+            <i class="bx bx-bell"></i>
+          </div>
+          <div class="banner-info">
+            <h3>Active Popup: {{ active_popup.title }}</h3>
+            <p>Currently showing on homepage</p>
+            {% if active_popup.start_date or active_popup.end_date %}
+              <div class="popup-schedule">
+                {% if active_popup.start_date %}
+                  <span>From: {{ active_popup.start_date|date:'M d, Y H:i' }}</span>
+                {% endif %}
+                {% if active_popup.end_date %}
+                  <span>To: {{ active_popup.end_date|date:'M d, Y H:i' }}</span>
+                {% endif %}
+              </div>
+            {% endif %}
+          </div>
+          <div class="banner-actions">
+            <button class="btn btn-outline deactivate-btn" data-id="{{ active_popup.id }}"><i class="bx bx-hide"></i> Deactivate</button>
+            <button class="btn btn-primary edit-active-btn" data-id="{{ active_popup.id }}" data-title="{{ active_popup.title }}" data-link="{{ active_popup.link_url }}" data-start="{% if active_popup.start_date %}{{ active_popup.start_date|date:'Y-m-d\TH:i' }}{% endif %}" data-end="{% if active_popup.end_date %}{{ active_popup.end_date|date:'Y-m-d\TH:i' }}{% endif %}" data-image="{{ active_popup.image.url }}"><i class="bx bx-edit"></i> Edit</button>
+          </div>
+        </div>
+      </div>
+    {% else %}
+      <div class="no-active-popup">
+        <div class="no-active-content">
+          <div class="no-active-icon">
+            <i class="bx bx-bell-off"></i>
+          </div>
+          <h3>No Active Popup</h3>
+          <p>No popup is currently showing on the homepage</p>
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Popup Images List -->
+    <div class="popups-list">
+      <div class="list-header">
+        <h3>All Popup Images</h3>
+        <span class="item-count">{{ popup_images|length }} total</span>
+      </div>
+
+      <div class="popups-grid">
+        {% for popup in popup_images %}
+          <div class="popup-card {% if popup.is_active %}active{% endif %}">
+            <div class="popup-preview">
+              <img src="{{ popup.image.url }}" alt="{{ popup.title }}" />
+              {% if popup.is_active %}
+                <div class="active-badge">
+                  <i class="bx bx-check"></i> Active
+                </div>
+              {% endif %}
+            </div>
+
+            <div class="popup-info">
+              <h4>{{ popup.title }}</h4>
+              <div class="popup-meta">
+                <span class="status {% if popup.is_active %}
+                    active
+                  {% else %}
+                    inactive
+                  {% endif %}">
+                  {{ popup.is_active|yesno:'Active,Inactive' }}
+                </span>
+                <span class="date">{{ popup.created_at|date:'M d, Y' }}</span>
+              </div>
+              {% if popup.link_url %}
+                <div class="link-info">
+                  <i class="bx bx-link"></i> {{ popup.link_url|truncatechars:30 }}
+                </div>
+              {% endif %}
+            </div>
+
+            <div class="popup-actions">
+              {% if not popup.is_active %}
+                <button class="btn btn-success btn-sm activate-btn" data-id="{{ popup.id }}"><i class="bx bx-show"></i> Activate</button>
+              {% endif %}
+              <button class="btn btn-outline btn-sm edit-btn" data-id="{{ popup.id }}" data-title="{{ popup.title }}" data-link="{{ popup.link_url }}" data-start="{% if popup.start_date %}{{ popup.start_date|date:'Y-m-d\TH:i' }}{% endif %}" data-end="{% if popup.end_date %}{{ popup.end_date|date:'Y-m-d\TH:i' }}{% endif %}" data-image="{{ popup.image.url }}"><i class="bx bx-edit"></i> Edit</button>
+              <button class="btn btn-danger btn-sm delete-btn" data-id="{{ popup.id }}" data-title="{{ popup.title }}"><i class="bx bx-trash"></i> Delete</button>
+            </div>
+          </div>
+        {% empty %}
+          <div class="empty-state">
+            <div class="empty-icon">
+              <i class="bx bx-window"></i>
+            </div>
+            <h3>No popup images yet</h3>
+            <p>Create your first popup advertisement to engage visitors.</p>
+            <button class="btn btn-primary" id="add-first-popup-btn"><i class="bx bx-plus"></i> Add First Popup</button>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Add/Edit Modal -->
+  <div id="popup-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="modal-title">Add Popup Image</h2>
+        <button class="close-btn" id="close-modal"><i class="bx bx-x"></i></button>
+      </div>
+
+      <form id="popup-form" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="hidden" id="popup-id" name="popup_id" value="" />
+
+        <div class="form-group">
+          <label for="id_title">Title *</label>
+          <input type="text" id="id_title" name="title" class="form-control" required />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="id_image">Image *</label>
+            <input type="file" id="id_image" name="image" class="form-control" accept="image/*" />
+            <small class="form-help">Recommended size: 800x600px. Max file size: 3MB</small>
+          </div>
+          <div class="form-group">
+            <label for="id_link_url">Link URL (Optional)</label>
+            <input type="url" id="id_link_url" name="link_url" class="form-control" placeholder="https://example.com" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="id_start_date">Start Date (Optional)</label>
+            <input type="datetime-local" id="id_start_date" name="start_date" class="form-control" />
+          </div>
+          <div class="form-group">
+            <label for="id_end_date">End Date (Optional)</label>
+            <input type="datetime-local" id="id_end_date" name="end_date" class="form-control" />
+          </div>
+        </div>
+
+        <div id="current-image-preview" style="display: none; margin-bottom: 1rem;">
+          <label>Current Image:</label>
+          <img id="current-image" src="" alt="Current image" style="max-width: 200px; border-radius: 4px; margin-top: 0.5rem;" />
+        </div>
+
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="id_is_active" name="is_active" />
+            <span>Active (show this popup - only one can be active at a time)</span>
+          </label>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-outline" id="cancel-btn">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="submit-btn">Add Popup</button>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock %}
+
+{% block inline_css %}
+  <style>
+    .popup-management-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem 1rem;
+    }
+    
+    .page-header {
+      margin-bottom: 2rem;
+    }
+    
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 2rem;
+    }
+    
+    .page-header h1 {
+      margin: 0 0 0.5rem 0;
+      color: var(--color-black);
+      font-size: 2rem;
+      font-weight: 700;
+    }
+    
+    .page-subtitle {
+      margin: 0;
+      color: #666;
+      font-size: 1rem;
+    }
+    
+    .active-popup-banner {
+      background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+      border-radius: 12px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      color: white;
+      box-shadow: 0 4px 20px rgba(40, 167, 69, 0.3);
+    }
+    
+    .banner-content {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+    
+    .banner-icon {
+      width: 4rem;
+      height: 4rem;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+    }
+    
+    .banner-info {
+      flex: 1;
+    }
+    
+    .banner-info h3 {
+      margin: 0 0 0.5rem 0;
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+    
+    .banner-info p {
+      margin: 0 0 0.5rem 0;
+      opacity: 0.9;
+    }
+    
+    .popup-schedule {
+      display: flex;
+      gap: 1rem;
+      font-size: 0.9rem;
+      opacity: 0.8;
+    }
+    
+    .banner-actions {
+      display: flex;
+      gap: 1rem;
+    }
+    
+    .no-active-popup {
+      background: white;
+      border-radius: 12px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      border: 2px dashed #dee2e6;
+    }
+    
+    .no-active-content {
+      text-align: center;
+    }
+    
+    .no-active-icon {
+      font-size: 3rem;
+      color: #dee2e6;
+      margin-bottom: 1rem;
+    }
+    
+    .no-active-content h3 {
+      margin: 0 0 0.5rem 0;
+      color: var(--color-black);
+      font-size: 1.25rem;
+    }
+    
+    .no-active-content p {
+      margin: 0;
+      color: #666;
+    }
+    
+    .popups-list {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+      overflow: hidden;
+    }
+    
+    .list-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.5rem 2rem;
+      border-bottom: 1px solid #e1e5e9;
+    }
+    
+    .list-header h3 {
+      margin: 0;
+      color: var(--color-black);
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+    
+    .item-count {
+      color: #666;
+      font-size: 0.9rem;
+      background: #f8f9fa;
+      padding: 0.25rem 0.75rem;
+      border-radius: 12px;
+    }
+    
+    .popups-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 0;
+    }
+    
+    .popup-card {
+      border-bottom: 1px solid #e1e5e9;
+      border-right: 1px solid #e1e5e9;
+      padding: 1.5rem;
+      transition: all 0.3s ease;
+    }
+    
+    .popup-card:hover {
+      background: #f8f9fa;
+    }
+    
+    .popup-card.active {
+      border-left: 4px solid #28a745;
+      background: #f8fff9;
+    }
+    
+    .popup-preview {
+      position: relative;
+      height: 150px;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 1rem;
+    }
+    
+    .popup-preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    .active-badge {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: #28a745;
+      color: white;
+      padding: 0.25rem 0.5rem;
+      border-radius: 12px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+    
+    .popup-info h4 {
+      margin: 0 0 0.5rem 0;
+      color: var(--color-black);
+      font-size: 1rem;
+      font-weight: 600;
+    }
+    
+    .popup-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+    
+    .status {
+      padding: 0.2rem 0.5rem;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    
+    .status.active {
+      background: #d4edda;
+      color: #155724;
+    }
+    
+    .status.inactive {
+      background: #f8d7da;
+      color: #721c24;
+    }
+    
+    .date {
+      color: #666;
+      font-size: 0.8rem;
+    }
+    
+    .link-info {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      color: #007bff;
+      font-size: 0.8rem;
+    }
+    
+    .popup-actions {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+    
+    .empty-state {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 4rem 2rem;
+    }
+    
+    .empty-icon {
+      font-size: 4rem;
+      color: #dee2e6;
+      margin-bottom: 1rem;
+    }
+    
+    .empty-state h3 {
+      margin: 0 0 0.5rem 0;
+      color: var(--color-black);
+      font-size: 1.5rem;
+    }
+    
+    .empty-state p {
+      margin: 0 0 2rem 0;
+      color: #666;
+      font-size: 1rem;
+    }
+    
+    /* Modal Styles */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+    }
+    
+    .modal-content {
+      background-color: white;
+      margin: 5% auto;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 600px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+      overflow: hidden;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.5rem 2rem;
+      border-bottom: 1px solid #e1e5e9;
+    }
+    
+    .modal-header h2 {
+      margin: 0;
+      color: var(--color-primary);
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+    
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      color: #666;
+      cursor: pointer;
+      padding: 0.5rem;
+      border-radius: 50%;
+    }
+    
+    .close-btn:hover {
+      background: #f8f9fa;
+      color: var(--color-black);
+    }
+    
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+      color: #333;
+    }
+    
+    .form-control {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 1rem;
+    }
+    
+    .form-control:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    }
+    
+    .form-help {
+      display: block;
+      margin-top: 0.25rem;
+      color: #666;
+      font-size: 0.8rem;
+    }
+    
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+      font-weight: normal;
+      background: #fff3cd;
+      padding: 1rem;
+      border-radius: 6px;
+      border: 1px solid #ffeaa7;
+    }
+    
+    .checkbox-label input[type='checkbox'] {
+      width: auto;
+      margin: 0;
+    }
+    
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 1rem;
+      padding: 1.5rem 2rem;
+      background: #f8f9fa;
+    }
+    
+    @media (max-width: 768px) {
+      .popup-management-container {
+        padding: 1rem 0.5rem;
+      }
+    
+      .header-content {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+      }
+    
+      .active-popup-banner .banner-content,
+      .no-active-popup .no-active-content {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+      }
+    
+      .banner-actions {
+        justify-content: center;
+      }
+    
+      .popups-grid {
+        grid-template-columns: 1fr;
+      }
+    
+      .popup-card {
+        border-right: none !important;
+      }
+    
+      .popup-actions {
+        justify-content: center;
+      }
+    
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+    
+      .modal-content {
+        margin: 2% auto;
+        width: 95%;
+      }
+    }
+  </style>
+{% endblock %}
+
+{% block inline_js %}
+  <script>
+    // Modal functionality
+    const modal = document.getElementById('popup-modal')
+    const modalTitle = document.getElementById('modal-title')
+    const form = document.getElementById('popup-form')
+    const popupIdField = document.getElementById('popup-id')
+    const submitBtn = document.getElementById('submit-btn')
+    const currentImagePreview = document.getElementById('current-image-preview')
+    const currentImage = document.getElementById('current-image')
+    
+    // Open modal for adding new popup
+    document.getElementById('add-popup-btn').addEventListener('click', () => {
+      resetModal()
+      modal.style.display = 'block'
+    })
+    
+    document.getElementById('add-first-popup-btn')?.addEventListener('click', () => {
+      resetModal()
+      modal.style.display = 'block'
+    })
+    
+    // Open modal for editing
+    document.querySelectorAll('.edit-btn, .edit-active-btn').forEach((btn) => {
+      btn.addEventListener('click', function () {
+        const data = this.dataset
+        populateModal(data)
+        modal.style.display = 'block'
+      })
+    })
+    
+    // Close modal
+    document.getElementById('close-modal').addEventListener('click', () => {
+      modal.style.display = 'none'
+    })
+    
+    document.getElementById('cancel-btn').addEventListener('click', () => {
+      modal.style.display = 'none'
+    })
+    
+    window.addEventListener('click', (event) => {
+      if (event.target === modal) {
+        modal.style.display = 'none'
+      }
+    })
+    
+    function resetModal() {
+      form.reset()
+      popupIdField.value = ''
+      modalTitle.textContent = 'Add Popup Image'
+      submitBtn.textContent = 'Add Popup'
+      currentImagePreview.style.display = 'none'
+      document.getElementById('id_image').required = true
+    }
+    
+    function populateModal(data) {
+      document.getElementById('id_title').value = data.title || ''
+      document.getElementById('id_link_url').value = data.link || ''
+      document.getElementById('id_start_date').value = data.start || ''
+      document.getElementById('id_end_date').value = data.end || ''
+      document.getElementById('id_is_active').checked = false // Default to inactive
+    
+      popupIdField.value = data.id
+      modalTitle.textContent = 'Edit Popup Image'
+      submitBtn.textContent = 'Update Popup'
+    
+      // Show current image if editing
+      if (data.image) {
+        currentImage.src = data.image
+        currentImagePreview.style.display = 'block'
+        document.getElementById('id_image').required = false
+      } else {
+        currentImagePreview.style.display = 'none'
+        document.getElementById('id_image').required = true
+      }
+    }
+    
+    // Form submission
+    form.addEventListener('submit', async function (e) {
+      e.preventDefault()
+    
+      const formData = new FormData(this)
+      const isEdit = popupIdField.value !== ''
+      const url = isEdit ? `/front-cms/popup/${popupIdField.value}/update/` : '/front-cms/popup/create/'
+    
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+          }
+        })
+    
+        const result = await response.json()
+    
+        if (result.success) {
+          location.reload()
+        } else {
+          alert('Error: ' + JSON.stringify(result.errors))
+        }
+      } catch (error) {
+        console.error('Error:', error)
+        alert('An error occurred. Please try again.')
+      }
+    })
+    
+    // Toggle status (activate/deactivate)
+    document.querySelectorAll('.activate-btn, .deactivate-btn').forEach((btn) => {
+      btn.addEventListener('click', async function () {
+        const popupId = this.dataset.id
+        const action = this.classList.contains('activate-btn') ? 'activate' : 'deactivate'
+    
+        if (action === 'activate' && !confirm('Activating this popup will deactivate any currently active popup. Continue?')) {
+          return
+        }
+    
+        try {
+          const response = await fetch(`/front-cms/popup/${popupId}/toggle/`, {
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+              'Content-Type': 'application/json'
+            }
+          })
+    
+          const result = await response.json()
+    
+          if (result.success) {
+            location.reload()
+          } else {
+            alert('Error toggling popup status')
+          }
+        } catch (error) {
+          console.error('Error:', error)
+          alert('An error occurred. Please try again.')
+        }
+      })
+    })
+    
+    // Delete popup
+    document.querySelectorAll('.delete-btn').forEach((btn) => {
+      btn.addEventListener('click', async function () {
+        const popupId = this.dataset.id
+        const title = this.dataset.title
+    
+        if (confirm(`Are you sure you want to delete "${title}"? This action cannot be undone.`)) {
+          try {
+            const response = await fetch(`/front-cms/popup/${popupId}/delete/`, {
+              method: 'POST',
+              headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+              }
+            })
+    
+            const result = await response.json()
+    
+            if (result.success) {
+              location.reload()
+            } else {
+              alert('Error deleting popup')
+            }
+          } catch (error) {
+            console.error('Error:', error)
+            alert('An error occurred. Please try again.')
+          }
+        }
+      })
+    })
+  </script>
+{% endblock %}

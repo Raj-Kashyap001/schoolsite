@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     "leave.apps.LeaveConfig",
     "notices.apps.NoticesConfig",
     "administration.apps.AdministrationConfig",
+    "front_cms.apps.FrontCmsConfig",
 ]
 
 MIDDLEWARE = [
