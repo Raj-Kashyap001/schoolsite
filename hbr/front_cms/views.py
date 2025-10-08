@@ -366,6 +366,7 @@ def toggle_popup_status(request: HttpRequest, image_id: int):
     messages.success(
         request, f"Popup image '{popup_image.title}' {status} successfully."
     )
+    return JsonResponse({"success": True, "is_active": popup_image.is_active})
 
 
 @login_required
@@ -489,4 +490,3 @@ def bulk_import_gallery(request: HttpRequest):
         )
 
     return JsonResponse({"error": "Method not allowed"}, status=405)
-    return JsonResponse({"success": True, "is_active": popup_image.is_active})
