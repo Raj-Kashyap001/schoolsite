@@ -58,4 +58,8 @@ urlpatterns = [
         views.toggle_popup_status,
         name="toggle_popup_status",
     ),
+    path(
+        "carousel/bulk-import/", views.bulk_import_carousel, name="bulk_import_carousel"
+    ),
+    path("gallery/bulk-import/", views.bulk_import_gallery, name="bulk_import_gallery"),
 ]

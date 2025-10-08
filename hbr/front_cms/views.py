@@ -366,4 +366,127 @@ def toggle_popup_status(request: HttpRequest, image_id: int):
     messages.success(
         request, f"Popup image '{popup_image.title}' {status} successfully."
     )
+
+
+@login_required
+def bulk_import_carousel(request: HttpRequest):
+    """Bulk import carousel images"""
+    role = get_user_role(request.user)
+    if role != "Admin":
+        return JsonResponse({"error": "Access denied"}, status=403)
+
+    if request.method == "POST":
+        images = request.FILES.getlist("images")
+        if not images:
+            return JsonResponse(
+                {"success": False, "error": "No images provided"}, status=400
+            )
+
+        imported_count = 0
+        errors = []
+
+        for image_file in images:
+            # Validate file type
+            if not image_file.content_type.startswith("image/"):
+                errors.append(f"{image_file.name}: Invalid file type")
+                continue
+
+            # Validate file size (5MB max)
+            if image_file.size > 5 * 1024 * 1024:
+                errors.append(f"{image_file.name}: File too large (max 5MB)")
+                continue
+
+            # Create title from filename (remove extension)
+            title = (
+                image_file.name.rsplit(".", 1)[0]
+                if "." in image_file.name
+                else image_file.name
+            )
+
+            try:
+                CarouselImage.objects.create(
+                    title=title, image=image_file, is_active=True
+                )
+                imported_count += 1
+            except Exception as e:
+                errors.append(f"{image_file.name}: {str(e)}")
+
+        if imported_count > 0:
+            messages.success(
+                request, f"Successfully imported {imported_count} carousel images."
+            )
+        if errors:
+            messages.warning(request, f"Errors during import: {', '.join(errors)}")
+
+        return JsonResponse(
+            {"success": True, "imported": imported_count, "errors": errors}
+        )
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@login_required
+def bulk_import_gallery(request: HttpRequest):
+    """Bulk import gallery images"""
+    role = get_user_role(request.user)
+    if role != "Admin":
+        return JsonResponse({"error": "Access denied"}, status=403)
+
+    if request.method == "POST":
+        images = request.FILES.getlist("images")
+        category = request.POST.get("category", "other")
+
+        if not images:
+            return JsonResponse(
+                {"success": False, "error": "No images provided"}, status=400
+            )
+
+        # Validate category
+        valid_categories = [choice[0] for choice in GalleryImage.CATEGORY_CHOICES]
+        if category not in valid_categories:
+            return JsonResponse(
+                {"success": False, "error": "Invalid category"}, status=400
+            )
+
+        imported_count = 0
+        errors = []
+
+        for image_file in images:
+            # Validate file type
+            if not image_file.content_type.startswith("image/"):
+                errors.append(f"{image_file.name}: Invalid file type")
+                continue
+
+            # Validate file size (5MB max)
+            if image_file.size > 5 * 1024 * 1024:
+                errors.append(f"{image_file.name}: File too large (max 5MB)")
+                continue
+
+            # Create title from filename (remove extension)
+            title = (
+                image_file.name.rsplit(".", 1)[0]
+                if "." in image_file.name
+                else image_file.name
+            )
+
+            try:
+                GalleryImage.objects.create(
+                    title=title, image=image_file, category=category, is_active=True
+                )
+                imported_count += 1
+            except Exception as e:
+                errors.append(f"{image_file.name}: {str(e)}")
+
+        if imported_count > 0:
+            messages.success(
+                request, f"Successfully imported {imported_count} gallery images."
+            )
+        if errors:
+            messages.warning(request, f"Errors during import: {', '.join(errors)}")
+
+        return JsonResponse(
+            {"success": True, "imported": imported_count, "errors": errors}
+        )
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
     return JsonResponse({"success": True, "is_active": popup_image.is_active})

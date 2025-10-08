@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.contrib.auth.models import Group, User
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.decorators import login_required
+from front_cms.models import CarouselImage, GalleryImage, PopupImage
 
 
 def get_user_role(user):
@@ -23,7 +24,25 @@ def logout_view(request: HttpRequest):
 
 # Create your views here.
 def homepage(request: HttpRequest):
-    return render(request, "base/home.html")
+    # Get active carousel images ordered by display_order
+    carousel_images = CarouselImage.objects.filter(is_active=True).order_by(
+        "display_order", "-created_at"
+    )
+
+    # Get active gallery images
+    gallery_images = GalleryImage.objects.filter(is_active=True).order_by(
+        "display_order", "-created_at"
+    )
+
+    # Get active popup (only one should be active at a time)
+    popup = PopupImage.objects.filter(is_active=True).first()
+
+    context = {
+        "carousel_images": carousel_images,
+        "gallery_images": gallery_images,
+        "popup": popup,
+    }
+    return render(request, "base/home.html", context)
 
 
 def about(request: HttpRequest):

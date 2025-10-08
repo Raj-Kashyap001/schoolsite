@@ -10,6 +10,7 @@
           <p class="page-subtitle">Organize and manage photo gallery images by category</p>
         </div>
         <button class="btn btn-primary" id="add-gallery-btn"><i class="bx bx-plus"></i> Add New Image</button>
+        <button class="btn btn-outline" id="bulk-import-btn"><i class="bx bx-upload"></i> Bulk Import</button>
       </div>
     </div>
 
@@ -161,6 +162,40 @@
         <div class="modal-actions">
           <button type="button" class="btn btn-outline" id="cancel-btn">Cancel</button>
           <button type="submit" class="btn btn-primary" id="submit-btn">Add Image</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Bulk Import Modal -->
+  <div id="bulk-import-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Bulk Import Gallery Images</h2>
+        <button class="close-btn" id="close-bulk-modal"><i class="bx bx-x"></i></button>
+      </div>
+
+      <form id="bulk-import-form" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="form-group">
+          <label for="bulk-category">Category *</label>
+          <select id="bulk-category" name="category" class="form-control" required>
+            <option value="">Select category</option>
+            {% for category_code, category_info in categories.items %}
+              <option value="{{ category_code }}">{{ category_info.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="bulk-images">Select Images *</label>
+          <input type="file" id="bulk-images" name="images" class="form-control" accept="image/*" multiple required />
+          <small class="form-help">Select multiple image files. Title will be set to filename (without extension). Max 5MB per image.</small>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-outline" id="cancel-bulk-btn">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="submit-bulk-btn">Import Images</button>
         </div>
       </form>
     </div>
@@ -781,6 +816,78 @@
           }
         }
       })
+    })
+    
+    // Bulk import modal functionality
+    const bulkModal = document.getElementById('bulk-import-modal')
+    const bulkForm = document.getElementById('bulk-import-form')
+    const bulkImagesInput = document.getElementById('bulk-images')
+    
+    // Open bulk import modal
+    document.getElementById('bulk-import-btn').addEventListener('click', () => {
+      bulkForm.reset()
+      bulkModal.style.display = 'block'
+    })
+    
+    // Close bulk import modal
+    document.getElementById('close-bulk-modal').addEventListener('click', () => {
+      bulkModal.style.display = 'none'
+    })
+    
+    document.getElementById('cancel-bulk-btn').addEventListener('click', () => {
+      bulkModal.style.display = 'none'
+    })
+    
+    window.addEventListener('click', (event) => {
+      if (event.target === bulkModal) {
+        bulkModal.style.display = 'none'
+      }
+    })
+    
+    // Bulk import form submission
+    bulkForm.addEventListener('submit', async function (e) {
+      e.preventDefault()
+    
+      const formData = new FormData(this)
+      const files = bulkImagesInput.files
+    
+      if (files.length === 0) {
+        alert('Please select at least one image file.')
+        return
+      }
+    
+      // Validate file count
+      if (files.length > 50) {
+        alert('Maximum 50 files allowed at once.')
+        return
+      }
+    
+      try {
+        const response = await fetch('/front-cms/gallery/bulk-import/', {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+          }
+        })
+    
+        const result = await response.json()
+    
+        if (result.success) {
+          let message = `Successfully imported ${result.imported} images.`
+          if (result.errors && result.errors.length > 0) {
+            message += `\n\nErrors: ${result.errors.join(', ')}`
+          }
+          alert(message)
+          bulkModal.style.display = 'none'
+          location.reload()
+        } else {
+          alert('Error: ' + (result.error || 'Unknown error occurred'))
+        }
+      } catch (error) {
+        console.error('Error:', error)
+        alert('An error occurred. Please try again.')
+      }
     })
   </script>
 {% endblock %}

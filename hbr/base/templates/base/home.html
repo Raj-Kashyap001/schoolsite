@@ -1,10 +1,526 @@
 {% extends 'main.html' %}
+{% load static %}
 {% block title %}
   HOME | SITE
 {% endblock %}
 
 {% block content %}
-  <section class="hero">
-    <h1>Welcome to homepage!!!</h1>
-  </section>
+  <!-- Carousel Section -->
+  {% if carousel_images %}
+    <section class="carousel-section">
+      <div class="carousel-container">
+        <div class="carousel-wrapper">
+          {% for image in carousel_images %}
+            <div class="carousel-slide">
+              <img src="{{ image.image.url }}" alt="{{ image.title }}" />
+              <div class="carousel-overlay">
+                <div class="carousel-content">
+                  <h2>{{ image.title }}</h2>
+                  {% if image.caption %}
+                    <p>{{ image.caption }}</p>
+                  {% endif %}
+                  {% if image.link_url %}
+                    <a href="{{ image.link_url }}" class="btn btn-primary">Learn More</a>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+        <div class="carousel-nav">
+          <button class="carousel-prev"><i class="bx bx-chevron-left"></i></button>
+          <div class="carousel-dots"></div>
+          <button class="carousel-next"><i class="bx bx-chevron-right"></i></button>
+        </div>
+      </div>
+    </section>
+  {% endif %}
+
+  <!-- Gallery Section -->
+  {% if gallery_images %}
+    <section class="gallery-section">
+      <div class="container">
+        <h2 class="section-title">Gallery</h2>
+        <div class="gallery-grid">
+          {% for image in gallery_images %}
+            <div class="gallery-item" data-category="{{ image.category }}">
+              <div class="gallery-image-wrapper">
+                <img src="{{ image.image.url }}" alt="{{ image.title }}" />
+                <div class="gallery-overlay">
+                  <div class="gallery-info">
+                    <h3>{{ image.title }}</h3>
+                    {% if image.description %}
+                      <p>{{ image.description }}</p>
+                    {% endif %}
+                    <span class="category-badge">{{ image.get_category_display }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </section>
+  {% endif %}
+
+  <!-- Popup Modal -->
+  {% if popup %}
+    <div id="popup-modal" class="popup-modal">
+      <div class="popup-content">
+        <button class="popup-close" id="popup-close"><i class="bx bx-x"></i></button>
+        <img src="{{ popup.image.url }}" alt="{{ popup.title }}" />
+        {% if popup.link_url %}
+          <div class="popup-actions">
+            <a href="{{ popup.link_url }}" class="btn btn-primary">Learn More</a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+{% endblock %}
+
+{% block inline_css %}
+  <style>
+    /* Carousel Styles */
+    .carousel-section {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      margin-top: 0;
+      padding-top: 0;
+      min-height: 300px;
+      max-height: 80vh;
+      top: -48px;
+    }
+    
+    .carousel-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+    
+    .carousel-wrapper {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .carousel-slide {
+      position: relative;
+      min-width: 100%;
+      height: 100%;
+      flex-shrink: 0;
+    }
+    
+    .carousel-slide img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+    }
+    
+    .carousel-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.1) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .carousel-content {
+      text-align: center;
+      color: white;
+      max-width: 600px;
+      padding: 2rem;
+    }
+    
+    .carousel-content h2 {
+      font-size: 3rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    }
+    
+    .carousel-content p {
+      font-size: 1.2rem;
+      margin-bottom: 2rem;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+    }
+    
+    .carousel-nav {
+      position: absolute;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.5rem 1rem;
+      border-radius: 50px;
+    }
+    
+    .carousel-prev,
+    .carousel-next {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      color: var(--color-primary);
+      cursor: pointer;
+      padding: 0.5rem;
+      border-radius: 50%;
+      transition: all 0.3s ease;
+    }
+    
+    .carousel-prev:hover,
+    .carousel-next:hover {
+      background: var(--color-primary);
+      color: white;
+    }
+    
+    .carousel-dots {
+      display: flex;
+      gap: 0.5rem;
+    }
+    
+    .carousel-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #ccc;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .carousel-dot.active {
+      background: var(--color-primary);
+      transform: scale(1.2);
+    }
+    
+    /* Gallery Styles */
+    .gallery-section {
+      padding: 4rem 0;
+      background: var(--color-secondary);
+    }
+    
+    .gallery-section .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1rem;
+    }
+    
+    .section-title {
+      text-align: center;
+      font-size: 2.5rem;
+      color: var(--color-black);
+      margin-bottom: 3rem;
+      font-weight: 700;
+    }
+    
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2rem;
+    }
+    
+    .gallery-item {
+      position: relative;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      transition: transform 0.3s ease;
+      background: white;
+    }
+    
+    .gallery-item:hover {
+      transform: translateY(-5px);
+    }
+    
+    .gallery-image-wrapper {
+      position: relative;
+      height: 250px;
+      overflow: hidden;
+    }
+    
+    .gallery-image-wrapper img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.3s ease;
+    }
+    
+    .gallery-item:hover .gallery-image-wrapper img {
+      transform: scale(1.05);
+    }
+    
+    .gallery-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.3) 100%);
+      display: flex;
+      align-items: flex-end;
+      padding: 1.5rem;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    
+    .gallery-item:hover .gallery-overlay {
+      opacity: 1;
+    }
+    
+    .gallery-info h3 {
+      color: white;
+      font-size: 1.2rem;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+    }
+    
+    .gallery-info p {
+      color: white;
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+      line-height: 1.4;
+    }
+    
+    .category-badge {
+      display: inline-block;
+      background: var(--color-primary);
+      color: white;
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    
+    /* Popup Styles */
+    .popup-modal {
+      display: none;
+      position: fixed;
+      z-index: 10000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(5px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    
+    .popup-content {
+      position: relative;
+      max-width: 500px;
+      width: 100%;
+      max-height: 80vh;
+      background: white;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      animation: popupSlideIn 0.5s ease-out;
+      margin: auto;
+    }
+    
+    .popup-close {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: rgba(255, 255, 255, 0.9);
+      border: none;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 1.5rem;
+      color: var(--color-black);
+      z-index: 10;
+      transition: all 0.3s ease;
+    }
+    
+    .popup-close:hover {
+      background: var(--color-primary);
+      color: white;
+    }
+    
+    .popup-content img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    
+    .popup-actions {
+      padding: 1.5rem;
+      text-align: center;
+      background: var(--color-secondary);
+    }
+    
+    /* Animations */
+    @keyframes popupSlideIn {
+      from {
+        opacity: 0;
+        transform: scale(0.8) translateY(-50px);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .carousel-content h2 {
+        font-size: 2rem;
+      }
+    
+      .carousel-content p {
+        font-size: 1rem;
+      }
+    
+      .gallery-grid {
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+      }
+    
+      .section-title {
+        font-size: 2rem;
+      }
+    
+      .carousel-nav {
+        bottom: 1rem;
+        padding: 0.5rem;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .gallery-grid {
+        grid-template-columns: 1fr;
+      }
+    
+      .carousel-content {
+        padding: 1rem;
+      }
+    
+      .carousel-content h2 {
+        font-size: 1.5rem;
+      }
+    }
+  </style>
+{% endblock %}
+
+{% block inline_js %}
+  <script>
+  // Carousel functionality
+  {% if carousel_images %}
+  document.addEventListener('DOMContentLoaded', function() {
+    const carouselWrapper = document.querySelector('.carousel-wrapper');
+    const slides = document.querySelectorAll('.carousel-slide');
+    const prevBtn = document.querySelector('.carousel-prev');
+    const nextBtn = document.querySelector('.carousel-next');
+    const dotsContainer = document.querySelector('.carousel-dots');
+
+    let currentIndex = 0;
+    let autoplayInterval;
+
+    // Create dots
+    slides.forEach((_, index) => {
+      const dot = document.createElement('div');
+      dot.classList.add('carousel-dot');
+      if (index === 0) dot.classList.add('active');
+      dot.addEventListener('click', () => goToSlide(index));
+      dotsContainer.appendChild(dot);
+    });
+
+    const dots = document.querySelectorAll('.carousel-dot');
+
+    function updateDots() {
+      dots.forEach((dot, index) => {
+        dot.classList.toggle('active', index === currentIndex);
+      });
+    }
+
+    function goToSlide(index) {
+      currentIndex = index;
+      carouselWrapper.style.transform = `translateX(-${currentIndex * 100}%)`;
+      updateDots();
+    }
+
+    function nextSlide() {
+      currentIndex = (currentIndex + 1) % slides.length;
+      goToSlide(currentIndex);
+    }
+
+    function prevSlide() {
+      currentIndex = (currentIndex - 1 + slides.length) % slides.length;
+      goToSlide(currentIndex);
+    }
+
+    function startAutoplay() {
+      autoplayInterval = setInterval(nextSlide, 5000);
+    }
+
+    function stopAutoplay() {
+      clearInterval(autoplayInterval);
+    }
+
+    // Event listeners
+    prevBtn.addEventListener('click', () => {
+      prevSlide();
+      stopAutoplay();
+      startAutoplay();
+    });
+
+    nextBtn.addEventListener('click', () => {
+      nextSlide();
+      stopAutoplay();
+      startAutoplay();
+    });
+
+    // Pause autoplay on hover
+    carouselWrapper.addEventListener('mouseenter', stopAutoplay);
+    carouselWrapper.addEventListener('mouseleave', startAutoplay);
+
+    // Start autoplay
+    startAutoplay();
+  });
+  {% endif %}
+
+  // Popup functionality
+  {% if popup %}
+  document.addEventListener('DOMContentLoaded', function() {
+    const popupModal = document.getElementById('popup-modal');
+    const popupClose = document.getElementById('popup-close');
+
+    // Show popup after 3 seconds
+    setTimeout(() => {
+      popupModal.style.display = 'block';
+    }, 3000);
+
+    // Close popup
+    popupClose.addEventListener('click', () => {
+      popupModal.style.display = 'none';
+    });
+
+    // Close on outside click
+    popupModal.addEventListener('click', (e) => {
+      if (e.target === popupModal) {
+        popupModal.style.display = 'none';
+      }
+    });
+  });
+  {% endif %}
+</script>
 {% endblock %}
