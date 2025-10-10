@@ -33,6 +33,7 @@ def notice_board(request: HttpRequest):
                         target_students=student,
                     )
                 )
+                .exclude(dismissed_by=request.user)
                 .order_by("-created_at")
                 .distinct()
             )
@@ -55,6 +56,7 @@ def notice_board(request: HttpRequest):
                         target_teachers=teacher,
                     )
                 )
+                .exclude(dismissed_by=request.user)
                 .order_by("-created_at")
             )
             context["notices"] = notices  # type: ignore
@@ -204,3 +206,36 @@ def bulk_disable_notices(request: HttpRequest):
         return redirect("notices:notice_board")
 
     return HttpResponse("Invalid request", status=400)
+
+
+@login_required
+def dismiss_notice(request: HttpRequest, notice_id: int):
+    """AJAX endpoint to dismiss a notice for the current user"""
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    try:
+        notice = Notice.objects.get(id=notice_id, is_active=True)
+        # Check if user can see this notice
+        role = get_user_role(request.user)
+        can_dismiss = False
+        if role == "Student":
+            student = Student.objects.get(user=request.user)
+            can_dismiss = notice.target_students.filter(id=student.id).exists()
+        elif role == "Teacher":
+            teacher = Teacher.objects.get(user=request.user)
+            can_dismiss = notice.target_teachers.filter(id=teacher.id).exists()
+        elif role == "Admin":
+            can_dismiss = True
+
+        if can_dismiss:
+            notice.dismissed_by.add(request.user)
+            return JsonResponse({"success": True})
+        else:
+            return JsonResponse({"error": "Cannot dismiss this notice"}, status=403)
+    except Notice.DoesNotExist:
+        return JsonResponse({"error": "Notice not found"}, status=404)
+    except Student.DoesNotExist:
+        return JsonResponse({"error": "Student profile not found"}, status=404)
+    except Teacher.DoesNotExist:
+        return JsonResponse({"error": "Teacher profile not found"}, status=404)

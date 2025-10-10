@@ -80,6 +80,7 @@ def get_dashboard_sections(role):
                 "icon": "edit",
             },
             {"name": "Leave Management", "url": "/leave/manage/", "icon": "calendar"},
+            {"name": "Notice Board", "url": "/notices/board/", "icon": "bell"},
         ],
         "Admin": [
             {"name": "Profile", "url": "/administration/profile/", "icon": "user"},
@@ -103,6 +104,7 @@ def get_dashboard_sections(role):
                 "url": "/leave/manage/",
                 "icon": "check-circle",
             },
+            {"name": "Notice Board", "url": "/notices/board/", "icon": "bell"},
             {"name": "Django Admin", "url": "/admin/", "icon": "cog"},
         ],
     }

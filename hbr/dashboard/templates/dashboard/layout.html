@@ -132,21 +132,39 @@
         document.querySelectorAll('.dismiss-btn').forEach((btn) => {
           btn.addEventListener('click', function () {
             const noticeId = this.getAttribute('data-notice-id')
-            const item = document.querySelector(`.notification-item[data-notice-id="${noticeId}"]`)
-            if (item) {
-              item.style.display = 'none'
-            }
-            // Update badge count
-            const badge = document.querySelector('.notification-badge')
-            if (badge) {
-              const current = parseInt(badge.textContent) || 0
-              if (current > 0) {
-                badge.textContent = current - 1
-                if (current - 1 === 0) {
-                  badge.style.display = 'none'
-                }
+            // Send AJAX request to dismiss
+            fetch(`/notices/dismiss/${noticeId}/`, {
+              method: 'POST',
+              headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json'
               }
-            }
+            })
+              .then((response) => response.json())
+              .then((data) => {
+                if (data.success) {
+                  const item = document.querySelector(`.notification-item[data-notice-id="${noticeId}"]`)
+                  if (item) {
+                    item.style.display = 'none'
+                  }
+                  // Update badge count
+                  const badge = document.querySelector('.notification-badge')
+                  if (badge) {
+                    const current = parseInt(badge.textContent) || 0
+                    if (current > 0) {
+                      badge.textContent = current - 1
+                      if (current - 1 === 0) {
+                        badge.style.display = 'none'
+                      }
+                    }
+                  }
+                } else {
+                  console.error('Failed to dismiss notice:', data.error)
+                }
+              })
+              .catch((error) => {
+                console.error('Error dismissing notice:', error)
+              })
           })
         })
       })

@@ -64,6 +64,7 @@ def user_notifications(request):
                             target_students=student,
                         )
                     )
+                    .exclude(dismissed_by=request.user)
                     .order_by("-created_at")[:5]
                 )
             except Student.DoesNotExist:
@@ -79,6 +80,7 @@ def user_notifications(request):
                             target_teachers=teacher,
                         )
                     )
+                    .exclude(dismissed_by=request.user)
                     .order_by("-created_at")[:5]
                 )
             except Teacher.DoesNotExist:

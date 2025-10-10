@@ -38,7 +38,11 @@
                         
                         
                         
+                        
+                        
                         announcement
+
+
 
 
 
@@ -52,7 +56,11 @@
                         
                         
                         
+                        
+                        
                         individual
+
+
 
 
 
@@ -73,7 +81,11 @@
                           
                           
                           
+                          
+                          
                           active
+
+
 
 
 
@@ -87,7 +99,11 @@
                           
                           
                           
+                          
+                          
                           inactive
+
+
 
 
 
@@ -846,10 +862,28 @@
         document.querySelectorAll('.dismiss-notice-btn').forEach((btn) => {
           btn.addEventListener('click', function () {
             const noticeId = this.getAttribute('data-notice-id')
-            const noticeCard = this.closest('.notice-card')
-            if (noticeCard) {
-              noticeCard.style.display = 'none'
-            }
+            // Send AJAX request to dismiss
+            fetch(`/notices/dismiss/${noticeId}/`, {
+              method: 'POST',
+              headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json'
+              }
+            })
+              .then((response) => response.json())
+              .then((data) => {
+                if (data.success) {
+                  const noticeCard = document.querySelector(`.notice-card .dismiss-notice-btn[data-notice-id="${noticeId}"]`).closest('.notice-card')
+                  if (noticeCard) {
+                    noticeCard.style.display = 'none'
+                  }
+                } else {
+                  console.error('Failed to dismiss notice:', data.error)
+                }
+              })
+              .catch((error) => {
+                console.error('Error dismissing notice:', error)
+              })
           })
         })
       })

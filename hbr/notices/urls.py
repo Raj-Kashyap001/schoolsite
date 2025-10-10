@@ -14,4 +14,5 @@ urlpatterns = [
         views.download_notice_attachment,
         name="download_notice_attachment",
     ),
+    path("dismiss/<int:notice_id>/", views.dismiss_notice, name="dismiss_notice"),
 ]

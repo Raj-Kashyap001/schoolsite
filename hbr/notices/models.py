@@ -52,5 +52,12 @@ class Notice(models.Model):
     def __str__(self):
         return f"{self.title} ({self.notice_type})"
 
+    dismissed_by = models.ManyToManyField(
+        User,
+        related_name="dismissed_notices",
+        blank=True,
+        help_text="Users who have dismissed this notice",
+    )
+
     class Meta:
         ordering = ["-created_at"]
