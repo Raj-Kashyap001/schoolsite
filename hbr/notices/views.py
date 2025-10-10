@@ -1,4 +1,4 @@
-from django.http import HttpRequest, HttpResponse, FileResponse
+from django.http import HttpRequest, HttpResponse, FileResponse, JsonResponse
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -18,13 +18,18 @@ def notice_board(request: HttpRequest):
     if role == "Student":
         try:
             student = Student.objects.get(user=request.user)
-            # Get all active notices that are either announcements or targeted to this student
+            # Get all active notices that are targeted to this student
             notices = (
                 Notice.objects.filter(is_active=True)
                 .filter(
-                    Q(notice_type=Notice.NoticeType.ANNOUNCEMENT)
+                    Q(notice_type=Notice.NoticeType.PUBLIC)
+                    | Q(notice_type=Notice.NoticeType.ALL_STUDENTS)
                     | Q(
-                        notice_type=Notice.NoticeType.INDIVIDUAL,
+                        notice_type=Notice.NoticeType.CLASS_STUDENTS,
+                        target_class=student.classroom,
+                    )
+                    | Q(
+                        notice_type=Notice.NoticeType.INDIVIDUAL_STUDENT,
                         target_students=student,
                     )
                 )
@@ -39,10 +44,19 @@ def notice_board(request: HttpRequest):
     elif role == "Teacher":
         try:
             teacher = Teacher.objects.get(user=request.user)
-            # Teachers see all active announcements
-            notices = Notice.objects.filter(
-                is_active=True, notice_type=Notice.NoticeType.ANNOUNCEMENT
-            ).order_by("-created_at")
+            # Teachers see notices targeted to them
+            notices = (
+                Notice.objects.filter(is_active=True)
+                .filter(
+                    Q(notice_type=Notice.NoticeType.PUBLIC)
+                    | Q(notice_type=Notice.NoticeType.ALL_TEACHERS)
+                    | Q(
+                        notice_type=Notice.NoticeType.INDIVIDUAL_TEACHER,
+                        target_teachers=teacher,
+                    )
+                )
+                .order_by("-created_at")
+            )
             context["notices"] = notices  # type: ignore
             context["teacher"] = teacher  # type: ignore
         except Teacher.DoesNotExist:
@@ -101,6 +115,7 @@ def create_notice(request: HttpRequest):
                     if request.POST.get("clear_attachment") == "true":
                         updated_notice.attachment = None
                     updated_notice.save()
+                    form.save_m2m()
                     messages.success(request, "Notice updated successfully.")
                     return redirect("notices:notice_board")
             except Notice.DoesNotExist:
@@ -113,6 +128,7 @@ def create_notice(request: HttpRequest):
                 notice = form.save(commit=False)
                 notice.created_by = request.user
                 notice.save()
+                form.save_m2m()
                 messages.success(request, "Notice created successfully.")
                 return redirect("notices:notice_board")
     else:
@@ -136,6 +152,42 @@ def bulk_delete_notices(request: HttpRequest):
         return redirect("notices:notice_board")
 
     return HttpResponse("Invalid request", status=400)
+
+
+@login_required
+def search_students(request: HttpRequest):
+    """API endpoint for searching students"""
+    if request.method != "GET":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    query = request.GET.get("q", "").strip()
+    if not query:
+        return JsonResponse({"students": []})
+
+    # Search students by name, roll number, or class
+    students = Student.objects.select_related("classroom", "user").filter(
+        Q(user__first_name__icontains=query)
+        | Q(user__last_name__icontains=query)
+        | Q(roll_no__icontains=query)
+        | Q(classroom__grade__icontains=query)
+        | Q(classroom__section__icontains=query)
+    )[
+        :20
+    ]  # Limit results
+
+    students_data = []
+    for student in students:
+        students_data.append(
+            {
+                "id": student.id,
+                "name": student.user.get_full_name(),
+                "roll_no": student.roll_no,
+                "classroom": str(student.classroom),
+                "display": f"{student.user.get_full_name()} (Roll: {student.roll_no}, Class: {student.classroom})",
+            }
+        )
+
+    return JsonResponse({"students": students_data})
 
 
 @login_required

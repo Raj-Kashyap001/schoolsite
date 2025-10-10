@@ -1,5 +1,9 @@
 from academics.models import AcademicSession
 from datetime import date
+from notices.models import Notice
+from students.models import Student
+from teachers.models import Teacher
+from django.db.models import Q
 
 
 def get_user_role(user):
@@ -42,4 +46,49 @@ def user_role(request):
     """Context processor to add user role to all templates"""
     if request.user.is_authenticated:
         return {"role": get_user_role(request.user)}
+    return {}
+
+
+def user_notifications(request):
+    """Context processor to add user notifications to all templates"""
+    if request.user.is_authenticated:
+        role = get_user_role(request.user)
+        if role == "Student":
+            try:
+                student = Student.objects.get(user=request.user)
+                notifications = (
+                    Notice.objects.filter(is_active=True)
+                    .filter(
+                        Q(
+                            notice_type=Notice.NoticeType.INDIVIDUAL_STUDENT,
+                            target_students=student,
+                        )
+                    )
+                    .order_by("-created_at")[:5]
+                )
+            except Student.DoesNotExist:
+                notifications = Notice.objects.none()
+        elif role == "Teacher":
+            try:
+                teacher = Teacher.objects.get(user=request.user)
+                notifications = (
+                    Notice.objects.filter(is_active=True)
+                    .filter(
+                        Q(
+                            notice_type=Notice.NoticeType.INDIVIDUAL_TEACHER,
+                            target_teachers=teacher,
+                        )
+                    )
+                    .order_by("-created_at")[:5]
+                )
+            except Teacher.DoesNotExist:
+                notifications = Notice.objects.none()
+        elif role == "Admin":
+            notifications = Notice.objects.filter(is_active=True).order_by(
+                "-created_at"
+            )[:5]
+        else:
+            notifications = Notice.objects.none()
+
+        return {"notifications": notifications}
     return {}

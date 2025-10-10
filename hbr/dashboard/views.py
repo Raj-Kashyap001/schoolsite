@@ -4,8 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Count, Q, Sum, Avg
 from django.utils import timezone
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, date, timedelta
 from django.core.serializers.json import DjangoJSONEncoder
 import json
 from base.views import get_user_role
@@ -15,6 +14,7 @@ from teachers.models import Teacher
 from attendance.models import Attendance
 from leave.models import Leave
 from notices.models import Notice
+from django.db.models import Q
 
 
 def get_current_session():
@@ -91,7 +91,7 @@ def get_dashboard_sections(role):
             {
                 "name": "Teacher Management",
                 "url": "/teachers/management/",
-                "icon": "users",
+                "icon": "user",
             },
             {
                 "name": "Mark Teacher Attendance",
@@ -103,7 +103,7 @@ def get_dashboard_sections(role):
                 "url": "/leave/manage/",
                 "icon": "check-circle",
             },
-            {"name": "All Sections", "url": "/admin/", "icon": "settings"},
+            {"name": "Django Admin", "url": "/admin/", "icon": "cog"},
         ],
     }
     return sections.get(role, [])
@@ -361,20 +361,19 @@ def calculate_student_attendance_percentage(student):
 
 def get_student_performance_data(student):
     """Get student's performance trend"""
-    results = ExamResult.objects.filter(student=student).order_by("exam__exam_date")[
-        :10
-    ]
+    # Order by exam name since exam_date field doesn't exist
+    results = ExamResult.objects.filter(student=student).order_by("exam__name")[:10]
     data = []
 
     for result in results:
         data.append(
             {
                 "exam": (
-                    result.exam.title[:15] + "..."
-                    if len(result.exam.title) > 15
-                    else result.exam.title
+                    result.exam.name[:15] + "..."
+                    if len(result.exam.name) > 15
+                    else result.exam.name
                 ),
-                "marks": result.marks or 0,
+                "marks": result.marks_obtained or 0,
                 "grade": result.grade or "N/A",
             }
         )
@@ -438,6 +437,16 @@ def get_recent_activity_admin():
             }
         )
 
+    # Convert all times to datetime for consistent sorting
+    for activity in activities:
+        if isinstance(activity["time"], date) and not isinstance(
+            activity["time"], datetime
+        ):
+            # Convert date to datetime
+            activity["time"] = timezone.make_aware(
+                datetime.combine(activity["time"], datetime.min.time())
+            )
+
     return sorted(activities, key=lambda x: x["time"], reverse=True)[:5]
 
 
@@ -452,7 +461,7 @@ def get_recent_activity_teacher(teacher):
             {
                 "type": "attendance",
                 "message": f"Marked attendance for {att.student.user.get_full_name()}",
-                "time": att.created_at,
+                "time": att.date,
                 "status": "completed",
             }
         )
@@ -471,6 +480,16 @@ def get_recent_activity_teacher(teacher):
             }
         )
 
+    # Convert all times to datetime for consistent sorting
+    for activity in activities:
+        if isinstance(activity["time"], date) and not isinstance(
+            activity["time"], datetime
+        ):
+            # Convert date to datetime
+            activity["time"] = timezone.make_aware(
+                datetime.combine(activity["time"], datetime.min.time())
+            )
+
     return sorted(activities, key=lambda x: x["time"], reverse=True)[:5]
 
 
@@ -485,7 +504,7 @@ def get_recent_activity_student(student):
             {
                 "type": "attendance",
                 "message": f"Attendance marked: {att.status.title()}",
-                "time": att.created_at,
+                "time": att.date,
                 "status": att.status,
             }
         )
@@ -504,7 +523,59 @@ def get_recent_activity_student(student):
             }
         )
 
+    # Convert all times to datetime for consistent sorting
+    for activity in activities:
+        if isinstance(activity["time"], date) and not isinstance(
+            activity["time"], datetime
+        ):
+            # Convert date to datetime
+            activity["time"] = timezone.make_aware(
+                datetime.combine(activity["time"], datetime.min.time())
+            )
+
     return sorted(activities, key=lambda x: x["time"], reverse=True)[:5]
+
+
+def get_user_notifications(user, role):
+    """Get personal notifications for the user based on role"""
+    if role == "Student":
+        try:
+            student = Student.objects.get(user=user)
+            notifications = (
+                Notice.objects.filter(is_active=True)
+                .filter(
+                    Q(
+                        notice_type=Notice.NoticeType.INDIVIDUAL_STUDENT,
+                        target_students=student,
+                    )
+                )
+                .order_by("-created_at")[:5]
+            )
+        except Student.DoesNotExist:
+            notifications = Notice.objects.none()
+    elif role == "Teacher":
+        try:
+            teacher = Teacher.objects.get(user=user)
+            notifications = (
+                Notice.objects.filter(is_active=True)
+                .filter(
+                    Q(
+                        notice_type=Notice.NoticeType.INDIVIDUAL_TEACHER,
+                        target_teachers=teacher,
+                    )
+                )
+                .order_by("-created_at")[:5]
+            )
+        except Teacher.DoesNotExist:
+            notifications = Notice.objects.none()
+    elif role == "Admin":
+        notifications = Notice.objects.filter(is_active=True).order_by("-created_at")[
+            :5
+        ]
+    else:
+        notifications = Notice.objects.none()
+
+    return notifications
 
 
 @login_required

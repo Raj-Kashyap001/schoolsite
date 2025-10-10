@@ -75,6 +75,7 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "base.context_processors.current_session",
                 "base.context_processors.user_role",
+                "base.context_processors.user_notifications",
             ],
         },
     },

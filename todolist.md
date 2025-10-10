@@ -7,3 +7,4 @@
 - [ ] Make My Exams Page query result more intuitive.
 - [x] Fix ux issue in class management
 - [x] Make setting section last
+- [ ] Depcheck the add student form
