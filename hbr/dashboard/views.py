@@ -6,7 +6,6 @@ from django.db.models import Count, Q, Sum, Avg
 from django.utils import timezone
 from datetime import datetime, date, timedelta
 from django.core.serializers.json import DjangoJSONEncoder
-import json
 from base.views import get_user_role
 from academics.models import AcademicSession, ExamResult, ExamAssignment
 from students.models import Student
@@ -571,9 +570,12 @@ def get_user_notifications(user, role):
         except Teacher.DoesNotExist:
             notifications = Notice.objects.none()
     elif role == "Admin":
-        notifications = Notice.objects.filter(is_active=True).order_by("-created_at")[
-            :5
-        ]
+        notifications = (
+            Notice.objects.filter(is_active=True)
+            .exclude(notice_type=Notice.NoticeType.SYSTEM_ALERT)
+            .exclude(dismissed_by=user)
+            .order_by("-created_at")[:5]
+        )
     else:
         notifications = Notice.objects.none()
 

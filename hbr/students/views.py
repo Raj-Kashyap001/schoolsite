@@ -37,6 +37,7 @@ from .models import (
     Certificate,
     CertificateType,
 )
+from notices.models import Notice
 from teachers.models import Teacher
 from .data_utils import (
     handle_certificate_request,
@@ -210,6 +211,38 @@ def download_receipt(request: HttpRequest, payment_id: int):
         return HttpResponse("Student profile not found", status=404)
 
     return generate_receipt_pdf_response(payment)
+
+
+@login_required
+def cancel_certificate(request: HttpRequest, certificate_id: int):
+    """Cancel a pending certificate request."""
+    role = get_user_role(request.user)
+    if role != "Student":
+        return JsonResponse({"success": False, "error": "Access denied"}, status=403)
+
+    if request.method != "POST":
+        return JsonResponse(
+            {"success": False, "error": "Method not allowed"}, status=405
+        )
+
+    try:
+        student = Student.objects.get(user=request.user)
+        certificate = Certificate.objects.get(
+            id=certificate_id, student=student, status="PENDING"
+        )
+        certificate.delete()
+        return JsonResponse({"success": True})
+    except Student.DoesNotExist:
+        return JsonResponse(
+            {"success": False, "error": "Student profile not found"}, status=404
+        )
+    except Certificate.DoesNotExist:
+        return JsonResponse(
+            {"success": False, "error": "Certificate not found or not cancellable"},
+            status=404,
+        )
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
 
 
 @login_required
@@ -716,6 +749,13 @@ def manage_student_documents(request: HttpRequest, student_id: int):
             document = form.save(commit=False)
             document.student = student
             document.save()
+            # Create system alert for admin
+            Notice.objects.create(
+                title=f"Document Uploaded: {student.user.get_full_name()}",
+                content=f"Student {student.user.get_full_name()} (Roll: {student.roll_no}, Class: {student.classroom}) has uploaded a document: {document.name}.",
+                notice_type=Notice.NoticeType.SYSTEM_ALERT,
+                created_by=request.user,
+            )
             messages.success(request, "Document uploaded successfully.")
             return redirect("students:manage_student_documents", student_id=student.id)
         else:
@@ -782,8 +822,10 @@ def manage_student_certificates(request: HttpRequest, student_id: int):
         return process_certificate_actions(request, student)
 
     certificates = Certificate.objects.filter(student=student).order_by("-issued_date")
-    available_types = CertificateType.objects.filter(is_active=True).exclude(
-        id__in=certificates.values_list("certificate_type_id", flat=True)
+    available_types = (
+        CertificateType.objects.filter(is_active=True)
+        .exclude(id__in=certificates.values_list("certificate_type_id", flat=True))
+        .exclude(name__exact="")
     )
 
     context = {
@@ -1163,6 +1205,68 @@ def import_students(request: HttpRequest):
         "role": role,
     }
     return render(request, "students/import_students.html", context)
+
+
+@login_required
+def manage_certificate_types(request: HttpRequest):
+    """Admin view for managing certificate types"""
+    role = get_user_role(request.user)
+
+    if role != "Admin":
+        return HttpResponse("Access denied", status=403)
+
+    if request.method == "POST":
+        if "create" in request.POST:
+            name = request.POST.get("name", "").strip()
+            description = request.POST.get("description", "").strip()
+            html_template = request.POST.get("html_template", "").strip()
+            if name:
+                CertificateType.objects.create(
+                    name=name,
+                    description=description,
+                    html_template=html_template,
+                )
+                messages.success(
+                    request, f"Certificate type '{name}' created successfully."
+                )
+        elif "update" in request.POST:
+            type_id = request.POST.get("type_id")
+            name = request.POST.get("name", "").strip()
+            description = request.POST.get("description", "").strip()
+            html_template = request.POST.get("html_template", "").strip()
+            is_active = request.POST.get("is_active") == "on"
+            try:
+                cert_type = CertificateType.objects.get(id=type_id)
+                cert_type.name = name
+                cert_type.description = description
+                cert_type.html_template = html_template
+                cert_type.is_active = is_active
+                cert_type.save()
+                messages.success(
+                    request, f"Certificate type '{name}' updated successfully."
+                )
+            except CertificateType.DoesNotExist:
+                messages.error(request, "Certificate type not found.")
+        elif "delete" in request.POST:
+            type_id = request.POST.get("type_id")
+            try:
+                cert_type = CertificateType.objects.get(id=type_id)
+                cert_type.delete()
+                messages.success(
+                    request,
+                    f"Certificate type '{cert_type.name}' deleted successfully.",
+                )
+            except CertificateType.DoesNotExist:
+                messages.error(request, "Certificate type not found.")
+
+        return redirect("students:manage_certificate_types")
+
+    certificate_types = CertificateType.objects.all().order_by("name")
+    context = {
+        "certificate_types": certificate_types,
+        "role": role,
+    }
+    return render(request, "students/manage_certificate_types.html", context)
 
 
 @login_required

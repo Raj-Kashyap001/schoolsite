@@ -7,6 +7,11 @@ urlpatterns = [
     path("profile/", views.profile, name="profile"),
     path("documents/", views.documents, name="documents"),
     path("certificates/", views.certificates, name="certificates"),
+    path(
+        "certificates/cancel/<int:certificate_id>/",
+        views.cancel_certificate,
+        name="cancel_certificate",
+    ),
     path("payments/", views.payments, name="payments"),
     path(
         "download-receipt/<int:payment_id>/",
@@ -56,5 +61,10 @@ urlpatterns = [
         "certificates/<int:student_id>/",
         views.manage_student_certificates,
         name="manage_student_certificates",
+    ),
+    path(
+        "certificate-types/",
+        views.manage_certificate_types,
+        name="manage_certificate_types",
     ),
 ]

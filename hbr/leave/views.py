@@ -14,6 +14,7 @@ from base.views import get_user_role
 from .models import Leave
 from students.models import Student
 from teachers.models import Teacher
+from notices.models import Notice
 
 
 @login_required
@@ -117,11 +118,18 @@ def leave(request: HttpRequest):
                         {"success": False, "error": "All fields are required"}
                     )
                 try:
-                    Leave.objects.create(
+                    leave = Leave.objects.create(
                         teacher=teacher,
                         reason=reason,
                         from_date=from_date,
                         to_date=to_date,
+                    )
+                    # Create system alert for admin
+                    Notice.objects.create(
+                        title=f"Leave Application: {teacher.user.get_full_name()}",
+                        content=f"Teacher {teacher.user.get_full_name()} has applied for leave from {from_date} to {to_date}. Reason: {reason}",
+                        notice_type=Notice.NoticeType.SYSTEM_ALERT,
+                        created_by=request.user,
                     )
                     return JsonResponse({"success": True})
                 except Exception as e:

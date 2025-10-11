@@ -9,6 +9,7 @@ urlpatterns = [
     path("search-students/", views.search_students, name="search_students"),
     path("bulk-delete/", views.bulk_delete_notices, name="bulk_delete_notices"),
     path("bulk-disable/", views.bulk_disable_notices, name="bulk_disable_notices"),
+    path("bulk-enable/", views.bulk_enable_notices, name="bulk_enable_notices"),
     path(
         "attachment/<int:notice_id>/",
         views.download_notice_attachment,

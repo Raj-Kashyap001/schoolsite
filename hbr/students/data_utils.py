@@ -16,6 +16,7 @@ from .models import (
     Payment,
     Student,
 )
+from notices.models import Notice
 
 
 def prepare_student_profile_data(student, user):
@@ -72,6 +73,13 @@ def handle_certificate_request(student, request):
                     certificate_type=certificate_type,
                     status="PENDING",
                 )
+                # Create system alert for admin
+                Notice.objects.create(
+                    title=f"Certificate Request: {student.user.get_full_name()} (ID: {student.id})",
+                    content=f"Student {student.user.get_full_name()} (Roll: {student.roll_no}, Class: {student.classroom}) has requested a certificate: {certificate_type.name}.",
+                    notice_type=Notice.NoticeType.SYSTEM_ALERT,
+                    created_by=request.user,
+                )
                 messages.success(
                     request,
                     f"{certificate_type.name} request submitted successfully!",
@@ -94,8 +102,10 @@ def get_student_certificates(student):
     )
     issued_certificates = all_certificates.filter(status="PENDING")
     my_certificates = all_certificates.filter(status="APPROVED")
-    available_types = CertificateType.objects.filter(is_active=True).exclude(
-        id__in=all_certificates.values_list("certificate_type_id", flat=True)
+    available_types = (
+        CertificateType.objects.filter(is_active=True)
+        .exclude(id__in=all_certificates.values_list("certificate_type_id", flat=True))
+        .exclude(name__exact="")
     )
 
     return {

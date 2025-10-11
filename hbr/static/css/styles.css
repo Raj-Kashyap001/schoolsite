@@ -5327,6 +5327,7 @@ html::-webkit-scrollbar-thumb {
   .header-content {
     display: flex;
     align-items: center;
+    justify-content: center !important;
     gap: 1.5rem;
   }
 

@@ -1,0 +1,260 @@
+{% extends 'dashboard/layout.html' %}
+
+{% block content %}
+  <div class="certificate-types-container">
+    <h1>Manage Certificate Types</h1>
+
+    <button id="add-type-btn" class="btn btn-primary">Add New Certificate Type</button>
+
+    <div class="certificate-types-list">
+      {% for cert_type in certificate_types %}
+        <div class="certificate-type-card">
+          <div class="card-header">
+            <h3>{{ cert_type.name }}</h3>
+            <div class="card-actions">
+              <button class="btn btn-sm btn-outline edit-btn" data-id="{{ cert_type.id }}" data-name="{{ cert_type.name }}" data-description="{{ cert_type.description }}" data-template="{{ cert_type.html_template }}" data-active="{{ cert_type.is_active }}">Edit</button>
+              <button class="btn btn-sm btn-danger delete-btn" data-id="{{ cert_type.id }}" data-name="{{ cert_type.name }}">Delete</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <p>
+              <strong>Description:</strong> {{ cert_type.description|default:'No description' }}
+            </p>
+            <p>
+              <strong>Status:</strong> <span class="status-{{ cert_type.is_active|yesno:'active,inactive' }}">{{ cert_type.is_active|yesno:'Active,Inactive' }}</span>
+            </p>
+            {% if cert_type.html_template %}
+              <details>
+                <summary>HTML Template</summary>
+                <pre>{{ cert_type.html_template }}</pre>
+              </details>
+            {% endif %}
+          </div>
+        </div>
+      {% empty %}
+        <p>No certificate types found.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Add/Edit Modal -->
+  <div id="type-modal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <h2 id="modal-title">Add Certificate Type</h2>
+      <form id="type-form" method="post">
+        {% csrf_token %}
+        <input type="hidden" id="type-id" name="type_id" value="" />
+        <div class="form-group">
+          <label for="name">Name</label>
+          <input type="text" id="name" name="name" required />
+        </div>
+        <div class="form-group">
+          <label for="description">Description</label>
+          <textarea id="description" name="description" rows="3"></textarea>
+        </div>
+        <div class="form-group">
+          <label for="html_template">HTML Template</label>
+          <textarea id="html_template" name="html_template" rows="10" placeholder="Use placeholders like {{ student_name }}, {{ class }}, {{ date }}, {{ roll_no }}, etc."></textarea>
+          <small class="help-text">Available placeholders: {{ student_name }}, {{ father_name }}, {{ mother_name }}, {{ class }}, {{ roll_no }}, {{ admission_no }}, {{ date }}, {{ school_name }}</small>
+        </div>
+        <div class="form-group">
+          <label><input type="checkbox" id="is_active" name="is_active" checked />Active</label>
+        </div>
+        <button type="submit" id="submit-btn" name="create" class="btn btn-primary">Create</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete Modal -->
+  <div id="delete-modal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <h2>Delete Certificate Type</h2>
+      <p>
+        Are you sure you want to delete "<span id="delete-name"></span>"?
+      </p>
+      <form id="delete-form" method="post">
+        {% csrf_token %}
+        <input type="hidden" name="type_id" id="delete-type-id" />
+        <button type="submit" name="delete" class="btn btn-danger">Delete</button>
+        <button type="button" class="btn btn-outline" onclick="closeDeleteModal()">Cancel</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // Modal functionality
+    const modal = document.getElementById('type-modal')
+    const deleteModal = document.getElementById('delete-modal')
+    const addBtn = document.getElementById('add-type-btn')
+    const closeBtns = document.getElementsByClassName('close')
+    const form = document.getElementById('type-form')
+    const submitBtn = document.getElementById('submit-btn')
+    const modalTitle = document.getElementById('modal-title')
+    
+    addBtn.onclick = function () {
+      resetModal()
+      modal.style.display = 'block'
+    }
+    
+    Array.from(closeBtns).forEach((btn) => {
+      btn.onclick = function () {
+        modal.style.display = 'none'
+        deleteModal.style.display = 'none'
+      }
+    })
+    
+    window.onclick = function (event) {
+      if (event.target == modal) {
+        modal.style.display = 'none'
+      }
+      if (event.target == deleteModal) {
+        deleteModal.style.display = 'none'
+      }
+    }
+    
+    function resetModal() {
+      form.reset()
+      document.getElementById('type-id').value = ''
+      modalTitle.textContent = 'Add Certificate Type'
+      submitBtn.textContent = 'Create'
+    }
+    
+    // Edit functionality
+    document.querySelectorAll('.edit-btn').forEach((btn) => {
+      btn.onclick = function () {
+        const data = this.dataset
+        document.getElementById('type-id').value = data.id
+        document.getElementById('name').value = data.name
+        document.getElementById('description').value = data.description
+        document.getElementById('html_template').value = data.template
+        document.getElementById('is_active').checked = data.active === 'True'
+        modalTitle.textContent = 'Edit Certificate Type'
+        submitBtn.textContent = 'Update'
+        modal.style.display = 'block'
+      }
+    })
+    
+    // Delete functionality
+    document.querySelectorAll('.delete-btn').forEach((btn) => {
+      btn.onclick = function () {
+        const data = this.dataset
+        document.getElementById('delete-name').textContent = data.name
+        document.getElementById('delete-type-id').value = data.id
+        deleteModal.style.display = 'block'
+      }
+    })
+    
+    function closeDeleteModal() {
+      deleteModal.style.display = 'none'
+    }
+  </script>
+
+  <style>
+    .certificate-types-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    
+      h1 {
+        text-align: center;
+        margin-bottom: 1rem;
+        margin-left: 0.5rem;
+      }
+    }
+    
+    .certificate-types-list {
+      margin-top: 20px;
+    }
+    
+    .certificate-type-card {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      background: white;
+    }
+    
+    .card-header {
+      padding: 15px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .card-header h3 {
+      margin: 0;
+    }
+    
+    .card-actions {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .card-body {
+      padding: 15px;
+    }
+    
+    .status-active {
+      color: green;
+      font-weight: bold;
+    }
+    
+    .status-inactive {
+      color: red;
+      font-weight: bold;
+    }
+    
+    .modal-content {
+      max-width: 600px;
+    }
+    
+    .form-group {
+      margin-bottom: 15px;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    
+    .form-group input[type='text'],
+    .form-group textarea {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-family: monospace;
+    }
+    
+    .form-group textarea {
+      font-family: 'Courier New', monospace;
+    }
+    
+    .help-text {
+      display: block;
+      margin-top: 5px;
+      font-size: 0.9em;
+      color: #666;
+    }
+    
+    pre {
+      background: #f8f8f8;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+      font-size: 0.9em;
+    }
+    
+    details {
+      margin-top: 10px;
+    }
+    
+    summary {
+      cursor: pointer;
+      font-weight: bold;
+    }
+  </style>
+{% endblock %}

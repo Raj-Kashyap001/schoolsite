@@ -65,8 +65,10 @@ def notice_board(request: HttpRequest):
             context["error"] = "Teacher profile not found"
 
     elif role == "Admin":
-        # Admins see all notices
-        notices = Notice.objects.all().order_by("-created_at")
+        # Admins see all notices except system alerts
+        notices = Notice.objects.exclude(
+            notice_type=Notice.NoticeType.SYSTEM_ALERT
+        ).order_by("-created_at")
         context["notices"] = notices  # type: ignore
         context["role"] = role  # type: ignore
         context["form"] = NoticeForm()  # type: ignore
@@ -134,7 +136,7 @@ def create_notice(request: HttpRequest):
                 messages.success(request, "Notice created successfully.")
                 return redirect("notices:notice_board")
     else:
-        form = NoticeForm()
+        form = NoticeForm(user=request.user)
 
     context = {"form": form, "role": role}
     return render(request, "notices/notice_board.html", context)
@@ -203,6 +205,22 @@ def bulk_disable_notices(request: HttpRequest):
         if notice_ids:
             Notice.objects.filter(id__in=notice_ids).update(is_active=False)
             messages.success(request, f"Disabled {len(notice_ids)} notice(s).")
+        return redirect("notices:notice_board")
+
+    return HttpResponse("Invalid request", status=400)
+
+
+@login_required
+def bulk_enable_notices(request: HttpRequest):
+    role = get_user_role(request.user)
+    if role != "Admin":
+        return HttpResponse("Access denied", status=403)
+
+    if request.method == "POST":
+        notice_ids = request.POST.getlist("notice_ids")
+        if notice_ids:
+            Notice.objects.filter(id__in=notice_ids).update(is_active=True)
+            messages.success(request, f"Enabled {len(notice_ids)} notice(s).")
         return redirect("notices:notice_board")
 
     return HttpResponse("Invalid request", status=400)

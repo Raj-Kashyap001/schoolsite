@@ -333,7 +333,7 @@ def generate_student_profile_pdf(student_data, user_data):
 
 def generate_certificate_pdf(student, certificate_type):
     """
-    Generate a certificate PDF for a student.
+    Generate a certificate PDF for a student using HTML template.
 
     Args:
         student: Student model instance
@@ -341,6 +341,118 @@ def generate_certificate_pdf(student, certificate_type):
 
     Returns:
         BytesIO buffer containing the PDF
+    """
+    import pdfkit
+    from django.template import Template, Context
+    from datetime import datetime
+
+    # Prepare template context
+    context = {
+        "student_name": student.user.get_full_name(),
+        "father_name": student.father_name,
+        "mother_name": student.mother_name,
+        "class": str(student.classroom),
+        "roll_no": student.roll_no,
+        "admission_no": student.admission_no,
+        "date": datetime.now().strftime("%d %B %Y"),
+        "school_name": "HBR Public School",
+    }
+
+    # Use HTML template if available, otherwise use default
+    if certificate_type.html_template:
+        template = Template(certificate_type.html_template)
+        html_content = template.render(Context(context))
+    else:
+        # Default template
+        description_html = (
+            f'<p class="content">{certificate_type.description}</p>'
+            if certificate_type.description
+            else ""
+        )
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body {{
+                    font-family: Arial, sans-serif;
+                    text-align: center;
+                    padding: 50px;
+                    background: #f9f9f9;
+                }}
+                .certificate {{
+                    background: white;
+                    padding: 40px;
+                    border: 5px solid #8F403C;
+                    max-width: 800px;
+                    margin: 0 auto;
+                }}
+                h1 {{
+                    color: #8F403C;
+                    font-size: 36px;
+                    margin-bottom: 20px;
+                }}
+                .student-name {{
+                    font-size: 28px;
+                    font-weight: bold;
+                    color: #8F403C;
+                    margin: 20px 0;
+                }}
+                .content {{
+                    font-size: 18px;
+                    line-height: 1.6;
+                    margin: 20px 0;
+                }}
+                .signature {{
+                    margin-top: 50px;
+                    font-size: 16px;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="certificate">
+                <h1>HBR Public School</h1>
+                <h2>Certificate of Achievement</h2>
+                <p class="content">This is to certify that</p>
+                <p class="student-name">{context['student_name']}</p>
+                <p class="content">has successfully completed the requirements for</p>
+                <h3>{certificate_type.name}</h3>
+                {description_html}
+                <p class="content">Issued on: {context['date']}</p>
+                <div class="signature">
+                    <p>___________________________</p>
+                    <p>Principal</p>
+                    <p>HBR Public School</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+
+    # Generate PDF from HTML
+    options = {
+        "page-size": "A4",
+        "margin-top": "1in",
+        "margin-right": "1in",
+        "margin-bottom": "1in",
+        "margin-left": "1in",
+        "encoding": "UTF-8",
+    }
+
+    try:
+        pdf_data = pdfkit.from_string(html_content, False, options=options)
+        buffer = BytesIO(pdf_data)
+        buffer.seek(0)
+        return buffer
+    except Exception as e:
+        # Fallback to ReportLab if pdfkit fails
+        print(f"PDFKit failed: {e}, using ReportLab fallback")
+        return generate_certificate_pdf_fallback(student, certificate_type)
+
+
+def generate_certificate_pdf_fallback(student, certificate_type):
+    """
+    Fallback certificate generation using ReportLab.
     """
     buffer = BytesIO()
     doc = SimpleDocTemplate(
@@ -356,9 +468,7 @@ def generate_certificate_pdf(student, certificate_type):
 
     # Color Palette
     PRIMARY_COLOR = colors.HexColor("#8F403C")  # Deep Maroon
-    SECONDARY_COLOR = colors.HexColor("#F4F9FA")  # Light Blue-Gray
     DARK_TEXT = colors.HexColor("#333333")
-    LIGHT_TEXT = colors.HexColor("#9CA3AF")
 
     # Styles
     school_title_style = ParagraphStyle(
@@ -405,7 +515,7 @@ def generate_certificate_pdf(student, certificate_type):
     story.append(Spacer(1, 0.5 * inch))
 
     # Certificate Title
-    story.append(Paragraph("Certificate of Achievement", certificate_title_style))
+    story.append(Paragraph(certificate_type.name, certificate_title_style))
     story.append(Spacer(1, 0.5 * inch))
 
     # Body Text
@@ -417,12 +527,6 @@ def generate_certificate_pdf(student, certificate_type):
     story.append(Paragraph(full_name, student_name_style))
 
     # Certificate Type Description
-    story.append(
-        Paragraph("has successfully completed the requirements for", body_style)
-    )
-    story.append(Spacer(1, 0.25 * inch))
-    story.append(Paragraph(certificate_type.name, certificate_title_style))
-
     if certificate_type.description:
         story.append(Spacer(1, 0.25 * inch))
         story.append(Paragraph(certificate_type.description, body_style))

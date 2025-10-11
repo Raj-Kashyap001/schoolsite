@@ -86,9 +86,13 @@ def user_notifications(request):
             except Teacher.DoesNotExist:
                 notifications = Notice.objects.none()
         elif role == "Admin":
-            notifications = Notice.objects.filter(is_active=True).order_by(
-                "-created_at"
-            )[:5]
+            notifications = (
+                Notice.objects.filter(
+                    is_active=True, notice_type=Notice.NoticeType.SYSTEM_ALERT
+                )
+                .exclude(dismissed_by=request.user)
+                .order_by("-created_at")[:5]
+            )
         else:
             notifications = Notice.objects.none()
 

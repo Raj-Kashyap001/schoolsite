@@ -22,6 +22,7 @@ from .models import (
 )
 from students.models import Student, Classroom
 from teachers.models import Teacher
+from notices.models import Notice
 from dashboard.pdf_utils import (
     generate_exam_timetable_pdf,
     generate_admit_card_pdf as dashboard_generate_admit_card_pdf,
@@ -780,6 +781,15 @@ def save_exam_results(request: HttpRequest, exam_id: int, classroom_id: int):
                     result.submitted_at = timezone.now()
 
                 result.save()
+
+        # If action was "lock", create system alert for admin
+        if action == "lock":
+            Notice.objects.create(
+                title=f"Exam Results Locked: {exam.name} - {classroom}",
+                content=f"Teacher {request.user.get_full_name()} has locked the exam results for {exam.name} in class {classroom}.",
+                notice_type=Notice.NoticeType.SYSTEM_ALERT,
+                created_by=request.user,
+            )
 
         return JsonResponse({"success": True})
     except (Teacher.DoesNotExist, Exam.DoesNotExist, Classroom.DoesNotExist):

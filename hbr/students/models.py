@@ -117,6 +117,10 @@ class Document(models.Model):
 class CertificateType(models.Model):
     name = models.CharField(max_length=255, unique=True)
     description = models.TextField(blank=True)
+    html_template = models.TextField(
+        blank=True,
+        help_text="HTML template with placeholders like {{student_name}}, {{class}}, {{date}}",
+    )
     is_active = models.BooleanField(default=True)
 
     def __str__(self):

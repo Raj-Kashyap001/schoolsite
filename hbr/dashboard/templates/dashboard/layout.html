@@ -34,7 +34,7 @@
               <div class="notification-list">
                 {% for notice in notifications %}
                   <div class="notification-item" data-notice-id="{{ notice.id }}">
-                    <div class="notification-content">
+                    <div class="notification-content" style="cursor: pointer;">
                       <h5>{{ notice.title }}</h5>
                       <p>{{ notice.content|truncatechars:50 }}</p>
                       <span class="notification-date">{{ notice.created_at|date:'M d, Y' }}</span>
@@ -130,7 +130,8 @@
       // Dismiss notification
       document.addEventListener('DOMContentLoaded', function () {
         document.querySelectorAll('.dismiss-btn').forEach((btn) => {
-          btn.addEventListener('click', function () {
+          btn.addEventListener('click', function (e) {
+            e.stopPropagation() // Prevent triggering content click
             const noticeId = this.getAttribute('data-notice-id')
             // Send AJAX request to dismiss
             fetch(`/notices/dismiss/${noticeId}/`, {
@@ -165,6 +166,27 @@
               .catch((error) => {
                 console.error('Error dismissing notice:', error)
               })
+          })
+        })
+      
+        // Handle notification content click
+        document.querySelectorAll('.notification-content').forEach((content) => {
+          content.addEventListener('click', function () {
+            const item = this.closest('.notification-item')
+            const noticeId = item.getAttribute('data-notice-id')
+            const title = this.querySelector('h5').textContent
+      
+            if (title.includes('Certificate Request')) {
+              // Extract student ID from title
+              const idMatch = title.match(/\(ID: (\d+)\)/)
+              if (idMatch) {
+                const studentId = idMatch[1]
+                window.location.href = `/students/manage-certificates/${studentId}/`
+              }
+            } else {
+              // Default to notice board
+              window.location.href = '/notices/board/'
+            }
           })
         })
       })

@@ -76,6 +76,15 @@ class NoticeForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # Limit notice types based on user role (admin can create system alerts, others cannot)
+        user = kwargs.get("user")
+        if user and not user.groups.filter(name="Admin").exists():
+            # Non-admins cannot create system alerts
+            self.fields["notice_type"].choices = [
+                choice
+                for choice in self.fields["notice_type"].choices
+                if choice[0] != Notice.NoticeType.SYSTEM_ALERT
+            ]
         self.fields["target_students"].queryset = Student.objects.all()
         self.fields["target_students"].required = False
         self.fields["target_teachers"].queryset = Teacher.objects.all()

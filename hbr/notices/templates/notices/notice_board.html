@@ -10,7 +10,8 @@
       <div class="admin-actions">
         <button class="btn btn-primary" id="create-notice-btn">Create New Notice</button>
         <div class="bulk-actions" style="display: none;">
-          <button class="btn btn-outline" form="notices-form" name="action" value="disable">Disable Selected</button>
+          <button class="btn btn-outline" form="notices-form" name="action" value="enable" id="enable-btn" style="display: none;">Enable Selected</button>
+          <button class="btn btn-outline" form="notices-form" name="action" value="disable" id="disable-btn">Disable Selected</button>
           <button class="btn btn-outline" form="notices-form" name="action" value="delete">Delete Selected</button>
         </div>
       </div>
@@ -40,7 +41,13 @@
                         
                         
                         
+                        
+                        
+                        
                         announcement
+
+
+
 
 
 
@@ -58,7 +65,13 @@
                         
                         
                         
+                        
+                        
+                        
                         individual
+
+
+
 
 
 
@@ -83,7 +96,13 @@
                           
                           
                           
+                          
+                          
+                          
                           active
+
+
+
 
 
 
@@ -101,7 +120,13 @@
                           
                           
                           
+                          
+                          
+                          
                           inactive
+
+
+
 
 
 
@@ -337,15 +362,40 @@
       
       checkboxes.forEach((checkbox) => {
         checkbox.addEventListener('change', function () {
-          const checkedBoxes = document.querySelectorAll('.notice-checkbox:checked')
-          bulkActions.style.display = checkedBoxes.length > 0 ? 'block' : 'none'
+          updateBulkActions()
         })
       })
+      
+      function updateBulkActions() {
+        const checkedBoxes = document.querySelectorAll('.notice-checkbox:checked')
+        const enableBtn = document.getElementById('enable-btn')
+        const disableBtn = document.getElementById('disable-btn')
+      
+        if (checkedBoxes.length > 0) {
+          bulkActions.style.display = 'block'
+          let hasInactive = false
+          let hasActive = false
+          checkedBoxes.forEach((checkbox) => {
+            const noticeCard = checkbox.closest('.notice-card')
+            if (noticeCard.classList.contains('inactive')) {
+              hasInactive = true
+            } else {
+              hasActive = true
+            }
+          })
+          enableBtn.style.display = hasInactive ? 'inline-block' : 'none'
+          disableBtn.style.display = hasActive ? 'inline-block' : 'none'
+        } else {
+          bulkActions.style.display = 'none'
+        }
+      }
       
       document.getElementById('notices-form').addEventListener('submit', function (e) {
         const action = e.submitter.value
         if (action === 'disable') {
           this.action = '{% url "notices:bulk_disable_notices" %}'
+        } else if (action === 'enable') {
+          this.action = '{% url "notices:bulk_enable_notices" %}'
         } else if (action === 'delete') {
           this.action = '{% url "notices:bulk_delete_notices" %}'
         }

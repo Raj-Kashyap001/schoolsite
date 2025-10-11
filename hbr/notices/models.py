@@ -14,6 +14,7 @@ class Notice(models.Model):
         INDIVIDUAL_STUDENT = "INDIVIDUAL_STUDENT", "Individual Student"
         ALL_TEACHERS = "ALL_TEACHERS", "All Teachers"
         INDIVIDUAL_TEACHER = "INDIVIDUAL_TEACHER", "Individual Teacher"
+        SYSTEM_ALERT = "SYSTEM_ALERT", "System Alert"
 
     title = models.CharField(max_length=255)
     content = models.TextField()
