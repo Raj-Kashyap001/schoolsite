@@ -79,6 +79,9 @@ class Student(models.Model):
     permanent_address = models.TextField(blank=True)
     weight = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     height = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    plain_text_password = models.CharField(
+        max_length=128, blank=True, help_text="Plain text password for admin reference"
+    )
 
     classroom = models.ForeignKey(
         Classroom, on_delete=models.CASCADE, related_name="student"

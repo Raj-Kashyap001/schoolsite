@@ -78,6 +78,16 @@
           <p>
             <strong>Email:</strong> {{ user.email }}
           </p>
+          {% if is_admin_viewing and teacher.plain_text_password %}
+            <p>
+              <strong>Password:</strong>
+              <div class="password-cell">
+                <span class="password-hidden">••••••••</span>
+                <span class="password-visible" style="display: none;">{{ teacher.plain_text_password }}</span>
+                <button class="password-toggle" onclick="togglePassword(this)" title="Show/Hide Password"><i class="bx bx-show"></i></button>
+              </div>
+            </p>
+          {% endif %}
           <p>
             <strong>Last Login:</strong> {{ user.last_login|date:'M d, Y H:i' }}
           </p>
@@ -139,8 +149,55 @@
   </div>
 
   {% load static %}
+  <style>
+    .password-cell {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-family: monospace;
+      font-size: 0.9rem;
+    }
+
+    .password-toggle {
+      background: none;
+      border: none;
+      color: #666;
+      cursor: pointer;
+      padding: 0.2rem;
+      border-radius: 3px;
+      transition: background-color 0.2s;
+    }
+
+    .password-toggle:hover {
+      background: #f0f0f0;
+      color: #333;
+    }
+
+    .password-toggle i {
+      font-size: 0.9rem;
+    }
+  </style>
   <script>
     window.profileUrl = '/teachers/profile/'
+
+    function togglePassword(button) {
+      const cell = button.parentElement;
+      const hiddenSpan = cell.querySelector('.password-hidden');
+      const visibleSpan = cell.querySelector('.password-visible');
+      const icon = button.querySelector('i');
+
+      if (visibleSpan.style.display === 'none') {
+        hiddenSpan.style.display = 'none';
+        visibleSpan.style.display = 'inline';
+        icon.className = 'bx bx-hide';
+        button.title = 'Hide Password';
+      } else {
+        hiddenSpan.style.display = 'inline';
+        visibleSpan.style.display = 'none';
+        icon.className = 'bx bx-show';
+        button.title = 'Show Password';
+      }
+    }
   </script>
   {% if not is_admin_viewing %}
     <script src="{% static 'js/profile_image_change.js' %}?v=5"></script>

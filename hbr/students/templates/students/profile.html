@@ -162,6 +162,17 @@
             <strong>Username:</strong> {{ user.username }}
           </p>
           <p>
+            <strong>Password:</strong>
+            <span style="font-family: monospace; color: #333; font-weight: 500;">
+              {% if student.plain_text_password %}
+                {{ student.plain_text_password }}
+              {% else %}
+                ••••••••
+                <small style="color: #999; font-style: italic;">(Not available)</small>
+              {% endif %}
+            </span>
+          </p>
+          <p>
             <strong>First Name:</strong> {{ user.first_name }}
           </p>
           <p>

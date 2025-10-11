@@ -598,7 +598,14 @@ def add_student(request: HttpRequest):
                     email=user_form.cleaned_data.get("email", ""),
                     password=password,
                 )
-                print(f"DEBUG: User created: {user.id}")
+
+                # Assign user to Student group
+                from django.contrib.auth.models import Group
+
+                student_group, created = Group.objects.get_or_create(name="Student")
+                user.groups.add(student_group)
+
+                print(f"DEBUG: User created: {user.id} and assigned to Student group")
 
                 # Create student
                 student = Student.objects.create(
@@ -619,6 +626,7 @@ def add_student(request: HttpRequest):
                     ),
                     weight=profile_form.cleaned_data.get("weight"),
                     height=profile_form.cleaned_data.get("height"),
+                    plain_text_password=password,
                     classroom=classroom,
                 )
                 print(f"DEBUG: Student created: {student.id}")
@@ -1120,6 +1128,14 @@ def import_students(request: HttpRequest):
                                     email=email,
                                     password=password,
                                 )
+
+                                # Assign user to Student group
+                                from django.contrib.auth.models import Group
+
+                                student_group, created = Group.objects.get_or_create(
+                                    name="Student"
+                                )
+                                user.groups.add(student_group)
 
                                 # Generate sequence and IDs
                                 existing_students = Student.objects.filter(

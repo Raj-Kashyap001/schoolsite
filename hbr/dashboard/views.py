@@ -242,8 +242,8 @@ def get_dashboard_data(user, role):
         data["quick_actions"] = [
             {
                 "title": "View Results",
-                "url": "/academics/results/",
-                "icon": "chart-bar",
+                "url": "/academics/exams/",
+                "icon": "chart",
                 "color": "primary",
             },
             {

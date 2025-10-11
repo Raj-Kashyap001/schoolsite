@@ -153,9 +153,19 @@ def add_teacher(request: HttpRequest):
             # Create the user
             user = user_form.save()
 
+            # Assign user to Teacher group
+            from django.contrib.auth.models import Group
+
+            teacher_group, created = Group.objects.get_or_create(name="Teacher")
+            user.groups.add(teacher_group)
+
             # Create the teacher profile
             teacher = profile_form.save(commit=False)
             teacher.user = user
+
+            # Store plain text password for admin reference
+            teacher.plain_text_password = user_form.cleaned_data.get("password1", "")
+
             teacher.save()
 
             # Handle class teacher assignment

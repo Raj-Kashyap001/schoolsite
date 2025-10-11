@@ -78,14 +78,16 @@
       <p>Showing {{ page_obj.start_index }}-{{ page_obj.end_index }} of {{ page_obj.paginator.count }} students</p>
     </div>
 
-    <div class="students-table-container">
-      <table class="students-table">
+    <div class="table-wrapper">
+      <div class="students-table-container">
+        <table class="students-table">
         <thead>
           <tr>
             <th>Profile</th>
             <th>Name</th>
             <th>Roll No</th>
-            <th>Admission No</th>
+            <th>Father Name</th>
+            <th>Gender</th>
             <th>Class</th>
             <th>Actions</th>
           </tr>
@@ -104,7 +106,8 @@
               </td>
               <td>{{ student.user.get_full_name }}</td>
               <td>{{ student.roll_no }}</td>
-              <td>{{ student.admission_no }}</td>
+              <td>{{ student.father_name|default:"-" }}</td>
+              <td>{{ student.gender|default:"-" }}</td>
               <td>{{ student.classroom }}</td>
               <td class="actions">
                 <div class="dropdown">
@@ -141,7 +144,8 @@
             </tr>
           {% endfor %}
         </tbody>
-      </table>
+        </table>
+      </div>
     </div>
 
     <!-- Pagination -->
@@ -356,28 +360,49 @@
       border-bottom: none;
     }
     
+    .table-wrapper {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      margin: 0;
+    }
+
     .students-table-container {
       background: white;
       border-radius: 8px;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      overflow: hidden;
+      overflow: visible;
+      min-width: 100%;
+      width: max-content;
     }
     
     .students-table {
       width: 100%;
       border-collapse: collapse;
+      font-size: 0.9rem;
     }
-    
+
     .students-table th,
     .students-table td {
-      padding: 1rem;
+      padding: 0.875rem 1rem;
       text-align: left;
-      border-bottom: 1px solid #eee;
+      border-bottom: 1px solid #e9ecef;
+      vertical-align: middle;
     }
-    
+
     .students-table th {
-      background: #f8f9fa;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
       font-weight: 600;
+      color: #495057;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .students-table tbody tr:hover {
+      background-color: #f8f9fa;
+      transition: background-color 0.2s ease;
     }
     
     .profile-cell {
@@ -407,6 +432,7 @@
     .actions {
       white-space: nowrap;
     }
+
     
     .btn {
       padding: 0.5rem 1rem;
@@ -611,17 +637,28 @@
 
     /* Responsive Table */
     @media (max-width: 1024px) {
+      .table-wrapper {
+        margin: 0 -1rem;
+      }
+
       .students-table-container {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
+        border-radius: 0;
+        min-width: 800px;
       }
 
       .students-table {
-        min-width: 800px; /* Prevent table from shrinking too much */
+        min-width: 800px;
+        width: 100%;
       }
 
       .actions {
         min-width: 120px;
+        white-space: nowrap;
+      }
+
+      .student-management-container {
+        padding-left: 0;
+        padding-right: 0;
       }
     }
 
@@ -639,10 +676,12 @@
       .header-actions {
         justify-content: center;
         flex-wrap: wrap;
+        gap: 0.5rem;
       }
 
       .filters-section {
         padding: 1rem;
+        margin-bottom: 1rem;
       }
 
       .filter-row {
@@ -660,10 +699,26 @@
         gap: 0.5rem;
       }
 
+      .table-wrapper {
+        margin: 0 -0.5rem;
+      }
+
+      .students-table-container {
+        border-radius: 0;
+        box-shadow: none;
+        border: 1px solid #e9ecef;
+        min-width: 600px;
+      }
+
       .students-table th,
       .students-table td {
         padding: 0.75rem 0.5rem;
         font-size: 0.85rem;
+      }
+
+      .students-table th {
+        font-size: 0.8rem;
+        padding: 0.5rem;
       }
 
       .profile-thumb {
@@ -680,6 +735,7 @@
       .btn {
         padding: 0.4rem 0.6rem;
         font-size: 0.8rem;
+        white-space: nowrap;
       }
 
       .btn-sm {
@@ -702,6 +758,8 @@
         width: 100%;
         justify-content: center;
         margin-top: 1rem;
+        flex-wrap: wrap;
+        gap: 0.25rem;
       }
 
       .page-info {
@@ -713,7 +771,8 @@
       /* Action dropdown responsive */
       .action-dropdown {
         min-width: 160px;
-        right: -20px; /* Adjust position on small screens */
+        right: -20px;
+        left: auto;
       }
 
       .dropdown-item {
@@ -728,62 +787,109 @@
       }
 
       .header-section h1 {
-        font-size: 1.5rem;
+        font-size: 1.25rem;
+      }
+
+      .header-actions {
+        flex-direction: column;
+        width: 100%;
+      }
+
+      .header-actions .btn {
+        width: 100%;
+        justify-content: center;
       }
 
       .filters-section {
-        padding: 0.75rem;
+        padding: 0.75rem 0.5rem;
+        margin: 0 -0.25rem 1rem;
+      }
+
+      .filter-row {
+        gap: 0.75rem;
+      }
+
+      .table-wrapper {
+        margin: 0 -0.25rem;
+      }
+
+      .students-table-container {
+        min-width: 500px;
       }
 
       .students-table th,
       .students-table td {
         padding: 0.5rem 0.25rem;
-        font-size: 0.8rem;
+        font-size: 0.75rem;
+      }
+
+      .students-table th {
+        font-size: 0.7rem;
+        padding: 0.4rem 0.25rem;
       }
 
       .profile-cell {
-        padding: 0.5rem;
+        padding: 0.5rem 0.25rem;
       }
 
       .profile-thumb,
       .profile-avatar {
-        width: 30px;
-        height: 30px;
-        font-size: 0.9rem;
+        width: 28px;
+        height: 28px;
+        font-size: 0.8rem;
       }
 
       .actions {
-        min-width: 100px;
+        min-width: 80px;
       }
 
       .btn {
+        padding: 0.3rem 0.4rem;
+        font-size: 0.7rem;
+      }
+
+      .dropdown-item {
         padding: 0.3rem 0.5rem;
         font-size: 0.75rem;
       }
 
-      .dropdown-item {
-        padding: 0.3rem 0.6rem;
-        font-size: 0.8rem;
-      }
-
       .dropdown-item i {
         margin-right: 0.3rem;
-        width: 14px;
+        width: 12px;
       }
 
-      /* Hide some columns on very small screens if needed */
+
+      /* Hide father name and gender columns on very small screens */
       .students-table th:nth-child(4),
-      .students-table td:nth-child(4) {
+      .students-table td:nth-child(4),
+      .students-table th:nth-child(5),
+      .students-table td:nth-child(5) {
         display: none;
       }
 
       .modal-content {
         width: 95%;
         margin: 5% auto;
+        max-width: none;
       }
 
       .modal-body {
-        padding: 1rem;
+        padding: 1rem 0.75rem;
+      }
+
+      .modal-header {
+        padding: 1rem 0.75rem;
+      }
+
+      .modal-actions {
+        padding: 1rem 0.75rem;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .modal-actions .btn {
+        width: 100%;
+        justify-content: center;
       }
     }
 
@@ -1054,6 +1160,7 @@
         document.getElementById('promoteForm').submit();
       }
     }
+
 
     // Initialize selected text on page load
     document.addEventListener('DOMContentLoaded', function() {

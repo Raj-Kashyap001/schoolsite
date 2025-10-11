@@ -21,6 +21,12 @@ class Teacher(models.Model):
     classroom = models.ManyToManyField(
         "students.Classroom", related_name="teachers", blank=True
     )
+    plain_text_password = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Plain text password for admin reference",
+    )
 
     def __str__(self):
         return self.user.get_full_name() or self.user.username
