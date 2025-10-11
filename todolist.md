@@ -1,4 +1,4 @@
-- [ ] ON Students attendance marking page indicate for teacher indicate that he is class teacher of this following class he is marking , he can only marks attendance of class teacher he is
+- [x] ON Students attendance marking page indicate for teacher indicate that he is class teacher of this following class he is marking , he can only marks attendance of class teacher he is
 - [ ] Individuals Notice sending
 - [ ] Update each roles profile page with available additional data
 - [ ] Salary Management page have description in textarea (admin)

@@ -171,12 +171,13 @@ def get_dashboard_data(user, role):
         # Teacher statistics
         teacher = Teacher.objects.get(user=user)
         data["stats"] = {
-            "my_students": Attendance.objects.filter(teacher=teacher)
-            .values("student")
+            "my_students": Student.objects.filter(
+                classroom__examassignment__teacher=teacher
+            )
             .distinct()
             .count(),
             "pending_results": ExamResult.objects.filter(
-                exam__teacher=teacher, marks__isnull=True
+                exam__examassignment__teacher=teacher, marks_obtained__isnull=True
             ).count(),
             "total_exams": ExamAssignment.objects.filter(teacher=teacher).count(),
             "my_leaves": Leave.objects.filter(student__user=user).count(),
@@ -204,18 +205,6 @@ def get_dashboard_data(user, role):
                 "url": "/academics/teacher/marking/",
                 "icon": "edit",
                 "color": "success",
-            },
-            {
-                "title": "Apply Leave",
-                "url": "/leave/apply/",
-                "icon": "calendar",
-                "color": "warning",
-            },
-            {
-                "title": "View Schedule",
-                "url": "/academics/schedule/",
-                "icon": "clock",
-                "color": "info",
             },
         ]
 
@@ -316,13 +305,20 @@ def get_class_performance_data(teacher):
     exams = ExamAssignment.objects.filter(teacher=teacher)
     data = []
 
-    for exam in exams[:5]:  # Last 5 exams
+    for exam_assignment in exams[:5]:  # Last 5 exams
         avg_marks = (
-            ExamResult.objects.filter(exam=exam).aggregate(avg=Avg("marks"))["avg"] or 0
+            ExamResult.objects.filter(exam=exam_assignment.exam).aggregate(
+                avg=Avg("marks_obtained")
+            )["avg"]
+            or 0
         )
         data.append(
             {
-                "exam": exam.title[:20] + "..." if len(exam.title) > 20 else exam.title,
+                "exam": (
+                    exam_assignment.exam.name[:20] + "..."
+                    if len(exam_assignment.exam.name) > 20
+                    else exam_assignment.exam.name
+                ),
                 "average": round(avg_marks, 1),
             }
         )

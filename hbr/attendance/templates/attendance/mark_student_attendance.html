@@ -12,12 +12,12 @@
         <h3>{{ teacher.user.get_full_name }}</h3>
 
         <p>
-          <strong>Assigned Classes:</strong>
-          {% if teacher.classroom.all %}
-            {{ teacher.classroom.all|join:', ' }}
-          {% else %}
+          <strong>Assigned to classes:</strong>
+          {% for classroom in assigned_classrooms %}
+            {{ classroom }}{% if not forloop.last %}, {% endif %}
+          {% empty %}
             No classes assigned
-          {% endif %}
+          {% endfor %}
         </p>
       </div>
 

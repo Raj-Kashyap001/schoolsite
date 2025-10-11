@@ -12,7 +12,7 @@ from datetime import date, datetime
 from typing import Dict, List, Tuple, Optional, Any
 from base.views import get_user_role
 from .models import Attendance, TeacherAttendance
-from students.models import Student
+from students.models import Student, Classroom
 from teachers.models import Teacher
 
 
@@ -130,10 +130,10 @@ def process_attendance_row(
         return False, f"Row {row_num}: {error}"
 
     # Check if student is in teacher's classroom
-    if not teacher.classroom.filter(id=student.classroom.id).exists():
+    if student.classroom.class_teacher != teacher:
         return (
             False,
-            f"Row {row_num}: Student {student_name} is not in your assigned classes",
+            f"Row {row_num}: Student {student_name} is not in your class",
         )
 
     # Check if attendance already exists
@@ -234,7 +234,9 @@ def mark_student_attendance(request: HttpRequest):
 
     try:
         teacher = Teacher.objects.get(user=request.user)
-        teacher_classrooms = teacher.classroom.all()
+        teacher_classrooms = Classroom.objects.filter(
+            examassignment__teacher=teacher
+        ).distinct()
 
         # Get students with and without attendance marked for today
         students = (
@@ -257,6 +259,7 @@ def mark_student_attendance(request: HttpRequest):
                 "students": students,
                 "marked_students": marked_students,
                 "teacher": teacher,
+                "assigned_classrooms": teacher_classrooms,
                 "has_marked_attendance": marked_students.exists(),
             }
         )
