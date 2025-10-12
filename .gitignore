@@ -15,32 +15,4 @@ media/
 # Environment variables
 .env
 
-# Media files
-*.jpg
-*.jpeg
-*.png
-*.gif
-*.svg
-*.bmp
-*.tiff
-*.webp
-*.ico
-*.mp4
-*.avi
-*.mov
-*.wmv
-*.flv
-*.mp3
-*.wav
-*.ogg
-*.flac
-*.pdf
-*.doc
-*.docx
-*.xls
-*.xlsx
-*.ppt
-*.pptx
-*.zip
-*.rar
-*.7z
+todolist.md
