@@ -1259,20 +1259,20 @@ footer {
 }
 
 /* News Page Styles */
-.page-header {
+.homepage-header {
   padding: 4rem 0 2rem;
   background: var(--color-primary);
   color: white;
   text-align: center;
 }
 
-.page-header h1 {
+.homepage-header h1 {
   font-size: 3rem;
   font-weight: 700;
   margin-bottom: 1rem;
 }
 
-.page-header p {
+.homepage-header p {
   font-size: 1.2rem;
   opacity: 0.9;
   max-width: 600px;
