@@ -1,0 +1,41 @@
+{% extends 'dashboard/layout.html' %}
+{% load static %}
+
+{% block content %}
+  <div class="delete-salary-container">
+    <div class="header-section">
+      <h1>Delete Salary Record: {{ teacher.user.get_full_name }}</h1>
+      <a href="{% url 'teachers:manage_salary' teacher.id %}" class="btn btn-secondary"><i class="bx bx-arrow-back"></i> Back to Salary Management</a>
+    </div>
+
+    <div class="confirmation-section">
+      <h2>Confirm Deletion</h2>
+      <p>Are you sure you want to delete this salary record?</p>
+
+      <div class="salary-details">
+        <p>
+          <strong>Description:</strong> {{ salary.description }}
+        </p>
+        <p>
+          <strong>Amount:</strong> ₹{{ salary.amount }}
+        </p>
+        <p>
+          <strong>Payment Date:</strong> {{ salary.payment_date|date:'d/m/Y' }}
+        </p>
+        {% if salary.attachment %}
+          <p>
+            <strong>Attachment:</strong> <a href="{{ salary.attachment.url }}" target="_blank">{{ salary.attachment.name }}</a>
+          </p>
+        {% endif %}
+      </div>
+
+      <form method="post">
+        {% csrf_token %}
+        <div class="form-actions">
+          <button type="submit" class="btn btn-danger"><i class="bx bx-trash"></i> Delete Salary Record</button>
+          <a href="{% url 'teachers:manage_salary' teacher.id %}" class="btn btn-secondary">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock %}

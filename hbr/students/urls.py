@@ -43,6 +43,7 @@ urlpatterns = [
     path("add/", views.add_student, name="add_student"),
     path("edit/<int:student_id>/", views.edit_student, name="edit_student"),
     path("delete/<int:student_id>/", views.delete_student, name="delete_student"),
+    path("bulk-delete/", views.bulk_delete_students, name="bulk_delete_students"),
     # Bulk operations
     path("export/", views.export_students, name="export_students"),
     path("import/", views.import_students, name="import_students"),

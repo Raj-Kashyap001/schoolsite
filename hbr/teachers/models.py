@@ -35,7 +35,7 @@ class Teacher(models.Model):
 class TeacherSalary(models.Model):
     teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
-    description = models.CharField(max_length=255)
+    description = models.TextField()
     payment_date = models.DateField()
     attachment = models.FileField(
         upload_to=teacher_salary_attachment_path, blank=True, null=True

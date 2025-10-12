@@ -742,6 +742,49 @@ def delete_student(request: HttpRequest, student_id: int):
 
 
 @login_required
+def bulk_delete_students(request: HttpRequest):
+    """Admin view for bulk deleting students"""
+    role = get_user_role(request.user)
+
+    if role != "Admin":
+        return HttpResponse("Access denied", status=403)
+
+    if request.method != "POST":
+        return HttpResponse("Method not allowed", status=405)
+
+    student_ids = request.POST.getlist("student_ids")
+
+    if not student_ids:
+        messages.error(request, "No students selected for deletion.")
+        return redirect("students:student_management")
+
+    try:
+        # Get students to delete
+        students = Student.objects.filter(id__in=student_ids).select_related("user")
+        deleted_count = 0
+
+        with transaction.atomic():
+            for student in students:
+                user = student.user
+                student.delete()
+                user.delete()  # Also delete the user account
+                deleted_count += 1
+
+        if deleted_count > 0:
+            messages.success(
+                request,
+                f"Successfully deleted {deleted_count} student{'s' if deleted_count > 1 else ''}."
+            )
+        else:
+            messages.warning(request, "No students were deleted.")
+
+    except Exception as e:
+        messages.error(request, f"Error deleting students: {e}")
+
+    return redirect("students:student_management")
+
+
+@login_required
 def manage_student_documents(request: HttpRequest, student_id: int):
     """Admin view for managing student documents"""
     role = get_user_role(request.user)

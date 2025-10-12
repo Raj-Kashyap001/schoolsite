@@ -63,6 +63,7 @@
                 <th>Amount</th>
                 <th>Payment Date</th>
                 <th>Attachment</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -78,10 +79,14 @@
                       No attachment
                     {% endif %}
                   </td>
+                  <td>
+                    <a href="{% url 'teachers:edit_salary' teacher.id salary.id %}" class="btn btn-edit btn-sm"><i class="bx bx-edit"></i> Edit</a>
+                    <a href="{% url 'teachers:delete_salary' teacher.id salary.id %}" class="btn btn-delete btn-sm"><i class="bx bx-trash"></i> Delete</a>
+                  </td>
                 </tr>
               {% empty %}
                 <tr>
-                  <td colspan="4">No salary records found.</td>
+                  <td colspan="5">No salary records found.</td>
                 </tr>
               {% endfor %}
             </tbody>

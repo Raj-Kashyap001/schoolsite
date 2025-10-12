@@ -57,29 +57,38 @@
 
       <div id="results" class="tab-content">
         <h2>Exam Results - {{ current_term.name }} ({{ current_term.academic_session.year }})</h2>
-        {% if current_results %}
-          <table class="results-table">
-            <thead>
-              <tr>
-                <th>Exam</th>
-                <th>Subject</th>
-                <th>Marks Obtained</th>
-                <th>Total Marks</th>
-                <th>Grade</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for result in current_results %}
-                <tr>
-                  <td>{{ result.exam.name }}</td>
-                  <td>{{ result.subject }}</td>
-                  <td>{{ result.marks_obtained|default:'N/A' }}</td>
-                  <td>{{ result.total_marks }}</td>
-                  <td>{{ result.grade|default:'N/A' }}</td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+        {% if exam_results %}
+          {% for exam_data in exam_results %}
+            <div class="exam-result-card">
+              <div class="exam-header">
+                <h3>{{ exam_data.exam.name }}</h3>
+                <div class="exam-summary">
+                  <span class="total-marks">Total: {{ exam_data.obtained_marks|floatformat:1 }}/{{ exam_data.total_marks|floatformat:1 }}</span>
+                  <span class="percentage">Percentage: {{ exam_data.percentage|floatformat:1 }}%</span>
+                </div>
+              </div>
+              <table class="results-table">
+                <thead>
+                  <tr>
+                    <th>Subject</th>
+                    <th>Marks Obtained</th>
+                    <th>Total Marks</th>
+                    <th>Grade</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for result in exam_data.subjects %}
+                    <tr>
+                      <td>{{ result.subject }}</td>
+                      <td>{{ result.marks_obtained|default:'N/A' }}</td>
+                      <td>{{ result.total_marks }}</td>
+                      <td>{{ result.grade|default:'N/A' }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% endfor %}
         {% else %}
           <p>No results found for the current term.</p>
         {% endif %}
@@ -155,11 +164,11 @@
           tbody.innerHTML = ''
           data.schedule.forEach((item) => {
             const row = `<tr>
-                                      <td>${item.date}</td>
-                                      <td>${item.time}</td>
-                                      <td>${item.subject}</td>
-                                      <td>${item.room || 'N/A'}</td>
-                                    </tr>`
+                                          <td>${item.date}</td>
+                                          <td>${item.time}</td>
+                                          <td>${item.subject}</td>
+                                          <td>${item.room || 'N/A'}</td>
+                                        </tr>`
             tbody.innerHTML += row
           })
           document.getElementById('timetableModal').style.display = 'block'
@@ -197,11 +206,11 @@
             let html = '<table class="results-table"><thead><tr><th>Exam</th><th>Subject</th><th>Marks</th><th>Grade</th></tr></thead><tbody>'
             data.results.forEach((result) => {
               html += `<tr>
-                                        <td>${result.exam_name}</td>
-                                        <td>${result.subject}</td>
-                                        <td>${result.marks_obtained || 'N/A'}</td>
-                                        <td>${result.grade || 'N/A'}</td>
-                                      </tr>`
+                                            <td>${result.exam_name}</td>
+                                            <td>${result.subject}</td>
+                                            <td>${result.marks_obtained || 'N/A'}</td>
+                                            <td>${result.grade || 'N/A'}</td>
+                                          </tr>`
             })
             html += '</tbody></table>'
             resultsDiv.innerHTML = html

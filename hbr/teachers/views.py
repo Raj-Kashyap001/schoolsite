@@ -337,3 +337,58 @@ def manage_salary(request: HttpRequest, teacher_id: int):
         "role": role,
     }
     return render(request, "teachers/manage_salary.html", context)
+
+
+@login_required
+def edit_salary(request: HttpRequest, teacher_id: int, salary_id: int):
+    """Admin view for editing a teacher salary record"""
+    role = get_user_role(request.user)
+
+    if role != "Admin":
+        return HttpResponse("Access denied", status=403)
+
+    teacher = get_object_or_404(Teacher, id=teacher_id)
+    salary = get_object_or_404(TeacherSalary, id=salary_id, teacher=teacher)
+
+    if request.method == "POST":
+        form = TeacherSalaryForm(request.POST, request.FILES, instance=salary)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Salary record updated successfully.")
+            return redirect("teachers:manage_salary", teacher_id=teacher.id)
+        else:
+            messages.error(request, "Please correct the errors below.")
+    else:
+        form = TeacherSalaryForm(instance=salary)
+
+    context = {
+        "teacher": teacher,
+        "salary": salary,
+        "form": form,
+        "role": role,
+    }
+    return render(request, "teachers/edit_salary.html", context)
+
+
+@login_required
+def delete_salary(request: HttpRequest, teacher_id: int, salary_id: int):
+    """Admin view for deleting a teacher salary record"""
+    role = get_user_role(request.user)
+
+    if role != "Admin":
+        return HttpResponse("Access denied", status=403)
+
+    teacher = get_object_or_404(Teacher, id=teacher_id)
+    salary = get_object_or_404(TeacherSalary, id=salary_id, teacher=teacher)
+
+    if request.method == "POST":
+        salary.delete()
+        messages.success(request, "Salary record deleted successfully.")
+        return redirect("teachers:manage_salary", teacher_id=teacher.id)
+
+    context = {
+        "teacher": teacher,
+        "salary": salary,
+        "role": role,
+    }
+    return render(request, "teachers/delete_salary.html", context)

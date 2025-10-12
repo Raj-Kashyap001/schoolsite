@@ -118,6 +118,38 @@ def exams(request: HttpRequest):
                     status=ExamResult.Status.PUBLISHED,
                 ).select_related("exam")
 
+                # Group results by exam and calculate summaries
+                exam_results = {}
+                for result in current_results:
+                    exam_id = result.exam.id
+                    if exam_id not in exam_results:
+                        exam_results[exam_id] = {
+                            "exam": result.exam,
+                            "subjects": [],
+                            "total_marks": 0,
+                            "obtained_marks": 0,
+                        }
+                    exam_results[exam_id]["subjects"].append(result)
+                    exam_results[exam_id]["total_marks"] += float(result.total_marks)
+                    if result.marks_obtained:
+                        exam_results[exam_id]["obtained_marks"] += float(
+                            result.marks_obtained
+                        )
+
+                # Calculate percentages and sort exams by date
+                for exam_data in exam_results.values():
+                    if exam_data["total_marks"] > 0:
+                        exam_data["percentage"] = (
+                            exam_data["obtained_marks"] / exam_data["total_marks"]
+                        ) * 100
+                    else:
+                        exam_data["percentage"] = 0
+
+                # Sort exams by name for consistent display
+                sorted_exam_results = sorted(
+                    exam_results.values(), key=lambda x: x["exam"].name
+                )
+
                 # For modal: all terms for the current session
                 all_terms = Term.objects.filter(
                     academic_session=current_term.academic_session
@@ -126,7 +158,7 @@ def exams(request: HttpRequest):
                 context.update(
                     {
                         "upcoming_exams": upcoming_exams,
-                        "current_results": current_results,
+                        "exam_results": sorted_exam_results,
                         "all_terms": all_terms,
                         "current_term": current_term,
                         "student": student,

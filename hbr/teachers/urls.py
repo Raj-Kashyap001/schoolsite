@@ -11,4 +11,14 @@ urlpatterns = [
     path("edit/<int:teacher_id>/", views.edit_teacher, name="edit_teacher"),
     path("delete/<int:teacher_id>/", views.delete_teacher, name="delete_teacher"),
     path("salary/<int:teacher_id>/", views.manage_salary, name="manage_salary"),
+    path(
+        "salary/<int:teacher_id>/edit/<int:salary_id>/",
+        views.edit_salary,
+        name="edit_salary",
+    ),
+    path(
+        "salary/<int:teacher_id>/delete/<int:salary_id>/",
+        views.delete_salary,
+        name="delete_salary",
+    ),
 ]
