@@ -58,7 +58,6 @@
     height: 4rem;
     justify-content: space-between;
     background: var(--color-secondary);
-    padding-inline: 2rem;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     position: sticky;
     top: 0;
@@ -91,7 +90,6 @@
   }
   font-size: 1rem;
   font-weight: 500;
-  padding-right: 1rem;
   gap: 1rem;
 
   a {
@@ -649,12 +647,25 @@ footer {
   position: absolute;
   top: 1rem;
   right: 1rem;
+  z-index: 10;
+}
+
+.news-badge .attachment-btn {
   background: var(--color-primary);
   color: white;
   padding: 0.5rem 1rem;
   font-size: 0.85rem;
   font-weight: 600;
-  z-index: 10;
+  border-radius: 4px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.news-badge .attachment-btn:hover {
+  background: color-mix(in srgb, var(--color-primary), var(--color-black) 20%);
+  color: white;
 }
 
 .news-card img {
@@ -706,6 +717,33 @@ footer {
 
 .news-link:hover {
   gap: 0.8rem;
+}
+
+.news-attachment {
+  margin-bottom: 1rem;
+}
+
+.attachment-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--color-primary);
+  color: white;
+  text-decoration: none;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.attachment-btn:hover {
+  background: color-mix(in srgb, var(--color-primary), var(--color-black) 20%);
+  color: white;
+  text-decoration: none;
+}
+
+.attachment-btn i {
+  font-size: 1rem;
 }
 
 .news-footer {
@@ -1189,6 +1227,30 @@ footer {
     font-size: 1.5rem;
     padding: 0.3rem;
   }
+
+  /* New sections responsive */
+  .admission-steps {
+    grid-template-columns: 1fr;
+  }
+
+  .faculty-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .contact-content {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .event-item {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .event-date {
+    margin-right: 0;
+    margin-bottom: 1rem;
+  }
 }
 
 @media (max-width: 480px) {
@@ -1282,6 +1344,27 @@ footer {
 .news-list-section {
   padding: 4rem 0;
   background: #f8f9fa;
+}
+
+.news-search {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+#news-search {
+  width: 100%;
+  max-width: 400px;
+  padding: 0.75rem 1rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+}
+
+#news-search:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(3, 104, 53, 0.1);
 }
 
 .news-list {
@@ -1390,6 +1473,377 @@ footer {
   color: #666;
   max-width: 400px;
   margin: 0 auto;
+}
+
+/* Admissions Section */
+.admissions-section {
+  padding: 5rem 0;
+  background: #f8f9fa;
+}
+
+.admission-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem;
+  margin: 3rem 0;
+}
+
+.step {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.step-number {
+  width: 50px;
+  height: 50px;
+  background: var(--color-primary);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  margin: 0 auto 1rem;
+}
+
+.admission-info {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  margin: 2rem 0;
+}
+
+.admission-info ul {
+  list-style: none;
+  padding: 0;
+}
+
+.admission-info li {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #eee;
+}
+
+/* Faculty Section */
+.faculty-section {
+  padding: 5rem 0;
+  background: white;
+}
+
+.faculty-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin-top: 3rem;
+}
+
+.faculty-member {
+  text-align: center;
+  background: #f8f9fa;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.faculty-image {
+  width: 150px;
+  height: 150px;
+  margin: 0 auto 1rem;
+  overflow: hidden;
+  border-radius: 50%;
+  border: 4px solid var(--color-primary);
+}
+
+.faculty-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Events Section */
+.events-section {
+  padding: 5rem 0;
+  background: #f8f9fa;
+}
+
+.events-list {
+  margin-top: 3rem;
+}
+
+.event-item {
+  display: flex;
+  align-items: center;
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.event-date {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--color-primary);
+  color: white;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-right: 2rem;
+  min-width: 80px;
+}
+
+.day {
+  font-size: 2rem;
+  font-weight: bold;
+}
+
+.month {
+  font-size: 0.9rem;
+  text-transform: uppercase;
+}
+
+.event-details h3 {
+  margin-bottom: 0.5rem;
+}
+
+.event-time {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+/* Contact Section */
+.contact-section {
+  padding: 5rem 0;
+  background: white;
+}
+
+.contact-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4rem;
+}
+
+.contact-info h2,
+.contact-form h2 {
+  margin-bottom: 2rem;
+}
+
+.contact-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.contact-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.contact-item i {
+  font-size: 1.5rem;
+  color: var(--color-primary);
+  margin-top: 0.2rem;
+}
+
+.contact-form .form-group {
+  margin-bottom: 1.5rem;
+}
+
+.contact-form label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.contact-form input,
+.contact-form textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.contact-form textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
+/* About Section */
+.about-section {
+  padding: 5rem 0;
+  background: #f8f9fa;
+}
+
+.about-content h2 {
+  text-align: center;
+  font-size: 2.5rem;
+  color: var(--color-black);
+  margin-bottom: 1rem;
+  font-weight: 700;
+}
+
+.about-content p {
+  font-size: 1.1rem;
+  line-height: 1.8;
+  color: #555;
+  margin-bottom: 3rem;
+  text-align: center;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.about-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin: 3rem 0;
+}
+
+.about-item {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.about-item:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.about-item h3 {
+  font-size: 1.3rem;
+  color: var(--color-black);
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.about-item p {
+  color: #666;
+  line-height: 1.6;
+}
+
+.about-item ul {
+  list-style: none;
+  padding: 0;
+  text-align: left;
+}
+
+.about-item li {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #eee;
+}
+
+.about-facilities,
+.about-commitment {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  margin: 2rem 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.about-facilities h3,
+.about-commitment h3 {
+  font-size: 1.5rem;
+  color: var(--color-black);
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.about-facilities p,
+.about-commitment p {
+  color: #555;
+  line-height: 1.7;
+}
+
+/* Academics Section */
+.curriculum-section {
+  padding: 5rem 0;
+  background: #f8f9fa;
+}
+
+.curriculum-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin-top: 3rem;
+}
+
+.curriculum-item {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.curriculum-item:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.curriculum-icon {
+  width: 80px;
+  height: 80px;
+  background: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem;
+  border-radius: 50%;
+}
+
+.curriculum-icon i {
+  font-size: 2rem;
+  color: white;
+}
+
+.grades-section {
+  padding: 5rem 0;
+  background: white;
+}
+
+.grades-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem;
+  margin-top: 3rem;
+}
+
+.grade-card {
+  background: #f8f9fa;
+  padding: 2rem;
+  border-radius: 8px;
+  border-left: 4px solid var(--color-primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.assessment-section {
+  padding: 5rem 0;
+  background: #f8f9fa;
+}
+
+.assessment-methods {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin-top: 3rem;
+}
+
+.method {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 /* Print Styles */

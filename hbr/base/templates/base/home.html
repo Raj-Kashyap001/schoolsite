@@ -110,13 +110,10 @@
       <div class="news-grid">
         {% for notice in public_notices %}
           <div class="news-card{% if forloop.first %} featured{% endif %}">
-            {% if forloop.first %}
-              <div class="news-badge">Featured</div>
-            {% endif %}
             {% if notice.attachment %}
-              <img src="{{ notice.attachment.url }}" alt="{{ notice.title }}" />
-            {% else %}
-
+              <div class="news-badge">
+                <a href="{{ notice.attachment.url }}" download class="attachment-btn"><i class="bx bx-file"></i> Download Attachment</a>
+              </div>
             {% endif %}
             <div class="news-content">
               <span class="news-date"><i class="bx bx-calendar"></i> {{ notice.created_at|date:'M d, Y' }}</span>

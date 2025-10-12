@@ -1,0 +1,78 @@
+{% extends 'main.html' %}
+{% load static %}
+{% block title %}
+  Contact Us | School Name
+{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/home.css' %}" />
+{% endblock %}
+
+{% block content %}
+  <!-- Page Header -->
+  <section class="homepage-header">
+    <div class="container">
+      <h1>Contact Us</h1>
+      <p>Get in touch with us</p>
+    </div>
+  </section>
+
+  <!-- Contact Section -->
+  <section class="contact-section">
+    <div class="container">
+      <div class="contact-content">
+        <div class="contact-info">
+          <h2>Contact Information</h2>
+          <div class="contact-details">
+            <div class="contact-item">
+              <i class="bx bx-map"></i>
+              <div>
+                <h3>Address</h3>
+                <p>
+                  123 School Street<br />City, State 12345
+                </p>
+              </div>
+            </div>
+            <div class="contact-item">
+              <i class="bx bx-phone"></i>
+              <div>
+                <h3>Phone</h3>
+                <p>+1 (555) 123-4567</p>
+              </div>
+            </div>
+            <div class="contact-item">
+              <i class="bx bx-envelope"></i>
+              <div>
+                <h3>Email</h3>
+                <p>info@schoolname.edu</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="contact-form">
+          <h2>Send us a Message</h2>
+          <form method="post">
+            {% csrf_token %}
+            <div class="form-group">
+              <label for="name">Name</label>
+              <input type="text" id="name" name="name" required />
+            </div>
+            <div class="form-group">
+              <label for="email">Email</label>
+              <input type="email" id="email" name="email" required />
+            </div>
+            <div class="form-group">
+              <label for="subject">Subject</label>
+              <input type="text" id="subject" name="subject" required />
+            </div>
+            <div class="form-group">
+              <label for="message">Message</label>
+              <textarea id="message" name="message" rows="5" required></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Send Message</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+{% endblock %}

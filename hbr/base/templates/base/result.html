@@ -89,6 +89,10 @@
             </span>
           </p>
         </div>
+
+        <div class="print-actions">
+          <button type="button" class="btn btn-secondary" onclick="window.print()">Print Result</button>
+        </div>
       </div>
       {% endif %}
     </div>
@@ -215,6 +219,59 @@
 .fail {
   color: red;
   font-weight: bold;
+}
+
+.print-actions {
+  margin-top: 2rem;
+  text-align: center;
+}
+
+.btn-secondary {
+  background: #6c757d;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background: #545b62;
+}
+
+@media print {
+  .homepage-header,
+  .result-form,
+  .alert,
+  .print-actions {
+    display: none;
+  }
+
+  .result-section {
+    padding: 0;
+  }
+
+  .container {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .result-display {
+    box-shadow: none;
+    border: 1px solid #000;
+    padding: 1rem;
+  }
+
+  .result-table {
+    border: 1px solid #000;
+  }
+
+  .result-table th,
+  .result-table td {
+    border: 1px solid #000;
+  }
+
+  .result-summary {
+    border: 1px solid #000;
+    margin-top: 1rem;
+  }
 }
 </style>
 {% endblock %}

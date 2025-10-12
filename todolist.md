@@ -7,5 +7,5 @@
 - [x] Make My Exams Page query result more intuitive.
 - [x] Fix ux issue in class management
 - [x] Make setting section last
-- [ ] Deep check the add student form
-- [ ] Complete the static pages
+- [x] Deep check the add student form
+- [x] Complete the static pages

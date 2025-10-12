@@ -64,6 +64,22 @@ def academics(request: HttpRequest):
     return render(request, "base/academics.html")
 
 
+def admissions(request: HttpRequest):
+    return render(request, "base/admissions.html")
+
+
+def faculty(request: HttpRequest):
+    return render(request, "base/faculty.html")
+
+
+def events(request: HttpRequest):
+    return render(request, "base/events.html")
+
+
+def contact(request: HttpRequest):
+    return render(request, "base/contact.html")
+
+
 def apply_enroll(request: HttpRequest):
     return render(request, "base/apply_enroll.html")
 

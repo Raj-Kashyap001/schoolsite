@@ -1,0 +1,64 @@
+{% extends 'main.html' %}
+{% load static %}
+{% block title %}
+  Events | School Name
+{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/home.css' %}" />
+{% endblock %}
+
+{% block content %}
+  <!-- Page Header -->
+  <section class="homepage-header">
+    <div class="container">
+      <h1>School Events</h1>
+      <p>Upcoming activities and celebrations</p>
+    </div>
+  </section>
+
+  <!-- Events Section -->
+  <section class="events-section">
+    <div class="container">
+      <div class="events-content">
+        <h2>Upcoming Events</h2>
+        <p>Stay updated with our school events and activities.</p>
+
+        <div class="events-list">
+          <div class="event-item">
+            <div class="event-date">
+              <span class="day">15</span>
+              <span class="month">Dec</span>
+            </div>
+            <div class="event-details">
+              <h3>Annual Sports Day</h3>
+              <p>Join us for a day of sports and fun activities for all students.</p>
+              <span class="event-time">9:00 AM - 5:00 PM</span>
+            </div>
+          </div>
+          <div class="event-item">
+            <div class="event-date">
+              <span class="day">20</span>
+              <span class="month">Dec</span>
+            </div>
+            <div class="event-details">
+              <h3>Christmas Celebration</h3>
+              <p>Celebrate the holiday season with music, dance, and festivities.</p>
+              <span class="event-time">10:00 AM - 2:00 PM</span>
+            </div>
+          </div>
+          <div class="event-item">
+            <div class="event-date">
+              <span class="day">05</span>
+              <span class="month">Jan</span>
+            </div>
+            <div class="event-details">
+              <h3>New Year Assembly</h3>
+              <p>Welcome the new year with inspirational speeches and performances.</p>
+              <span class="event-time">8:30 AM - 10:00 AM</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+{% endblock %}

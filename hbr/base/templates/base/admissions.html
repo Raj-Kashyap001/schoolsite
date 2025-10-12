@@ -1,0 +1,65 @@
+{% extends 'main.html' %}
+{% load static %}
+{% block title %}
+  Admissions | School Name
+{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/home.css' %}" />
+{% endblock %}
+
+{% block content %}
+  <!-- Page Header -->
+  <section class="homepage-header">
+    <div class="container">
+      <h1>Admissions</h1>
+      <p>Join our school community</p>
+    </div>
+  </section>
+
+  <!-- Admissions Section -->
+  <section class="admissions-section">
+    <div class="container">
+      <div class="admissions-content">
+        <h2>Admission Process</h2>
+        <p>We welcome applications from students who are eager to learn and grow in our nurturing environment.</p>
+
+        <div class="admission-steps">
+          <div class="step">
+            <div class="step-number">1</div>
+            <h3>Submit Application</h3>
+            <p>Fill out our online application form with all required information.</p>
+          </div>
+          <div class="step">
+            <div class="step-number">2</div>
+            <h3>Entrance Test</h3>
+            <p>Take our entrance examination to assess academic readiness.</p>
+          </div>
+          <div class="step">
+            <div class="step-number">3</div>
+            <h3>Interview</h3>
+            <p>Attend an interview with our admissions committee.</p>
+          </div>
+          <div class="step">
+            <div class="step-number">4</div>
+            <h3>Enrollment</h3>
+            <p>Complete the enrollment process and join our school family.</p>
+          </div>
+        </div>
+
+        <div class="admission-info">
+          <h3>Requirements</h3>
+          <ul>
+            <li>Birth certificate</li>
+            <li>Previous school records</li>
+            <li>Medical certificate</li>
+            <li>Passport-sized photographs</li>
+          </ul>
+        </div>
+
+        <div class="cta-section">
+          <a href="/apply-enroll" class="btn btn-primary">Apply Now</a>
+        </div>
+      </div>
+    </div>
+  </section>
+{% endblock %}

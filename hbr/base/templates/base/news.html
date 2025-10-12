@@ -20,6 +20,9 @@
   <section class="news-list-section">
     <div class="container">
       {% if notices %}
+        <div class="news-search">
+          <input type="text" id="news-search" placeholder="Search notices..." />
+        </div>
         <div class="news-list">
           {% for notice in notices %}
             <div class="news-item{% if forloop.first %} featured{% endif %}">
@@ -52,4 +55,30 @@
       {% endif %}
     </div>
   </section>
+{% endblock %}
+
+{% block inline_js %}
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const searchInput = document.getElementById('news-search')
+      const newsItems = document.querySelectorAll('.news-item')
+    
+      if (!searchInput || newsItems.length === 0) return
+    
+      searchInput.addEventListener('input', function () {
+        const query = this.value.toLowerCase().trim()
+    
+        newsItems.forEach((item) => {
+          const title = item.querySelector('h2').textContent.toLowerCase()
+          const content = item.querySelector('.news-text').textContent.toLowerCase()
+    
+          if (title.includes(query) || content.includes(query)) {
+            item.style.display = 'block'
+          } else {
+            item.style.display = 'none'
+          }
+        })
+      })
+    })
+  </script>
 {% endblock %}
