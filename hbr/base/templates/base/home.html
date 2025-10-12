@@ -1,13 +1,16 @@
 {% extends 'main.html' %}
 {% load static %}
 {% block title %}
-  HOME | SITE
+  Home | School Name
+{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/home.css' %}" />
 {% endblock %}
 
 {% block content %}
-  <!-- Carousel Section -->
+  <!-- Hero Carousel Section -->
   {% if carousel_images %}
-    <section class="carousel-section">
+    <section class="hero-carousel">
       <div class="carousel-container">
         <div class="carousel-wrapper">
           {% for image in carousel_images %}
@@ -15,12 +18,12 @@
               <img src="{{ image.image.url }}" alt="{{ image.title }}" />
               <div class="carousel-overlay">
                 <div class="carousel-content">
-                  <h2>{{ image.title }}</h2>
+                  <h1>{{ image.title }}</h1>
                   {% if image.caption %}
                     <p>{{ image.caption }}</p>
                   {% endif %}
                   {% if image.link_url %}
-                    <a href="{{ image.link_url }}" class="btn btn-primary">Learn More</a>
+                    <a href="{{ image.link_url }}" class="btn btn-hero">Learn More</a>
                   {% endif %}
                 </div>
               </div>
@@ -28,24 +31,132 @@
           {% endfor %}
         </div>
         <div class="carousel-nav">
-          <button class="carousel-prev"><i class="bx bx-chevron-left"></i></button>
+          <button class="carousel-prev" aria-label="Previous slide"><i class="bx bx-chevron-left"></i></button>
           <div class="carousel-dots"></div>
-          <button class="carousel-next"><i class="bx bx-chevron-right"></i></button>
+          <button class="carousel-next" aria-label="Next slide"><i class="bx bx-chevron-right"></i></button>
         </div>
       </div>
     </section>
   {% endif %}
 
+  <!-- Welcome Section -->
+  <section class="welcome-section">
+    <div class="container">
+      <div class="welcome-content">
+        <div class="welcome-text">
+          <h2>Welcome to Our School</h2>
+          <p class="lead">Nurturing young minds for a brighter tomorrow</p>
+          <p>We are committed to providing quality education that empowers students to reach their full potential. Our experienced faculty, modern facilities, and comprehensive curriculum create an environment where every student can thrive.</p>
+          <a href="/about" class="btn btn-primary">About Us</a>
+        </div>
+        <div class="welcome-image">
+          <img src="{% static 'images/school-building.jpg' %}" alt="School Building" />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Quick Links Section -->
+  <section class="quick-links-section">
+    <div class="container">
+      <div class="quick-links-grid">
+        <a href="/admissions" class="quick-link-card">
+          <div class="quick-link-icon">
+            <i class="bx bx-user-plus"></i>
+          </div>
+          <h3>Admissions</h3>
+          <p>Join our learning community</p>
+        </a>
+        <a href="/academics" class="quick-link-card">
+          <div class="quick-link-icon">
+            <i class="bx bx-book-open"></i>
+          </div>
+          <h3>Academics</h3>
+          <p>Explore our curriculum</p>
+        </a>
+        <a href="/faculty" class="quick-link-card">
+          <div class="quick-link-icon">
+            <i class="bx bx-group"></i>
+          </div>
+          <h3>Faculty</h3>
+          <p>Meet our teachers</p>
+        </a>
+        <a href="/events" class="quick-link-card">
+          <div class="quick-link-icon">
+            <i class="bx bx-calendar"></i>
+          </div>
+          <h3>Events</h3>
+          <p>Upcoming activities</p>
+        </a>
+        <a href="/results" class="quick-link-card">
+          <div class="quick-link-icon">
+            <i class="bx bx-trophy"></i>
+          </div>
+          <h3>Results</h3>
+          <p>Academic achievements</p>
+        </a>
+        <a href="/contact" class="quick-link-card">
+          <div class="quick-link-icon">
+            <i class="bx bx-phone"></i>
+          </div>
+          <h3>Contact</h3>
+          <p>Get in touch</p>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- News & Announcements -->
+  <section class="news-section">
+    <div class="container">
+      <h2 class="section-title">Latest News & Announcements</h2>
+      <div class="news-grid">
+        <div class="news-card featured">
+          <div class="news-badge">Featured</div>
+          <img src="{% static 'images/news-1.jpg' %}" alt="News" />
+          <div class="news-content">
+            <span class="news-date"><i class="bx bx-calendar"></i> Oct 10, 2025</span>
+            <h3>Annual Day Celebration 2025</h3>
+            <p>Join us for our grand annual day celebration showcasing student talents and achievements.</p>
+            <a href="/news/annual-day-2025" class="news-link">Read More <i class="bx bx-right-arrow-alt"></i></a>
+          </div>
+        </div>
+        <div class="news-card">
+          <img src="{% static 'images/news-2.jpg' %}" alt="News" />
+          <div class="news-content">
+            <span class="news-date"><i class="bx bx-calendar"></i> Oct 5, 2025</span>
+            <h3>New Computer Lab Inauguration</h3>
+            <p>State-of-the-art computer lab with latest technology now available for students.</p>
+            <a href="/news/computer-lab" class="news-link">Read More <i class="bx bx-right-arrow-alt"></i></a>
+          </div>
+        </div>
+        <div class="news-card">
+          <img src="{% static 'images/news-3.jpg' %}" alt="News" />
+          <div class="news-content">
+            <span class="news-date"><i class="bx bx-calendar"></i> Sep 28, 2025</span>
+            <h3>Sports Day Winners</h3>
+            <p>Congratulations to all participants and winners of the inter-house sports competition.</p>
+            <a href="/news/sports-day" class="news-link">Read More <i class="bx bx-right-arrow-alt"></i></a>
+          </div>
+        </div>
+      </div>
+      <div class="news-footer">
+        <a href="/news" class="btn btn-outline">View All News</a>
+      </div>
+    </div>
+  </section>
+
   <!-- Gallery Section -->
   {% if gallery_images %}
     <section class="gallery-section">
       <div class="container">
-        <h2 class="section-title">Gallery</h2>
+        <h2 class="section-title">School Gallery</h2>
+        <p class="section-subtitle">A glimpse into our vibrant school life</p>
         <div class="gallery-grid">
-          {% for image in gallery_images %}
+          {% for image in gallery_images|slice:':6' %}
             <div class="gallery-item" data-category="{{ image.category }}">
               <div class="gallery-image-wrapper">
-                <img src="{{ image.image.url }}" alt="{{ image.title }}" />
+                <img src="{{ image.image.url }}" alt="{{ image.title }}" loading="lazy" />
                 <div class="gallery-overlay">
                   <div class="gallery-info">
                     <h3>{{ image.title }}</h3>
@@ -59,15 +170,122 @@
             </div>
           {% endfor %}
         </div>
+        <div class="gallery-footer">
+          <a href="/gallery" class="btn btn-outline">View Full Gallery</a>
+        </div>
       </div>
     </section>
   {% endif %}
+
+  <!-- Testimonials Section -->
+  <section class="testimonials-section">
+    <div class="container">
+      <h2 class="section-title">What Parents Say</h2>
+      <div class="testimonials-grid">
+        <div class="testimonial-card">
+          <div class="testimonial-quote">
+            <i class="bx bxs-quote-alt-left"></i>
+          </div>
+          <p>"The school has provided an excellent learning environment for my child. The teachers are dedicated and caring."</p>
+          <div class="testimonial-author">
+            <div class="author-avatar">
+              <img src="{% static 'images/parent-1.jpg' %}" alt="Parent" />
+            </div>
+            <div class="author-info">
+              <h4>Mrs. Sharma</h4>
+              <span>Parent of Grade 8 Student</span>
+            </div>
+          </div>
+        </div>
+        <div class="testimonial-card">
+          <div class="testimonial-quote">
+            <i class="bx bxs-quote-alt-left"></i>
+          </div>
+          <p>"My daughter has grown both academically and personally. The extracurricular activities are outstanding."</p>
+          <div class="testimonial-author">
+            <div class="author-avatar">
+              <img src="{% static 'images/parent-2.jpg' %}" alt="Parent" />
+            </div>
+            <div class="author-info">
+              <h4>Mr. Patel</h4>
+              <span>Parent of Grade 10 Student</span>
+            </div>
+          </div>
+        </div>
+        <div class="testimonial-card">
+          <div class="testimonial-quote">
+            <i class="bx bxs-quote-alt-left"></i>
+          </div>
+          <p>"The focus on holistic development and values-based education makes this school truly special."</p>
+          <div class="testimonial-author">
+            <div class="author-avatar">
+              <img src="{% static 'images/parent-3.jpg' %}" alt="Parent" />
+            </div>
+            <div class="author-info">
+              <h4>Mrs. Verma</h4>
+              <span>Parent of Grade 5 Student</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats Section -->
+  <section class="stats-section">
+    <div class="container">
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="stat-icon">
+            <i class="bx bx-user"></i>
+          </div>
+          <div class="stat-number">1500+</div>
+          <div class="stat-label">Students</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-icon">
+            <i class="bx bx-book"></i>
+          </div>
+          <div class="stat-number">50+</div>
+          <div class="stat-label">Faculty Members</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-icon">
+            <i class="bx bx-trophy"></i>
+          </div>
+          <div class="stat-number">100+</div>
+          <div class="stat-label">Awards Won</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-icon">
+            <i class="bx bx-star"></i>
+          </div>
+          <div class="stat-number">25+</div>
+          <div class="stat-label">Years of Excellence</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="cta-section">
+    <div class="container">
+      <div class="cta-content">
+        <h2>Ready to Join Our School Family?</h2>
+        <p>Start your child's journey towards excellence today</p>
+        <div class="cta-buttons">
+          <a href="/admissions" class="btn btn-primary btn-lg">Apply Now</a>
+          <a href="/contact" class="btn btn-outline btn-lg">Schedule Visit</a>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <!-- Popup Modal -->
   {% if popup %}
     <div id="popup-modal" class="popup-modal">
       <div class="popup-content">
-        <button class="popup-close" id="popup-close"><i class="bx bx-x"></i></button>
+        <button class="popup-close" id="popup-close" aria-label="Close popup"><i class="bx bx-x"></i></button>
         <img src="{{ popup.image.url }}" alt="{{ popup.title }}" />
         {% if popup.link_url %}
           <div class="popup-actions">
@@ -77,348 +295,6 @@
       </div>
     </div>
   {% endif %}
-{% endblock %}
-
-{% block inline_css %}
-  <style>
-    /* Carousel Styles */
-    .carousel-section {
-      position: relative;
-      width: 100%;
-      aspect-ratio: 16 / 9;
-      overflow: hidden;
-      margin-top: 0;
-      padding-top: 0;
-      min-height: 300px;
-      max-height: 80vh;
-      top: -48px;
-    }
-    
-    .carousel-container {
-      position: relative;
-      width: 100%;
-      height: 100%;
-    }
-    
-    .carousel-wrapper {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      display: flex;
-      transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    
-    .carousel-slide {
-      position: relative;
-      min-width: 100%;
-      height: 100%;
-      flex-shrink: 0;
-    }
-    
-    .carousel-slide img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      object-position: center;
-    }
-    
-    .carousel-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.1) 100%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    
-    .carousel-content {
-      text-align: center;
-      color: white;
-      max-width: 600px;
-      padding: 2rem;
-    }
-    
-    .carousel-content h2 {
-      font-size: 3rem;
-      font-weight: 700;
-      margin-bottom: 1rem;
-      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-    }
-    
-    .carousel-content p {
-      font-size: 1.2rem;
-      margin-bottom: 2rem;
-      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
-    }
-    
-    .carousel-nav {
-      position: absolute;
-      bottom: 2rem;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      padding: 0.5rem 1rem;
-      border-radius: 50px;
-    }
-    
-    .carousel-prev,
-    .carousel-next {
-      background: none;
-      border: none;
-      font-size: 1.5rem;
-      color: var(--color-primary);
-      cursor: pointer;
-      padding: 0.5rem;
-      border-radius: 50%;
-      transition: all 0.3s ease;
-    }
-    
-    .carousel-prev:hover,
-    .carousel-next:hover {
-      background: var(--color-primary);
-      color: white;
-    }
-    
-    .carousel-dots {
-      display: flex;
-      gap: 0.5rem;
-    }
-    
-    .carousel-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: #ccc;
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
-    
-    .carousel-dot.active {
-      background: var(--color-primary);
-      transform: scale(1.2);
-    }
-    
-    /* Gallery Styles */
-    .gallery-section {
-      padding: 4rem 0;
-      background: var(--color-secondary);
-    }
-    
-    .gallery-section .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 0 1rem;
-    }
-    
-    .section-title {
-      text-align: center;
-      font-size: 2.5rem;
-      color: var(--color-black);
-      margin-bottom: 3rem;
-      font-weight: 700;
-    }
-    
-    .gallery-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 2rem;
-    }
-    
-    .gallery-item {
-      position: relative;
-      border-radius: 16px;
-      overflow: hidden;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-      transition: transform 0.3s ease;
-      background: white;
-    }
-    
-    .gallery-item:hover {
-      transform: translateY(-5px);
-    }
-    
-    .gallery-image-wrapper {
-      position: relative;
-      height: 250px;
-      overflow: hidden;
-    }
-    
-    .gallery-image-wrapper img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      transition: transform 0.3s ease;
-    }
-    
-    .gallery-item:hover .gallery-image-wrapper img {
-      transform: scale(1.05);
-    }
-    
-    .gallery-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: linear-gradient(135deg, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.3) 100%);
-      display: flex;
-      align-items: flex-end;
-      padding: 1.5rem;
-      opacity: 0;
-      transition: opacity 0.3s ease;
-    }
-    
-    .gallery-item:hover .gallery-overlay {
-      opacity: 1;
-    }
-    
-    .gallery-info h3 {
-      color: white;
-      font-size: 1.2rem;
-      margin-bottom: 0.5rem;
-      font-weight: 600;
-    }
-    
-    .gallery-info p {
-      color: white;
-      font-size: 0.9rem;
-      margin-bottom: 1rem;
-      line-height: 1.4;
-    }
-    
-    .category-badge {
-      display: inline-block;
-      background: var(--color-primary);
-      color: white;
-      padding: 0.25rem 0.75rem;
-      border-radius: 20px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      text-transform: uppercase;
-    }
-    
-    /* Popup Styles */
-    .popup-modal {
-      display: none;
-      position: fixed;
-      z-index: 10000;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.8);
-      backdrop-filter: blur(5px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 2rem;
-    }
-    
-    .popup-content {
-      position: relative;
-      max-width: 500px;
-      width: 100%;
-      max-height: 80vh;
-      background: white;
-      border-radius: 16px;
-      overflow: hidden;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-      animation: popupSlideIn 0.5s ease-out;
-      margin: auto;
-    }
-    
-    .popup-close {
-      position: absolute;
-      top: 1rem;
-      right: 1rem;
-      background: rgba(255, 255, 255, 0.9);
-      border: none;
-      border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      font-size: 1.5rem;
-      color: var(--color-black);
-      z-index: 10;
-      transition: all 0.3s ease;
-    }
-    
-    .popup-close:hover {
-      background: var(--color-primary);
-      color: white;
-    }
-    
-    .popup-content img {
-      width: 100%;
-      height: auto;
-      display: block;
-    }
-    
-    .popup-actions {
-      padding: 1.5rem;
-      text-align: center;
-      background: var(--color-secondary);
-    }
-    
-    /* Animations */
-    @keyframes popupSlideIn {
-      from {
-        opacity: 0;
-        transform: scale(0.8) translateY(-50px);
-      }
-      to {
-        opacity: 1;
-        transform: scale(1) translateY(0);
-      }
-    }
-    
-    /* Responsive Design */
-    @media (max-width: 768px) {
-      .carousel-content h2 {
-        font-size: 2rem;
-      }
-    
-      .carousel-content p {
-        font-size: 1rem;
-      }
-    
-      .gallery-grid {
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 1rem;
-      }
-    
-      .section-title {
-        font-size: 2rem;
-      }
-    
-      .carousel-nav {
-        bottom: 1rem;
-        padding: 0.5rem;
-      }
-    }
-    
-    @media (max-width: 480px) {
-      .gallery-grid {
-        grid-template-columns: 1fr;
-      }
-    
-      .carousel-content {
-        padding: 1rem;
-      }
-    
-      .carousel-content h2 {
-        font-size: 1.5rem;
-      }
-    }
-  </style>
 {% endblock %}
 
 {% block inline_js %}
@@ -431,6 +307,8 @@
     const prevBtn = document.querySelector('.carousel-prev');
     const nextBtn = document.querySelector('.carousel-next');
     const dotsContainer = document.querySelector('.carousel-dots');
+
+    if (!carouselWrapper || slides.length === 0) return;
 
     let currentIndex = 0;
     let autoplayInterval;
@@ -476,7 +354,6 @@
       clearInterval(autoplayInterval);
     }
 
-    // Event listeners
     prevBtn.addEventListener('click', () => {
       prevSlide();
       stopAutoplay();
@@ -489,11 +366,9 @@
       startAutoplay();
     });
 
-    // Pause autoplay on hover
     carouselWrapper.addEventListener('mouseenter', stopAutoplay);
     carouselWrapper.addEventListener('mouseleave', startAutoplay);
 
-    // Start autoplay
     startAutoplay();
   });
   {% endif %}
@@ -504,17 +379,16 @@
     const popupModal = document.getElementById('popup-modal');
     const popupClose = document.getElementById('popup-close');
 
-    // Show popup after 3 seconds
+    if (!popupModal || !popupClose) return;
+
     setTimeout(() => {
-      popupModal.style.display = 'block';
+      popupModal.style.display = 'flex';
     }, 3000);
 
-    // Close popup
     popupClose.addEventListener('click', () => {
       popupModal.style.display = 'none';
     });
 
-    // Close on outside click
     popupModal.addEventListener('click', (e) => {
       if (e.target === popupModal) {
         popupModal.style.display = 'none';
@@ -522,5 +396,47 @@
     });
   });
   {% endif %}
+
+  // Stats counter animation
+  document.addEventListener('DOMContentLoaded', function() {
+    const statsSection = document.querySelector('.stats-section');
+    const statNumbers = document.querySelectorAll('.stat-number');
+    let animated = false;
+
+    function animateStats() {
+      if (animated) return;
+      
+      statNumbers.forEach(stat => {
+        const target = parseInt(stat.textContent);
+        const duration = 2000;
+        const increment = target / (duration / 16);
+        let current = 0;
+
+        const timer = setInterval(() => {
+          current += increment;
+          if (current >= target) {
+            stat.textContent = stat.textContent;
+            clearInterval(timer);
+          } else {
+            stat.textContent = Math.floor(current) + (stat.textContent.includes('+') ? '+' : '');
+          }
+        }, 16);
+      });
+      
+      animated = true;
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          animateStats();
+        }
+      });
+    }, { threshold: 0.5 });
+
+    if (statsSection) {
+      observer.observe(statsSection);
+    }
+  });
 </script>
 {% endblock %}
