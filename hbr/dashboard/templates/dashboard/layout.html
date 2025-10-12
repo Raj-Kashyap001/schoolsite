@@ -181,7 +181,7 @@
               const idMatch = title.match(/\(ID: (\d+)\)/)
               if (idMatch) {
                 const studentId = idMatch[1]
-                window.location.href = `/students/manage-certificates/${studentId}/`
+                window.location.href = `/students/certificates/student/${studentId}/`
               }
             } else {
               // Default to notice board

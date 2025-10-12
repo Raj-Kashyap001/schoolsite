@@ -68,7 +68,7 @@ def handle_certificate_request(student, request):
             if not Certificate.objects.filter(
                 student=student, certificate_type=certificate_type
             ).exists():
-                Certificate.objects.create(
+                certificate = Certificate.objects.create(
                     student=student,
                     certificate_type=certificate_type,
                     status="PENDING",
@@ -76,7 +76,7 @@ def handle_certificate_request(student, request):
                 # Create system alert for admin
                 Notice.objects.create(
                     title=f"Certificate Request: {student.user.get_full_name()} (ID: {student.id})",
-                    content=f"Student {student.user.get_full_name()} (Roll: {student.roll_no}, Class: {student.classroom}) has requested a certificate: {certificate_type.name}.",
+                    content=f"Student {student.user.get_full_name()} (Roll: {student.roll_no}, Class: {student.classroom}) has requested a certificate: {certificate_type.name}. <a href='/students/certificates/{certificate.id}/' class='notice-link'>Manage Certificate</a>",
                     notice_type=Notice.NoticeType.SYSTEM_ALERT,
                     created_by=request.user,
                 )

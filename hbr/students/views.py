@@ -860,6 +860,21 @@ def manage_student_payments(request: HttpRequest, student_id: int):
 
 
 @login_required
+def manage_certificate(request: HttpRequest, certificate_id: int):
+    """Admin view for managing a specific certificate request"""
+    role = get_user_role(request.user)
+
+    if role != "Admin":
+        return HttpResponse("Access denied", status=403)
+
+    certificate = get_object_or_404(Certificate, id=certificate_id)
+    student = certificate.student
+
+    # Redirect to the student's certificate management page
+    return redirect("students:manage_student_certificates", student_id=student.id)
+
+
+@login_required
 def manage_student_certificates(request: HttpRequest, student_id: int):
     """Admin view for managing student certificates"""
     role = get_user_role(request.user)

@@ -59,9 +59,14 @@ urlpatterns = [
         name="manage_student_payments",
     ),
     path(
-        "certificates/<int:student_id>/",
+        "certificates/student/<int:student_id>/",
         views.manage_student_certificates,
         name="manage_student_certificates",
+    ),
+    path(
+        "certificates/<int:certificate_id>/",
+        views.manage_certificate,
+        name="manage_certificate",
     ),
     path(
         "certificate-types/",
