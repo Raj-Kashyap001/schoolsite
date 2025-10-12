@@ -6,6 +6,8 @@ from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.decorators import login_required
 from front_cms.models import CarouselImage, GalleryImage, PopupImage
 from notices.models import Notice
+from academics.models import Exam, ExamResult
+from students.models import Student
 
 
 def get_user_role(user):
@@ -76,6 +78,61 @@ def news(request: HttpRequest):
         "notices": public_notices,
     }
     return render(request, "base/news.html", context)
+
+
+def result(request: HttpRequest):
+    context = {}
+    if request.method == "POST":
+        roll_no = request.POST.get("roll_no")
+        exam_id = request.POST.get("exam")
+
+        if roll_no and exam_id:
+            try:
+                student = Student.objects.get(roll_no=roll_no)
+                exam = Exam.objects.get(id=exam_id)
+                results = ExamResult.objects.filter(
+                    student=student, exam=exam, status=ExamResult.Status.PUBLISHED
+                ).order_by("subject")
+
+                if results.exists():
+                    # Calculate totals
+                    total_marks = sum(float(r.total_marks) for r in results)
+                    obtained_marks = sum(float(r.marks_obtained or 0) for r in results)
+                    percentage = (
+                        (obtained_marks / total_marks * 100) if total_marks > 0 else 0
+                    )
+                    result_status = "Pass" if percentage >= 33 else "Fail"
+
+                    context.update(
+                        {
+                            "student": student,
+                            "exam": exam,
+                            "results": results,
+                            "total_marks": total_marks,
+                            "obtained_marks": obtained_marks,
+                            "percentage": round(percentage, 2),
+                            "result_status": result_status,
+                            "found": True,
+                        }
+                    )
+                else:
+                    context["error"] = "No results found for this roll number and exam."
+            except Student.DoesNotExist:
+                context["error"] = "Student with this roll number not found."
+            except Exam.DoesNotExist:
+                context["error"] = "Invalid exam selected."
+        else:
+            context["error"] = "Please provide both roll number and exam type."
+
+    # Get all published exams for the dropdown
+    exams = (
+        Exam.objects.filter(examresult__status=ExamResult.Status.PUBLISHED)
+        .distinct()
+        .order_by("-term__start_date", "name")
+    )
+
+    context["exams"] = exams
+    return render(request, "base/result.html", context)
 
 
 def login_page(request: HttpRequest, role: str):
