@@ -1,0 +1,55 @@
+{% extends 'main.html' %}
+{% load static %}
+{% block title %}
+  Faculty | School Name
+{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/home.css' %}" />
+{% endblock %}
+
+{% block content %}
+  <!-- Page Header -->
+  <section class="homepage-header">
+    <div class="container">
+      <h1>Our Faculty</h1>
+      <p>Meet our dedicated teachers</p>
+    </div>
+  </section>
+
+  <!-- Faculty Section -->
+  <section class="faculty-section">
+    <div class="container">
+      <div class="faculty-content">
+        <h2>Experienced Educators</h2>
+        <p>Our faculty consists of highly qualified and experienced teachers committed to providing quality education.</p>
+
+        <div class="faculty-grid">
+          <div class="faculty-member">
+            <div class="faculty-image">
+              <img src="{% static 'images/teacher-1.jpg' %}" alt="Teacher" />
+            </div>
+            <h3>John Smith</h3>
+            <p>Mathematics Teacher</p>
+            <p>M.Sc. Mathematics, 15 years experience</p>
+          </div>
+          <div class="faculty-member">
+            <div class="faculty-image">
+              <img src="{% static 'images/teacher-2.jpg' %}" alt="Teacher" />
+            </div>
+            <h3>Sarah Johnson</h3>
+            <p>English Teacher</p>
+            <p>M.A. English Literature, 12 years experience</p>
+          </div>
+          <div class="faculty-member">
+            <div class="faculty-image">
+              <img src="{% static 'images/teacher-3.jpg' %}" alt="Teacher" />
+            </div>
+            <h3>Michael Brown</h3>
+            <p>Science Teacher</p>
+            <p>M.Sc. Physics, 10 years experience</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+{% endblock %}

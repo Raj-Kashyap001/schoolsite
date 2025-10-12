@@ -5,3 +5,6 @@ Pillow
 reportlab
 pandas
 openpyxl
+pdfkit
+wkhtmltopdf
+python-decouple

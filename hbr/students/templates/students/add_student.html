@@ -1,0 +1,528 @@
+{% extends 'dashboard/layout.html' %}
+{% load static %}
+
+{% block content %}
+  <div class="add-student-container">
+    <div class="header-section">
+      <h1>Add New Student</h1>
+      <a href="{% url 'students:student_management' %}" class="btn btn-secondary"><i class="bx bx-arrow-back"></i> Back to Management</a>
+    </div>
+
+    <div class="form-container">
+      <form method="post" enctype="multipart/form-data" id="add-student-form">
+        {% csrf_token %}
+
+        <!-- Profile Photo Section -->
+        <div class="form-section profile-photo-section">
+          <h2>Profile Photo</h2>
+          <div class="photo-upload-area">
+            <div class="photo-preview">
+              <img id="photo-preview" src="#" alt="Profile Preview" style="display: none; max-width: 150px; max-height: 150px; border-radius: 8px; object-fit: cover;" />
+              <div id="photo-placeholder" class="photo-placeholder">
+                <i class="bx bx-user"></i>
+                <span>No photo selected</span>
+              </div>
+            </div>
+            <div class="photo-controls">
+              <label for="id_profile_photo" class="btn btn-primary"><i class="bx bx-upload"></i> Choose Photo</label>
+              <button type="button" id="clear-photo" class="btn btn-secondary" style="display: none;"><i class="bx bx-x"></i> Clear</button>
+              {{ profile_form.profile_photo }}
+              {% if profile_form.profile_photo.errors %}
+                <div class="error">{{ profile_form.profile_photo.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Generated Fields Preview -->
+        {% comment %} <div class="form-section generated-fields-section">
+          <h2>Generated Account Details</h2>
+          <div class="generated-preview">
+            <div class="preview-row">
+              <label>Username:</label>
+              <span id="preview-username">-</span>
+            </div>
+            <div class="preview-row">
+              <label>Password:</label>
+              <span id="preview-password">-</span>
+            </div>
+            <div class="preview-row">
+              <label>Admission No:</label>
+              <span id="preview-admission">-</span>
+            </div>
+            <div class="preview-row">
+              <label>Roll No:</label>
+              <span id="preview-roll">-</span>
+            </div>
+          </div>
+        </div> {% endcomment %}
+
+        <div class="form-section">
+          <h2>Personal Information</h2>
+          <div class="form-row">
+            <div class="form-group">
+              {{ profile_form.full_name.label_tag }}
+              {{ profile_form.full_name }}
+              {% if profile_form.full_name.errors %}
+                <div class="error">{{ profile_form.full_name.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="form-group">
+              {{ profile_form.dob.label_tag }}
+              {{ profile_form.dob }}
+              {% if profile_form.dob.errors %}
+                <div class="error">{{ profile_form.dob.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              {{ user_form.email.label_tag }}
+              {{ user_form.email }}
+              {% if user_form.email.errors %}
+                <div class="error">{{ user_form.email.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="form-group">
+              {{ profile_form.mobile_no.label_tag }}
+              {{ profile_form.mobile_no }}
+              {% if profile_form.mobile_no.errors %}
+                <div class="error">{{ profile_form.mobile_no.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              {{ profile_form.father_name.label_tag }}
+              {{ profile_form.father_name }}
+              {% if profile_form.father_name.errors %}
+                <div class="error">{{ profile_form.father_name.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="form-group">
+              {{ profile_form.mother_name.label_tag }}
+              {{ profile_form.mother_name }}
+              {% if profile_form.mother_name.errors %}
+                <div class="error">{{ profile_form.mother_name.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              {{ profile_form.category.label_tag }}
+              {{ profile_form.category }}
+              {% if profile_form.category.errors %}
+                <div class="error">{{ profile_form.category.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="form-group">
+              {{ profile_form.gender.label_tag }}
+              {{ profile_form.gender }}
+              {% if profile_form.gender.errors %}
+                <div class="error">{{ profile_form.gender.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              {{ profile_form.weight.label_tag }}
+              {{ profile_form.weight }}
+              {% if profile_form.weight.errors %}
+                <div class="error">{{ profile_form.weight.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="form-group">
+              {{ profile_form.height.label_tag }}
+              {{ profile_form.height }}
+              {% if profile_form.height.errors %}
+                <div class="error">{{ profile_form.height.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h2>Academic Information</h2>
+          <div class="form-row">
+            <div class="form-group">
+              {{ profile_form.classroom.label_tag }}
+              {{ profile_form.classroom }}
+              {% if profile_form.classroom.errors %}
+                <div class="error">{{ profile_form.classroom.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="form-group">
+              {{ profile_form.stream.label_tag }}
+              {{ profile_form.stream }}
+              {% if profile_form.stream.errors %}
+                <div class="error">{{ profile_form.stream.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+          <div class="form-group">
+            {{ profile_form.subjects.label_tag }}
+            {{ profile_form.subjects }}
+            {% if profile_form.subjects.errors %}
+              <div class="error">{{ profile_form.subjects.errors }}</div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h2>Address Information</h2>
+          <div class="form-group">
+            {{ profile_form.current_address.label_tag }}
+            {{ profile_form.current_address }}
+            {% if profile_form.current_address.errors %}
+              <div class="error">{{ profile_form.current_address.errors }}</div>
+            {% endif %}
+          </div>
+          <div class="form-group">
+            {{ profile_form.permanent_address.label_tag }}
+            {{ profile_form.permanent_address }}
+            {% if profile_form.permanent_address.errors %}
+              <div class="error">{{ profile_form.permanent_address.errors }}</div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary"><i class="bx bx-save"></i> Create Student</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <style>
+    .add-student-container {
+      padding: 2rem;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    
+    .header-section {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+    }
+    
+    .form-container {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      padding: 2rem;
+    }
+    
+    .form-section {
+      margin-bottom: 2rem;
+    }
+    
+    .form-section h2 {
+      margin-bottom: 1rem;
+      color: #333;
+      border-bottom: 2px solid var(--color-primary);
+      padding-bottom: 0.5rem;
+    }
+    
+    .form-row {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    
+    .form-group {
+      flex: 1;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+    }
+    
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 1rem;
+    }
+    
+    .form-group select[multiple] {
+      height: 120px;
+    }
+    
+    .form-group textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+    
+    .error {
+      color: #dc3545;
+      font-size: 0.875rem;
+      margin-top: 0.25rem;
+    }
+    
+    .form-actions {
+      text-align: center;
+      margin-top: 2rem;
+    }
+    
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 1rem;
+    }
+    
+    .btn-primary {
+      background: #007bff;
+      color: white;
+    }
+    
+    .btn-secondary {
+      background: #6c757d;
+      color: white;
+    }
+    
+    /* Profile Photo Section */
+    .profile-photo-section {
+      order: -1; /* Move to top */
+    }
+    
+    .photo-upload-area {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      padding: 1rem;
+      border: 2px dashed #ddd;
+      border-radius: 8px;
+      background: #f8f9fa;
+    }
+    
+    .photo-preview {
+      position: relative;
+    }
+    
+    .photo-placeholder {
+      width: 150px;
+      height: 150px;
+      border: 2px dashed #ccc;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #666;
+      background: white;
+    }
+    
+    .photo-placeholder i {
+      font-size: 3rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .photo-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    
+    .photo-controls input[type='file'] {
+      display: none;
+    }
+    
+    /* Generated Fields Preview */
+    .generated-fields-section {
+      background: var(--color-secondary);
+      border: 1px solid #c8e2e6ff;
+      border-radius: 8px;
+    }
+    
+    .generated-preview {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+    
+    .preview-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem;
+      background: white;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+    }
+    
+    .preview-row label {
+      font-weight: 600;
+      color: #333;
+      margin: 0;
+    }
+    
+    .preview-row span {
+      font-family: monospace;
+      background: #f8f9fa;
+      padding: 0.25rem 0.5rem;
+      border-radius: 3px;
+      color: #007bff;
+      font-weight: 500;
+    }
+  </style>
+
+  {% block inline_js %}
+    <script>
+      // Global variable declarations
+      let fullNameField, dobField, classroomSelect
+      
+      // Profile photo preview functionality
+      document.getElementById('id_profile_photo').addEventListener('change', function (e) {
+        const file = e.target.files[0]
+        const preview = document.getElementById('photo-preview')
+        const placeholder = document.getElementById('photo-placeholder')
+        const clearBtn = document.getElementById('clear-photo')
+      
+        if (file) {
+          const reader = new FileReader()
+          reader.onload = function (e) {
+            preview.src = e.target.result
+            preview.style.display = 'block'
+            placeholder.style.display = 'none'
+            clearBtn.style.display = 'inline-block'
+          }
+          reader.readAsDataURL(file)
+        }
+      })
+      
+      // Clear photo functionality
+      document.getElementById('clear-photo').addEventListener('click', function () {
+        const preview = document.getElementById('photo-preview')
+        const placeholder = document.getElementById('photo-placeholder')
+        const input = document.getElementById('id_profile_photo')
+        const clearBtn = document.getElementById('clear-photo')
+      
+        preview.style.display = 'none'
+        placeholder.style.display = 'flex'
+        input.value = ''
+        clearBtn.style.display = 'none'
+      })
+      
+      // Generate preview fields functionality
+      function updateGeneratedFields() {
+        // Use global variables (already declared at top)
+      
+        if (!fullNameField || !dobField || !classroomSelect) {
+          return
+        }
+      
+        const fullName = fullNameField.value.trim()
+        const dobInput = dobField.value
+      
+        if (fullName && dobInput && classroomSelect.value) {
+          // Split full name into first and last name
+          const nameParts = fullName.trim().split(' ')
+          const firstName = nameParts[0] || ''
+          const lastName = nameParts.slice(1).join(' ') || ''
+      
+          // Generate username
+          const randomNum = Math.floor(Math.random() * 9000) + 1000
+          const username = firstName.toLowerCase() + randomNum
+      
+          // Generate password
+          const dob = new Date(dobInput)
+          const birthYear = dob.getFullYear()
+          const password = firstName.substring(0, 4).toLowerCase() + birthYear
+      
+          // Generate admission number
+          const currentYear = new Date().getFullYear()
+          const yearCode = currentYear.toString().slice(-2)
+          const classroomGrade = classroomSelect.options[classroomSelect.selectedIndex].text.split(' ')[0]
+          const randomAdmission = Math.floor(Math.random() * 9000) + 1000
+          const admissionNo = `HBR${yearCode}${classroomGrade}0${randomAdmission}`
+      
+          // Generate roll number
+          const classroomCode = classroomSelect.value
+          const rollNo = `${classroomCode}001` // Simplified for preview
+      
+          // Update preview fields (check if elements exist first)
+          const usernamePreview = document.getElementById('preview-username')
+          const passwordPreview = document.getElementById('preview-password')
+          const admissionPreview = document.getElementById('preview-admission')
+          const rollPreview = document.getElementById('preview-roll')
+      
+          if (usernamePreview) usernamePreview.textContent = username
+          if (passwordPreview) passwordPreview.textContent = password
+          if (admissionPreview) admissionPreview.textContent = admissionNo
+          if (rollPreview) rollPreview.textContent = rollNo
+        } else {
+          // Reset preview fields
+          const usernamePreview = document.getElementById('preview-username')
+          const passwordPreview = document.getElementById('preview-password')
+          const admissionPreview = document.getElementById('preview-admission')
+          const rollPreview = document.getElementById('preview-roll')
+      
+          if (usernamePreview) usernamePreview.textContent = '-'
+          if (passwordPreview) passwordPreview.textContent = '-'
+          if (admissionPreview) admissionPreview.textContent = '-'
+          if (rollPreview) rollPreview.textContent = '-'
+        }
+      }
+      
+      // Show/hide stream field based on classroom grade
+      function updateStreamVisibility() {
+        const streamField = document.getElementById('id_stream')
+        const streamGroup = streamField ? streamField.closest('.form-group') : null
+      
+        if (classroomSelect && classroomSelect.value) {
+          const classroomText = classroomSelect.options[classroomSelect.selectedIndex].text
+          const grade = classroomText.split(' ')[0] // Extract grade from "10 A" -> "10"
+      
+          // Show stream for grades > 10
+          const gradeNum = parseInt(grade)
+          if (gradeNum > 10) {
+            if (streamGroup) streamGroup.style.display = 'block'
+          } else {
+            if (streamGroup) streamGroup.style.display = 'none'
+            if (streamField) streamField.value = '' // Clear selection
+          }
+        } else {
+          if (streamGroup) streamGroup.style.display = 'none'
+          if (streamField) streamField.value = '' // Clear selection
+        }
+      }
+      
+      // Initialize global variables
+      function initializeFormFields() {
+        fullNameField = document.getElementById('id_full_name')
+        dobField = document.getElementById('id_dob')
+        classroomSelect = document.getElementById('id_classroom')
+      
+        // Set up event listeners after variables are initialized
+        if (fullNameField) fullNameField.addEventListener('input', updateGeneratedFields)
+        if (dobField) dobField.addEventListener('change', updateGeneratedFields)
+        if (classroomSelect) {
+          classroomSelect.addEventListener('change', function () {
+            updateGeneratedFields()
+            updateStreamVisibility()
+          })
+        }
+      }
+      
+      // Initialize everything on page load
+      initializeFormFields()
+      updateGeneratedFields()
+      updateStreamVisibility()
+      
+      // Simple form submission logging
+      document.getElementById('add-student-form').addEventListener('submit', function (e) {})
+    </script>
+  {% endblock %}
+{% endblock %}

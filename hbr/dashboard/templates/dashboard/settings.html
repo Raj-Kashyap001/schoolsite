@@ -4,6 +4,28 @@
   <div class="settings-container">
     <h1>Settings</h1>
     <p>Manage your account settings here.</p>
-    <!-- Add settings form or options as needed -->
+
+    {% if role == 'Admin' %}
+      <div class="settings-section">
+        <h2>Academic Session Selection</h2>
+        <p>Select the academic session to view data for. If no session is selected, the current session will be used.</p>
+
+        <form method="post" class="session-selector-form">
+          {% csrf_token %}
+          <div class="form-group">
+            <label for="academic_session">Academic Session:</label>
+            <select name="academic_session" id="academic_session">
+              <option value="">Use Current Session</option>
+              {% for session in sessions %}
+                <option value="{{ session.id }}" {% if session.id == current_selected_id %}selected{% endif %}>
+                  {{ session.year }} ({{ session.start_date|date:"M Y" }} - {{ session.end_date|date:"M Y" }})
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary">Update Session</button>
+        </form>
+      </div>
+    {% endif %}
   </div>
 {% endblock %}

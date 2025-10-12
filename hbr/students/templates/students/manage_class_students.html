@@ -1,0 +1,76 @@
+{% extends 'dashboard/layout.html' %}
+
+{% block content %}
+  <div class="manage-students-container">
+    <div class="page-header">
+      <h1>Manage Students - {{ classroom }}</h1>
+      <a href="{% url 'students:class_management' %}" class="btn btn-outline"><i class="bx bx-arrow-back"></i> Back to Class Management</a>
+    </div>
+
+    <div class="students-management">
+      <div class="current-students-section">
+        <h2>Current Students in {{ classroom }} ({{ classroom_students|length }})</h2>
+
+        {% if classroom_students %}
+          <form method="post" class="bulk-action-form">
+            {% csrf_token %}
+            <div class="students-list">
+              {% for student in classroom_students %}
+                <div class="student-item">
+                  <input type="checkbox" name="student_ids" value="{{ student.id }}" id="student-{{ student.id }}" />
+                  <label for="student-{{ student.id }}">
+                    <div class="student-info">
+                      <span class="student-name">{{ student.user.get_full_name }}</span>
+                      <span class="student-roll">Roll: {{ student.roll_no }}</span>
+                    </div>
+                  </label>
+                </div>
+              {% endfor %}
+            </div>
+
+            <div class="bulk-actions">
+              <button type="submit" name="action" value="remove" class="btn btn-danger"><i class="bx bx-user-minus"></i> Remove Selected Students</button>
+            </div>
+          </form>
+        {% else %}
+          <p class="no-students">No students currently assigned to this class.</p>
+        {% endif %}
+      </div>
+
+      <div class="available-students-section">
+        <h2>Available Students</h2>
+        <p>Select students to assign to {{ classroom }}:</p>
+
+        <form method="post" class="bulk-action-form">
+          {% csrf_token %}
+          <div class="students-list">
+            {% for student in all_students %}
+              {% if student.classroom != classroom %}
+                <div class="student-item">
+                  <input type="checkbox" name="student_ids" value="{{ student.id }}" id="available-{{ student.id }}" />
+                  <label for="available-{{ student.id }}">
+                    <div class="student-info">
+                      <span class="student-name">{{ student.user.get_full_name }}</span>
+                      <span class="student-roll">Roll: {{ student.roll_no }}</span>
+                      {% if student.classroom %}
+                        <span class="current-class">Currently in: {{ student.classroom }}</span>
+                      {% else %}
+                        <span class="no-class">Not assigned</span>
+                      {% endif %}
+                    </div>
+                  </label>
+                </div>
+              {% endif %}
+            {% empty %}
+              <p>No students available.</p>
+            {% endfor %}
+          </div>
+
+          <div class="bulk-actions">
+            <button type="submit" name="action" value="assign" class="btn btn-primary"><i class="bx bx-user-plus"></i> Assign Selected Students</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+{% endblock %}

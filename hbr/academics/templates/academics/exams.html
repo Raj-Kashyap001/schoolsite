@@ -1,0 +1,237 @@
+{% extends 'dashboard/layout.html' %}
+{% load static %}
+
+{% block content %}
+  <div class="exams-container">
+    <h1>My Exams</h1>
+    {% if error %}
+      <p class="error">{{ error }}</p>
+    {% else %}
+      <div class="tabs">
+        <button class="tab-btn active" onclick="openTab('schedule')">Upcoming Exam Schedule</button>
+        <button class="tab-btn" onclick="openTab('results')">Exam Results</button>
+      </div>
+
+      <div id="schedule" class="tab-content active">
+        <h2>Upcoming Exam Schedule - {{ current_term.name }} ({{ current_term.academic_session.year }})</h2>
+        {% if upcoming_exams %}
+          <table class="exams-table">
+            <thead>
+              <tr>
+                <th>SN</th>
+                <th>Exam</th>
+                <th>Description</th>
+                <th>Admit Card</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for exam in upcoming_exams %}
+                <tr>
+                  <td>{{ forloop.counter }}</td>
+                  <td>{{ exam.name }}</td>
+                  <td>{{ exam.description|default:'N/A' }}</td>
+                  <td>
+                    {% if exam.is_yearly_final %}
+                      {% if exam.admit_card_available %}
+                        <button class="btn btn-primary btn-sm" onclick="downloadAdmitCard({{ exam.id }})"><i class="bx bx-download"></i> Download</button>
+                      {% else %}
+                        <span class="admit-card-message">Admit card will be available soon</span>
+                      {% endif %}
+                    {% else %}
+                      <span class="text-muted">N/A</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <button class="btn btn-primary" onclick="openTimetableModal({{ exam.id }})">View</button>
+                    <button class="btn btn-outline" onclick="downloadTimetable({{ exam.id }})">Download</button>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% else %}
+          <p>No upcoming exams found for the current term.</p>
+        {% endif %}
+      </div>
+
+      <div id="results" class="tab-content">
+        <h2>Exam Results - {{ current_term.name }} ({{ current_term.academic_session.year }})</h2>
+        {% if exam_results %}
+          {% for exam_data in exam_results %}
+            <div class="exam-result-card">
+              <div class="exam-header">
+                <h3>{{ exam_data.exam.name }}</h3>
+                <div class="exam-summary">
+                  <span class="total-marks">Total: {{ exam_data.obtained_marks|floatformat:1 }}/{{ exam_data.total_marks|floatformat:1 }}</span>
+                  <span class="percentage">Percentage: {{ exam_data.percentage|floatformat:1 }}%</span>
+                </div>
+              </div>
+              <table class="results-table">
+                <thead>
+                  <tr>
+                    <th>Subject</th>
+                    <th>Marks Obtained</th>
+                    <th>Total Marks</th>
+                    <th>Grade</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for result in exam_data.subjects %}
+                    <tr>
+                      <td>{{ result.subject }}</td>
+                      <td>{{ result.marks_obtained|default:'N/A' }}</td>
+                      <td>{{ result.total_marks }}</td>
+                      <td>{{ result.grade|default:'N/A' }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% endfor %}
+        {% else %}
+          <p>No results found for the current term.</p>
+        {% endif %}
+
+        <div class="query-previous">
+          <button class="btn btn-outline" onclick="openQueryModal()">Query Previous Terms</button>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Timetable Modal -->
+  <div id="timetableModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal('timetableModal')">&times;</span>
+      <h2 id="timetableTitle">Exam Timetable</h2>
+      <table class="timetable-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Time</th>
+            <th>Subject</th>
+            <th>Room</th>
+          </tr>
+        </thead>
+        <tbody id="timetableBody">
+          <!-- Timetable data will be loaded here -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Query Results Modal -->
+  <div id="queryModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal('queryModal')">&times;</span>
+      <h2>Query Exam Results</h2>
+      <form id="queryForm">
+        <label for="termSelect">Select Term:</label>
+        <select id="termSelect" name="term">
+          {% for term in all_terms %}
+            <option value="{{ term.id }}">{{ term.name }} ({{ term.academic_session.year }})</option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-primary">Query</button>
+      </form>
+      <div id="queryResults">
+        <!-- Query results will be loaded here -->
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block inline_js %}
+  <script>
+    function openTab(tabName) {
+      const tabs = document.querySelectorAll('.tab-content')
+      const buttons = document.querySelectorAll('.tab-btn')
+    
+      tabs.forEach((tab) => tab.classList.remove('active'))
+      buttons.forEach((btn) => btn.classList.remove('active'))
+    
+      document.getElementById(tabName).classList.add('active')
+      event.target.classList.add('active')
+    }
+    
+    function openTimetableModal(examId) {
+      fetch(`/academics/exam-timetable/${examId}/`)
+        .then((response) => response.json())
+        .then((data) => {
+          document.getElementById('timetableTitle').textContent = `${data.exam_name} Timetable`
+          const tbody = document.getElementById('timetableBody')
+          tbody.innerHTML = ''
+          data.schedule.forEach((item) => {
+            const row = `<tr>
+                                          <td>${item.date}</td>
+                                          <td>${item.time}</td>
+                                          <td>${item.subject}</td>
+                                          <td>${item.room || 'N/A'}</td>
+                                        </tr>`
+            tbody.innerHTML += row
+          })
+          document.getElementById('timetableModal').style.display = 'block'
+        })
+        .catch((error) => {
+          console.error('Error fetching timetable:', error)
+          alert('Error loading timetable. Please try again.')
+        })
+    }
+    
+    function downloadTimetable(examId) {
+      window.open(`/academics/download-timetable/${examId}/`, '_blank')
+    }
+    
+    function downloadAdmitCard(examId) {
+      window.open(`/academics/download-admit-card/${examId}/`, '_blank')
+    }
+    
+    function openQueryModal() {
+      document.getElementById('queryModal').style.display = 'block'
+    }
+    
+    function closeModal(modalId) {
+      document.getElementById(modalId).style.display = 'none'
+    }
+    
+    document.getElementById('queryForm').addEventListener('submit', function (e) {
+      e.preventDefault()
+      const termId = document.getElementById('termSelect').value
+      fetch(`/academics/exam-results/${termId}/`)
+        .then((response) => response.json())
+        .then((data) => {
+          const resultsDiv = document.getElementById('queryResults')
+          if (data.results.length > 0) {
+            let html = '<table class="results-table"><thead><tr><th>Exam</th><th>Subject</th><th>Marks</th><th>Grade</th></tr></thead><tbody>'
+            data.results.forEach((result) => {
+              html += `<tr>
+                                            <td>${result.exam_name}</td>
+                                            <td>${result.subject}</td>
+                                            <td>${result.marks_obtained || 'N/A'}</td>
+                                            <td>${result.grade || 'N/A'}</td>
+                                          </tr>`
+            })
+            html += '</tbody></table>'
+            resultsDiv.innerHTML = html
+          } else {
+            resultsDiv.innerHTML = '<p>No results found for this term.</p>'
+          }
+        })
+        .catch((error) => {
+          console.error('Error fetching results:', error)
+          alert('Error loading results. Please try again.')
+        })
+    })
+    
+    // Close modal when clicking outside
+    window.onclick = function (event) {
+      const modals = document.querySelectorAll('.modal')
+      modals.forEach((modal) => {
+        if (event.target == modal) {
+          modal.style.display = 'none'
+        }
+      })
+    }
+  </script>
+{% endblock %}

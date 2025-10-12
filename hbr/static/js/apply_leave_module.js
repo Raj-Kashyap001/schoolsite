@@ -3,24 +3,30 @@ let modal = document.getElementById("applyLeaveModal");
 let btn = document.getElementById("applyLeaveBtn");
 let span = document.getElementsByClassName("close")[0];
 
-btn.onclick = function () {
-  modal.style.display = "block";
-};
+if (btn && modal) {
+  btn.onclick = function () {
+    modal.style.display = "block";
+  };
+}
 
-span.onclick = function () {
-  modal.style.display = "none";
-};
-
-window.onclick = function (event) {
-  if (event.target == modal) {
+if (span && modal) {
+  span.onclick = function () {
     modal.style.display = "none";
-  }
-};
+  };
+}
+
+if (modal) {
+  window.onclick = function (event) {
+    if (event.target == modal) {
+      modal.style.display = "none";
+    }
+  };
+}
 
 // Form submission
-document
-  .getElementById("applyLeaveForm")
-  .addEventListener("submit", function (e) {
+const applyLeaveForm = document.getElementById("applyLeaveForm");
+if (applyLeaveForm) {
+  applyLeaveForm.addEventListener("submit", function (e) {
     e.preventDefault();
     const formData = new FormData(this);
     // Ensure CSRF token is included
@@ -55,6 +61,7 @@ document
         alert("An error occurred: " + error.message);
       });
   });
+}
 
 // Edit and Delete buttons
 document.querySelectorAll(".edit-btn").forEach((btn) => {
@@ -225,13 +232,16 @@ document.querySelectorAll(".reject-btn").forEach((btn) => {
 });
 
 // Reset form when modal opens for new leave
-btn.onclick = function () {
-  // Remove edit hidden inputs if exist
-  const actionInput = document.getElementById("actionInput");
-  const leaveIdInput = document.getElementById("leaveIdInput");
-  if (actionInput) actionInput.remove();
-  if (leaveIdInput) leaveIdInput.remove();
-  // Reset form
-  document.getElementById("applyLeaveForm").reset();
-  modal.style.display = "block";
-};
+if (btn && modal) {
+  btn.onclick = function () {
+    // Remove edit hidden inputs if exist
+    const actionInput = document.getElementById("actionInput");
+    const leaveIdInput = document.getElementById("leaveIdInput");
+    if (actionInput) actionInput.remove();
+    if (leaveIdInput) leaveIdInput.remove();
+    // Reset form
+    const form = document.getElementById("applyLeaveForm");
+    if (form) form.reset();
+    modal.style.display = "block";
+  };
+}

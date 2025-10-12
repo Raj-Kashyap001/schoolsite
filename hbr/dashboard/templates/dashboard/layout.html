@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     {% include 'links.html' %}
     <title>{{ role }} | Dashboard</title>
+    {% block head %}
+
+    {% endblock %}
   </head>
   <body class="dashboard-body">
     {% include 'dashboard/sidebar.html' %}
@@ -16,6 +19,41 @@
         </div>
 
         <div class="navbar-right">
+          <div class="notification-panel">
+            <button class="notification-btn" id="notificationToggle">
+              <i class="bx bx-bell"></i>
+              {% if notifications %}
+                <span class="notification-badge">{{ notifications|length }}</span>
+              {% endif %}
+            </button>
+            <div class="notification-dropdown" id="notificationDropdown">
+              <div class="notification-header">
+                <h4>Notifications</h4>
+                <a href="{% url 'notices:notice_board' %}" class="view-all">View All</a>
+              </div>
+              <div class="notification-list">
+                {% for notice in notifications %}
+                  <div class="notification-item" data-notice-id="{{ notice.id }}">
+                    <div class="notification-content" style="cursor: pointer;">
+                      <h5>{{ notice.title }}</h5>
+                      <p>{{ notice.content|truncatechars:50 }}</p>
+                      <span class="notification-date">{{ notice.created_at|date:'M d, Y' }}</span>
+                    </div>
+                    <div class="notification-actions">
+                      {% if notice.attachment %}
+                        <a href="{% url 'notices:download_notice_attachment' notice.id %}" class="btn btn-sm btn-primary" title="Download Attachment"><i class="bx bx-download"></i></a>
+                      {% endif %}
+                      <button class="dismiss-btn" title="Dismiss" data-notice-id="{{ notice.id }}"><i class="bx bx-x"></i></button>
+                    </div>
+                  </div>
+                {% empty %}
+                  <div class="no-notifications">
+                    <p>No new notifications</p>
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
           <div class="user-section">
             <span class="user-info">{{ request.user.get_full_name|default:request.user.username }}</span>
             <form method="POST" action="{% url 'logout' %}">
@@ -31,8 +69,127 @@
     </main>
     {% load static %}
     <script src="{% static 'js/dashboard.js' %}"></script>
+    {% block inline_css %}
+      <style>
+        .notification-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          padding: 0.75rem;
+          border-bottom: 1px solid #eee;
+          transition: background-color 0.2s;
+        }
+        .notification-item:hover {
+          background-color: #f8f9fa;
+        }
+        .notification-content {
+          flex: 1;
+        }
+        .notification-content h5 {
+          margin: 0 0 0.25rem 0;
+          font-size: 0.9rem;
+          font-weight: 600;
+        }
+        .notification-content p {
+          margin: 0 0 0.25rem 0;
+          font-size: 0.8rem;
+          color: #666;
+        }
+        .notification-date {
+          font-size: 0.75rem;
+          color: #999;
+        }
+        .notification-actions {
+          display: flex;
+          gap: 0.5rem;
+          align-items: center;
+        }
+        .notification-actions .btn {
+          padding: 0.25rem 0.5rem;
+          font-size: 0.75rem;
+        }
+        .dismiss-btn {
+          background: none;
+          border: none;
+          color: #999;
+          cursor: pointer;
+          padding: 0.25rem;
+          border-radius: 50%;
+          transition: background-color 0.2s;
+        }
+        .dismiss-btn:hover {
+          background: #eee;
+          color: #666;
+        }
+      </style>
+    {% endblock %}
     {% block inline_js %}
 
     {% endblock %}
+    <script>
+      // Dismiss notification
+      document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.dismiss-btn').forEach((btn) => {
+          btn.addEventListener('click', function (e) {
+            e.stopPropagation() // Prevent triggering content click
+            const noticeId = this.getAttribute('data-notice-id')
+            // Send AJAX request to dismiss
+            fetch(`/notices/dismiss/${noticeId}/`, {
+              method: 'POST',
+              headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json'
+              }
+            })
+              .then((response) => response.json())
+              .then((data) => {
+                if (data.success) {
+                  const item = document.querySelector(`.notification-item[data-notice-id="${noticeId}"]`)
+                  if (item) {
+                    item.style.display = 'none'
+                  }
+                  // Update badge count
+                  const badge = document.querySelector('.notification-badge')
+                  if (badge) {
+                    const current = parseInt(badge.textContent) || 0
+                    if (current > 0) {
+                      badge.textContent = current - 1
+                      if (current - 1 === 0) {
+                        badge.style.display = 'none'
+                      }
+                    }
+                  }
+                } else {
+                  console.error('Failed to dismiss notice:', data.error)
+                }
+              })
+              .catch((error) => {
+                console.error('Error dismissing notice:', error)
+              })
+          })
+        })
+      
+        // Handle notification content click
+        document.querySelectorAll('.notification-content').forEach((content) => {
+          content.addEventListener('click', function () {
+            const item = this.closest('.notification-item')
+            const noticeId = item.getAttribute('data-notice-id')
+            const title = this.querySelector('h5').textContent
+      
+            if (title.includes('Certificate Request')) {
+              // Extract student ID from title
+              const idMatch = title.match(/\(ID: (\d+)\)/)
+              if (idMatch) {
+                const studentId = idMatch[1]
+                window.location.href = `/students/certificates/student/${studentId}/`
+              }
+            } else {
+              // Default to notice board
+              window.location.href = '/notices/board/'
+            }
+          })
+        })
+      })
+    </script>
   </body>
 </html>

@@ -1,11 +1,59 @@
 {% extends 'main.html' %}
+{% load static %}
 {% block title %}
-  ABOUT | SITE
+  About Us | School Name
+{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/home.css' %}" />
 {% endblock %}
 
 {% block content %}
-  <section class="hero">
-    <h1>About Us</h1>
-    <p>Welcome to our school. We are dedicated to providing quality education.</p>
+  <!-- Page Header -->
+  <section class="homepage-header">
+    <div class="container">
+      <h1>About Us</h1>
+      <p>Learn more about our school and our commitment to excellence</p>
+    </div>
+  </section>
+
+  <!-- About Section -->
+  <section class="about-section">
+    <div class="container">
+      <div class="about-content">
+        <h2>Our Story</h2>
+        <p>Founded in 1990, our school has been a cornerstone of education in the community for over three decades. We pride ourselves on fostering a nurturing environment where students can thrive academically, socially, and personally.</p>
+
+        <div class="about-grid">
+          <div class="about-item">
+            <h3>Our Mission</h3>
+            <p>To provide comprehensive education that empowers students to become responsible, innovative, and compassionate global citizens.</p>
+          </div>
+          <div class="about-item">
+            <h3>Our Vision</h3>
+            <p>To be a leading educational institution that inspires excellence, creativity, and lifelong learning in every student.</p>
+          </div>
+          <div class="about-item">
+            <h3>Our Values</h3>
+            <ul>
+              <li>Excellence in education</li>
+              <li>Respect and integrity</li>
+              <li>Innovation and creativity</li>
+              <li>Community and collaboration</li>
+              <li>Diversity and inclusion</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="about-facilities">
+          <h3>Our Facilities</h3>
+          <p>Our campus features state-of-the-art classrooms, modern laboratories, a well-stocked library, sports facilities, and dedicated spaces for arts and extracurricular activities.</p>
+        </div>
+
+        <div class="about-commitment">
+          <h3>Our Commitment</h3>
+          <p>We are committed to providing a safe, inclusive, and supportive learning environment where every student can reach their full potential. Our dedicated faculty and staff work tirelessly to ensure that each child receives the attention and guidance they need to succeed.</p>
+        </div>
+      </div>
+    </div>
   </section>
 {% endblock %}

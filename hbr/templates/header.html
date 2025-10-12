@@ -1,6 +1,10 @@
-<header>
-  <a href="{% url 'home' %}">LOGO</a>
-  <button id="openMobileNav" class="open-nav-btn"><i class="bx bx-menu-close"></i></button>
+<header class="homepage_header">
+  <a class="logo" href="{% url 'home' %}">
+    {% load static %}
+    <img src="{% static 'images/school-logo.png' %}" alt="School Logo" class="school-logo-img" />
+    {{ school_name }} English Medium Public School
+  </a>
+  <button id="openMobileNav" style="margin-right: 1rem;" class="open-nav-btn"><i class="bx bx-menu"></i></button>
 
   {% with url_name=request.resolver_match.url_name %}
     <nav id="mobileNav" class="navbar">
@@ -9,10 +13,12 @@
         <a href="{% url 'home' %}" class=" {% if url_name == 'home' %}active{% endif %}">Home</a>
         <a href="{% url 'about' %}" class="{% if url_name == 'about' %}active{% endif %}">About</a>
         <a href="{% url 'academics' %}" class="{% if url_name == 'academics' %}active{% endif %}">Academics</a>
+        <a href="{% url 'result' %}" class="{% if url_name == 'result' %}active{% endif %}">Result</a>
+        <a href="{% url 'news' %}" class="{% if url_name == 'news' %}active{% endif %}">News</a>
         <a href="{% url 'apply_enroll' %}" class="{% if url_name == 'apply_enroll' %}active{% endif %}">Apply & Enroll</a>
         <div class="login-cta">
           <a href="{% url 'login' 'Student' %}" class="{% if url_name == 'student_login' %}active{% endif %}"><i class="bx bxs-user"></i> <div>Student Login</div></a>
-          <a href="{% url 'login' 'Teacher' %}" class="{% if url_name == 'teacher_login' %}active{% endif %}"><i class="bx bxs-education"></i><div>Teacher Login</div></a>
+          <a href="{% url 'login' 'Teacher' %}" class="{% if url_name == 'teacher_login' %}active{% endif %}"><i class="bx bxs-graduation"></i><div>Teacher Login</div></a>
           <a href="{% url 'login' 'Admin' %}" class="{% if url_name == 'admin_login' %}active{% endif %}"><i class="bx bxs-cog"></i><div>Admin Login</div></a>
         </div>
       </div>
@@ -22,12 +28,14 @@
       <a href="{% url 'home' %}" class="{% if url_name == 'home' %}active{% endif %}">Home</a>
       <a href="{% url 'about' %}" class="{% if url_name == 'about' %}active{% endif %}">About</a>
       <a href="{% url 'academics' %}" class="{% if url_name == 'academics' %}active{% endif %}">Academics</a>
+      <a href="{% url 'result' %}" class="{% if url_name == 'result' %}active{% endif %}">Result</a>
+      <a href="{% url 'news' %}" class="{% if url_name == 'news' %}active{% endif %}">News</a>
       <a href="{% url 'apply_enroll' %}" class="{% if url_name == 'apply_enroll' %}active{% endif %}">Apply & Enroll</a>
       <div class="dropdown">
         <button class="dropdown-trigger">Login <i class="dropdown-arrow bx bx-chevron-down"></i></button>
         <div class="dropdown-content">
           <a href="{% url 'login' 'Student' %}"><i class="bx bxs-user"></i> Student Login</a>
-          <a href="{% url 'login' 'Teacher' %}"><i class="bx bxs-education"></i> Teacher Login</a>
+          <a href="{% url 'login' 'Teacher' %}"><i class="bx bxs-graduation"></i> Teacher Login</a>
           <a href="{% url 'login' 'Admin' %}"><i class="bx bxs-cog"></i> Admin Login</a>
         </div>
       </div>

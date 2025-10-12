@@ -1,0 +1,59 @@
+{% extends 'dashboard/layout.html' %}
+{% load static %}
+
+{% block content %}
+  <div class="exam-marking-container">
+    <h1>Exam Result Marking</h1>
+    <p>Select a class to mark exam results:</p>
+
+    {% if assigned_classrooms %}
+      <div class="classroom-grid">
+        {% for classroom in assigned_classrooms %}
+          <div class="classroom-card">
+            <h3>
+              {{ classroom.grade }}{% if classroom.section %}
+                {{ classroom.section }}
+              {% endif %}
+            </h3>
+            <a href="{% url 'academics:teacher_select_exam' classroom.id %}" class="btn btn-primary">Select Exam</a>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="no-classes">No classes assigned to you for exam marking.</p>
+    {% endif %}
+  </div>
+{% endblock %}
+
+<style>
+  .exam-marking-container {
+    padding: 20px;
+  }
+  
+  .classroom-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+  }
+  
+  .classroom-card {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    text-align: center;
+  }
+  
+  .classroom-card h3 {
+    margin-bottom: 15px;
+    color: #333;
+  }
+  
+  .no-classes {
+    text-align: center;
+    color: #666;
+    font-size: 18px;
+    margin-top: 40px;
+  }
+</style>

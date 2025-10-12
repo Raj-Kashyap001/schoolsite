@@ -1,0 +1,141 @@
+{% extends 'dashboard/layout.html' %}
+{% load static %}
+
+{% block content %}
+  <div class="delete-student-container">
+    <div class="confirmation-card">
+      <div class="warning-icon">
+        <i class="bx bx-error-circle"></i>
+      </div>
+      <h1>Delete Student</h1>
+      <p>
+        Are you sure you want to delete the student <strong>{{ student.user.get_full_name }}</strong>?
+      </p>
+      <p>This action cannot be undone. The student's account and all associated data will be permanently removed.</p>
+
+      <div class="student-details">
+        <h3>Student Details:</h3>
+        <ul>
+          <li>
+            <strong>Name:</strong> {{ student.user.get_full_name }}
+          </li>
+          <li>
+            <strong>Username:</strong> {{ student.user.username }}
+          </li>
+          <li>
+            <strong>Email:</strong> {{ student.user.email }}
+          </li>
+          <li>
+            <strong>Roll No:</strong> {{ student.roll_no }}
+          </li>
+          <li>
+            <strong>Admission No:</strong> {{ student.admission_no }}
+          </li>
+          <li>
+            <strong>Class:</strong> {{ student.classroom }}
+          </li>
+          <li>
+            <strong>Father:</strong> {{ student.father_name }}
+          </li>
+          <li>
+            <strong>Mother:</strong> {{ student.mother_name }}
+          </li>
+          <li>
+            <strong>Mobile:</strong> {{ student.mobile_no }}
+          </li>
+        </ul>
+      </div>
+
+      <div class="form-actions">
+        <form method="post" style="display: inline;">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger"><i class="bx bx-trash"></i> Yes, Delete Student</button>
+        </form>
+        <a href="{% url 'students:student_management' %}" class="btn btn-secondary"><i class="bx bx-x"></i> Cancel</a>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    .delete-student-container {
+      padding: 2rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 60vh;
+    }
+    
+    .confirmation-card {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      padding: 2rem;
+      max-width: 600px;
+      width: 100%;
+      text-align: center;
+    }
+    
+    .warning-icon {
+      font-size: 4rem;
+      color: #dc3545;
+      margin-bottom: 1rem;
+    }
+    
+    .confirmation-card h1 {
+      color: #dc3545;
+      margin-bottom: 1rem;
+    }
+    
+    .confirmation-card p {
+      margin-bottom: 1rem;
+      color: #666;
+    }
+    
+    .student-details {
+      background: #f8f9fa;
+      border-radius: 4px;
+      padding: 1rem;
+      margin: 1.5rem 0;
+      text-align: left;
+    }
+    
+    .student-details h3 {
+      margin-top: 0;
+      color: #333;
+    }
+    
+    .student-details ul {
+      margin: 0;
+      padding-left: 1.5rem;
+    }
+    
+    .student-details li {
+      margin-bottom: 0.5rem;
+    }
+    
+    .form-actions {
+      margin-top: 2rem;
+    }
+    
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 1rem;
+      margin: 0 0.5rem;
+    }
+    
+    .btn-danger {
+      background: #dc3545;
+      color: white;
+    }
+    
+    .btn-secondary {
+      background: #6c757d;
+      color: white;
+    }
+  </style>
+{% endblock %}

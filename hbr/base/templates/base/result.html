@@ -1,0 +1,277 @@
+{% extends 'main.html' %}
+{% load static %}
+{% block title %}
+  Results | School Name
+{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/home.css' %}" />
+{% endblock %}
+
+{% block content %}
+  <!-- Page Header -->
+  <section class="homepage-header">
+    <div class="container">
+      <h1>Check Your Results</h1>
+      <p>Enter your roll number and select the exam to view your results</p>
+    </div>
+  </section>
+
+  <!-- Result Section -->
+  <section class="result-section">
+    <div class="container">
+      <div class="result-form">
+        <form method="post">
+          {% csrf_token %}
+          <div class="form-group">
+            <label for="roll_no">Roll Number:</label>
+            <input type="text" id="roll_no" name="roll_no" required value="{{ request.POST.roll_no }}">
+          </div>
+          <div class="form-group">
+            <label for="exam">Exam Type:</label>
+            <select id="exam" name="exam" required>
+              <option value="">Select Exam</option>
+              {% for exam in exams %}
+              <option value="{{ exam.id }}" {% if request.POST.exam == exam.id %}selected{% endif %}>
+                {{ exam.name }} - {{ exam.term }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary">Search Result</button>
+        </form>
+      </div>
+
+      {% if error %}
+      <div class="alert alert-error">
+        {{ error }}
+      </div>
+      {% endif %}
+
+      {% if found %}
+      <div class="result-display">
+        <h2>Result Details</h2>
+        <div class="student-info">
+          <p><strong>Student Name:</strong> {{ student.user.get_full_name }}</p>
+          <p><strong>Roll Number:</strong> {{ student.roll_no }}</p>
+          <p><strong>Class:</strong> {{ student.classroom }}</p>
+          <p><strong>Exam:</strong> {{ exam.name }} - {{ exam.term }}</p>
+        </div>
+
+        <table class="result-table">
+          <thead>
+            <tr>
+              <th>Subject</th>
+              <th>Marks Obtained</th>
+              <th>Total Marks</th>
+              <th>Grade</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for result in results %}
+            <tr>
+              <td>{{ result.subject }}</td>
+              <td>{{ result.marks_obtained|default:"N/A" }}</td>
+              <td>{{ result.total_marks }}</td>
+              <td>{{ result.grade|default:"N/A" }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+
+        <div class="result-summary">
+          <h3>Summary</h3>
+          <p><strong>Total Marks:</strong> {{ total_marks }}</p>
+          <p><strong>Marks Obtained:</strong> {{ obtained_marks }}</p>
+          <p><strong>Percentage:</strong> {{ percentage }}%</p>
+          <p><strong>Result:</strong>
+            <span class="{% if result_status == 'Pass' %}pass{% else %}fail{% endif %}">
+              {{ result_status }}
+            </span>
+          </p>
+        </div>
+
+        <div class="print-actions">
+          <button type="button" class="btn btn-secondary" onclick="window.print()">Print Result</button>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </section>
+
+<style>
+.result-section {
+  padding: 2rem 0;
+}
+
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.result-form {
+  background: #f9f9f9;
+  padding: 2rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: bold;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.btn-primary {
+  background: #007bff;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #0056b3;
+}
+
+.alert {
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+.alert-error {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.result-display {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.student-info {
+  margin-bottom: 2rem;
+}
+
+.student-info p {
+  margin: 0.5rem 0;
+}
+
+.result-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 2rem;
+}
+
+.result-table th,
+.result-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.result-table th {
+  background: #f8f9fa;
+  font-weight: bold;
+}
+
+.result-summary {
+  background: #f8f9fa;
+  padding: 1.5rem;
+  border-radius: 4px;
+}
+
+.result-summary h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+.result-summary p {
+  margin: 0.5rem 0;
+}
+
+.pass {
+  color: green;
+  font-weight: bold;
+}
+
+.fail {
+  color: red;
+  font-weight: bold;
+}
+
+.print-actions {
+  margin-top: 2rem;
+  text-align: center;
+}
+
+.btn-secondary {
+  background: #6c757d;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background: #545b62;
+}
+
+@media print {
+  .homepage-header,
+  .result-form,
+  .alert,
+  .print-actions {
+    display: none;
+  }
+
+  .result-section {
+    padding: 0;
+  }
+
+  .container {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .result-display {
+    box-shadow: none;
+    border: 1px solid #000;
+    padding: 1rem;
+  }
+
+  .result-table {
+    border: 1px solid #000;
+  }
+
+  .result-table th,
+  .result-table td {
+    border: 1px solid #000;
+  }
+
+  .result-summary {
+    border: 1px solid #000;
+    margin-top: 1rem;
+  }
+}
+</style>
+{% endblock %}

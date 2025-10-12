@@ -1,0 +1,375 @@
+{% extends 'dashboard/layout.html' %}
+{% load static %}
+{% load academics_tags %}
+
+{% block content %}
+  <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}" />
+  <div class="marking-container">
+    <div class="exam-info-card">
+      <h1>Mark Exam Results</h1>
+      <div class="exam-details">
+        <div class="detail-item">
+          <strong>Exam:</strong> {{ exam.name }}
+        </div>
+        <div class="detail-item">
+          <strong>Class:</strong> {{ classroom.grade }}{% if classroom.section %}
+            {{ classroom.section }}
+          {% endif %}
+        </div>
+        <div class="detail-item">
+          <strong>Term:</strong> {{ exam.term.name }} ({{ exam.term.academic_session.year }})
+        </div>
+        <div class="detail-item">
+          <strong>Status:</strong>
+          {% if is_locked %}
+            <span class="status-locked">Locked</span>
+          {% elif not marks_entry_open %}
+            <span class="status-closed">Marks Entry Closed</span>
+          {% else %}
+            <span class="status-open">Open for Marking</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    {% if is_locked %}
+      <div class="locked-message">
+        <p>This exam has been locked and cannot be modified. Only administrators can unlock it.</p>
+      </div>
+    {% elif not marks_entry_open %}
+      <div class="closed-message">
+        <p>Marks entry for this exam is currently closed. Contact your administrator to open marks entry.</p>
+      </div>
+    {% else %}
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <button id="saveDraftBtn" class="btn btn-outline">
+            <i class="bx bx-save"></i>
+            Save Draft
+          </button>
+          <button id="lockBtn" class="btn btn-danger">
+            <i class="bx bx-lock"></i>
+            Lock & Submit Results
+          </button>
+        </div>
+        <div class="toolbar-right">
+          <button id="bulkImportBtn" class="btn btn-secondary">
+            <i class="bx bx-plus"></i>
+            Bulk Import
+          </button>
+          {% if is_locked %}
+            <button id="exportBtn" class="btn btn-success">
+              <i class="bx bx-arrow-down-stroke-circle"></i>
+              Export Results
+            </button>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="results-table-container">
+        <table class="marking-table">
+          <thead>
+            <tr>
+              <th rowspan="2">Roll No</th>
+              <th rowspan="2">Student Name</th>
+              {% for schedule in exam_schedules %}
+                <th colspan="2">{{ schedule.subject }}</th>
+              {% endfor %}
+            </tr>
+            <tr>
+              {% for schedule in exam_schedules %}
+                <th>Marks</th>
+                <th>Grade</th>
+              {% endfor %}
+            </tr>
+            {% if user_role == 'Admin' %}
+              <tr>
+                <th></th>
+                <th></th>
+                {% for schedule in exam_schedules %}
+                  <th>Disable</th>
+                {% endfor %}
+              </tr>
+            {% endif %}
+          </thead>
+          <tbody>
+            {% for student in students %}
+              <tr data-student-id="{{ student.id }}">
+                <td>{{ student.roll_no }}</td>
+                <td>{{ student.user.get_full_name }}</td>
+                {% for schedule in exam_schedules %}
+                  {% with result_key=student.id|stringformat:'s'|add:'_'|add:schedule.subject %}
+                    {% if results_dict|key_exists:result_key %}
+                      {% with result=results_dict|get_item:result_key %}
+                        <td>
+                          {% if result.marking_disabled %}
+                            <input type="number" class="marks-input" data-subject="{{ schedule.subject }}" value="{{ result.marks_obtained|default:'' }}" min="0" max="100" step="0.5" disabled />
+                          {% else %}
+                            <input type="number" class="marks-input" data-subject="{{ schedule.subject }}" value="{{ result.marks_obtained|default:'' }}" min="0" max="100" step="0.5" />
+                          {% endif %}
+                        </td>
+                        <td>
+                          {% if result.marking_disabled %}
+                            <input type="text" class="grade-input" data-subject="{{ schedule.subject }}" value="{{ result.grade|default:'' }}" maxlength="10" disabled />
+                          {% else %}
+                            <input type="text" class="grade-input" data-subject="{{ schedule.subject }}" value="{{ result.grade|default:'' }}" maxlength="10" />
+                          {% endif %}
+                        </td>
+                        {% if user_role == 'Admin' %}
+                          <td>
+                            {% if result.marking_disabled %}
+                              <input type="checkbox" class="disable-checkbox" data-subject="{{ schedule.subject }}" checked />
+                            {% else %}
+                              <input type="checkbox" class="disable-checkbox" data-subject="{{ schedule.subject }}" />
+                            {% endif %}
+                          </td>
+                        {% endif %}
+                      {% endwith %}
+                    {% else %}
+                      <td>
+                        <input type="number" class="marks-input" data-subject="{{ schedule.subject }}" value="" min="0" max="100" step="0.5" />
+                      </td>
+                      <td>
+                        <input type="text" class="grade-input" data-subject="{{ schedule.subject }}" value="" maxlength="10" />
+                      </td>
+                      {% if user_role == 'Admin' %}
+                        <td>
+                          <input type="checkbox" class="disable-checkbox" data-subject="{{ schedule.subject }}" />
+                        </td>
+                      {% endif %}
+                    {% endif %}
+                  {% endwith %}
+                {% endfor %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+
+    <div class="back-link">
+      <a href="{% url 'academics:teacher_select_exam' classroom.id %}" class="btn btn-outline">Back to Exams</a>
+    </div>
+  </div>
+
+  <!-- Bulk Import Modal -->
+  <div id="bulkImportModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal('bulkImportModal')">&times;</span>
+      <h2>Bulk Import Exam Results</h2>
+
+      <div class="modal-section">
+        <h3>Instructions</h3>
+        <ol>
+          <li>Download the template CSV file below</li>
+          <li>Fill in the student roll numbers, subjects, marks, and grades</li>
+          <li>Upload the completed CSV or Excel file</li>
+          <li>Review and save the imported data</li>
+        </ol>
+      </div>
+
+      <div class="modal-section">
+        <h3>Template Download</h3>
+        <p>Download the template with required headers and sample data:</p>
+        <a href="{% url 'academics:download_import_template' exam.id classroom.id %}" class="btn btn-primary">
+          <i class="bx bx-arrow-down-stroke-circle"></i>
+          Download Template
+        </a>
+      </div>
+
+      <div class="modal-section">
+        <h3>Upload File</h3>
+        <p>Supported formats: CSV, Excel (.xlsx, .xls)</p>
+        <input type="file" id="bulkImportFile" accept=".csv,.xlsx,.xls" />
+        <button id="uploadImportBtn" class="btn btn-success">
+          <i class="bx bx-arrow-out-up-square-half"></i>
+          Upload & Import
+        </button>
+        <div id="importResults" class="import-results" style="display: none;">
+          <h4>Import Results</h4>
+          <div id="importMessage"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block inline_js %}
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const examId = '{{ exam.id }}'
+      const classroomId = '{{ classroom.id }}'
+    
+      // Handle disable checkboxes
+      document.querySelectorAll('.disable-checkbox').forEach((checkbox) => {
+        checkbox.addEventListener('change', function () {
+          const subject = this.dataset.subject
+          const row = this.closest('tr')
+          const marksInput = row.querySelector(`.marks-input[data-subject="${subject}"]`)
+          const gradeInput = row.querySelector(`.grade-input[data-subject="${subject}"]`)
+          if (this.checked) {
+            marksInput.disabled = true
+            gradeInput.disabled = true
+          } else {
+            marksInput.disabled = false
+            gradeInput.disabled = false
+          }
+        })
+      })
+    
+      // Save draft
+      document.getElementById('saveDraftBtn').addEventListener('click', function () {
+        saveResults('save_draft')
+      })
+    
+      // Lock & Submit results
+      document.getElementById('lockBtn').addEventListener('click', function () {
+        if (confirm('Are you sure you want to lock and submit these results? Once locked, results cannot be modified and you can download the data.')) {
+          saveResults('lock')
+        }
+      })
+    
+      // Bulk import
+      document.getElementById('bulkImportBtn').addEventListener('click', function () {
+        document.getElementById('bulkImportModal').style.display = 'block'
+      })
+    
+      // Upload import file
+      document.getElementById('uploadImportBtn').addEventListener('click', function () {
+        const fileInput = document.getElementById('bulkImportFile')
+        const file = fileInput.files[0]
+        if (file) {
+          uploadBulkImport(file)
+        } else {
+          alert('Please select a file to upload.')
+        }
+      })
+    
+      // Export results
+      const exportBtn = document.getElementById('exportBtn')
+      if (exportBtn) {
+        exportBtn.addEventListener('click', function () {
+          window.open(`/academics/teacher/export-results/${examId}/${classroomId}/`, '_blank')
+        })
+      }
+    
+      function saveResults(action) {
+        const studentsData = []
+        const rows = document.querySelectorAll('.marking-table tbody tr')
+    
+        rows.forEach((row) => {
+          const studentId = row.dataset.studentId
+          const subjects = []
+          const marksInputs = row.querySelectorAll('.marks-input')
+          const gradeInputs = row.querySelectorAll('.grade-input')
+    
+          marksInputs.forEach((input, index) => {
+            const subject = input.dataset.subject
+            const marks = input.value
+            const grade = gradeInputs[index].value
+            const disabled = row.querySelectorAll('.disable-checkbox')[index]?.checked || false
+            subjects.push({
+              subject: subject,
+              marks: marks,
+              grade: grade,
+              disabled: disabled
+            })
+          })
+    
+          studentsData.push({
+            student_id: studentId,
+            subjects: subjects
+          })
+        })
+    
+        fetch(`/academics/teacher/save-results/${examId}/${classroomId}/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+          },
+          body: JSON.stringify({
+            action: action,
+            students: studentsData
+          })
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              alert('Results saved successfully!')
+              location.reload()
+            } else {
+              alert('Error: ' + data.error)
+            }
+          })
+          .catch((error) => {
+            console.error('Error:', error)
+            alert('An error occurred while saving results.')
+          })
+      }
+    
+      function uploadBulkImport(file) {
+        const formData = new FormData()
+        formData.append('file', file)
+    
+        const importResults = document.getElementById('importResults')
+        const importMessage = document.getElementById('importMessage')
+    
+        // Show loading message
+        importResults.style.display = 'block'
+        importMessage.innerHTML = '<p style="color: #007bff;">Processing file...</p>'
+    
+        fetch(`/academics/teacher/bulk-import/${examId}/${classroomId}/`, {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+          },
+          body: formData
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              importMessage.innerHTML = `
+                                                          <div style="color: #28a745; padding: 10px; background: #d4edda; border-radius: 4px; margin-bottom: 10px;">
+                                                            <strong>Success!</strong> Bulk import completed successfully.
+                                                          </div>
+                                                          <p style="margin-bottom: 10px;">Refreshing page to show imported data...</p>
+                                                        `
+              // Auto-refresh after 2 seconds to show the imported data
+              setTimeout(() => {
+                location.reload()
+              }, 2000)
+            } else {
+              importMessage.innerHTML = `
+                                                          <div style="color: #dc3545; padding: 10px; background: #f8d7da; border-radius: 4px;">
+                                                            <strong>Error:</strong> ${data.error}
+                                                          </div>
+                                                        `
+            }
+          })
+          .catch((error) => {
+            console.error('Error:', error)
+            importMessage.innerHTML = `
+                                                        <div style="color: #dc3545; padding: 10px; background: #f8d7da; border-radius: 4px;">
+                                                          <strong>Error:</strong> An error occurred during bulk import. Please try again.
+                                                        </div>
+                                                      `
+          })
+      }
+    
+      // Close modal when clicking outside
+      window.onclick = function (event) {
+        const modals = document.querySelectorAll('.modal')
+        modals.forEach((modal) => {
+          if (event.target == modal) {
+            modal.style.display = 'none'
+          }
+        })
+      }
+    })
+    
+    function closeModal(modalId) {
+      document.getElementById(modalId).style.display = 'none'
+    }
+  </script>
+{% endblock %}

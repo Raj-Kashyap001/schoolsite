@@ -1,6 +1,112 @@
 <footer>
-  &copy;Site <span id="currentYear">2025</span>
+  <div class="footer-content">
+    <div class="footer-section">
+      <div class="footer-logo">
+        {% load static %}
+        <img src="{% static 'images/school-logo.png' %}" alt="School Logo" class="footer-logo-img" />
+        <h3>{{ school_name }} English Medium Public School</h3>
+      </div>
+      <p>Nurturing young minds for a brighter tomorrow with quality education and modern facilities.</p>
+      <div class="social-links">
+        <a href="#" class="social-link" aria-label="Facebook"><i class="bx bxl-facebook"></i></a>
+        <a href="#" class="social-link" aria-label="Twitter"><i class="bx bxl-twitter"></i></a>
+        <a href="#" class="social-link" aria-label="Instagram"><i class="bx bxl-instagram"></i></a>
+        <a href="#" class="social-link" aria-label="YouTube"><i class="bx bxl-youtube"></i></a>
+      </div>
+    </div>
+
+    <div class="footer-section">
+      <h4>Quick Links</h4>
+      <ul>
+        <li>
+          <a href="{% url 'about' %}">About Us</a>
+        </li>
+        <li>
+          <a href="{% url 'academics' %}">Academics</a>
+        </li>
+        <li>
+          <a href="{% url 'faculty' %}">Faculty</a>
+        </li>
+        <li>
+          <a href="{% url 'admissions' %}">Admissions</a>
+        </li>
+        <li>
+          <a href="{% url 'result' %}">Results</a>
+        </li>
+        <li>
+          <a href="{% url 'news' %}">News & Events</a>
+        </li>
+      </ul>
+    </div>
+
+    <div class="footer-section">
+      <h4>Contact Info</h4>
+      <div class="contact-item">
+        <i class="bx bx-map"></i>
+        <span>123 School Street, City, State 12345</span>
+      </div>
+      <div class="contact-item">
+        <i class="bx bx-phone"></i>
+        <span>+1 (555) 123-4567</span>
+      </div>
+      <div class="contact-item">
+        <i class="bx bx-envelope"></i>
+        <span>info@school.edu</span>
+      </div>
+      <div class="contact-item">
+        <i class="bx bx-time"></i>
+        <span>Mon-Fri: 8:00 AM - 4:00 PM</span>
+      </div>
+    </div>
+
+    <div class="footer-section">
+      <h4>Newsletter</h4>
+      <p>Stay updated with our latest news and events.</p>
+      <div class="newsletter">
+        <input type="email" placeholder="Enter your email" class="newsletter-input" />
+        <button class="newsletter-btn" aria-label="Subscribe"><i class="bx bx-send"></i></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-bottom">
+    <div class="footer-bottom-content">
+      <p>
+        &copy; <span id="currentYear">2025</span> {{ school_name }} English Medium Public School. All rights reserved.
+      </p>
+      <div class="footer-bottom-links">
+        <a href="/privacy">Privacy Policy</a>
+        <a href="/terms">Terms of Service</a>
+        <a href="/contact">Contact Us</a>
+      </div>
+    </div>
+  </div>
+
   <script>
     currentYear.innerText = new Date().getFullYear()
+    
+    // Newsletter subscription
+    document.addEventListener('DOMContentLoaded', function () {
+      const newsletterBtn = document.querySelector('.newsletter-btn')
+      const newsletterInput = document.querySelector('.newsletter-input')
+    
+      if (newsletterBtn && newsletterInput) {
+        newsletterBtn.addEventListener('click', function () {
+          const email = newsletterInput.value.trim()
+          if (email) {
+            alert("Thank you for subscribing! We'll keep you updated.")
+            newsletterInput.value = ''
+          } else {
+            alert('Please enter a valid email address.')
+          }
+        })
+    
+        newsletterInput.addEventListener('keypress', function (e) {
+          if (e.key === 'Enter') {
+            newsletterBtn.click()
+          }
+        })
+      }
+    })
   </script>
 </footer>

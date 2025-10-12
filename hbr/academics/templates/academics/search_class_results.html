@@ -1,0 +1,545 @@
+{% extends 'dashboard/layout.html' %}
+{% load static %}
+
+{% block content %}
+<div class="search-results-container">
+  <!-- Header -->
+  <div class="search-result-page-header">
+    <div class="breadcrumb">
+      <a href="{% url 'academics:result_management' %}">Result Management</a>
+      <span class="separator">></span>
+      <span>Search Class Results</span>
+    </div>
+    <h1>Search Class Results</h1>
+    <p class="page-subtitle">View and declare results for specific exams and classes</p>
+  </div>
+
+  <!-- Search Form -->
+  <div class="search-form">
+    <div class="form-card">
+      <h2>Select Exam and Class</h2>
+      <form id="searchForm" onsubmit="searchResults(event)">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="examSelect">Exam</label>
+            <select id="examSelect" required>
+              <option value="">Choose an exam...</option>
+              {% for exam in exams %}
+              <option value="{{ exam.id }}">{{ exam.name }} - {{ exam.term.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="classSelect">Class</label>
+            <select id="classSelect" required>
+              <option value="">Choose a class...</option>
+              {% for classroom in classrooms %}
+              <option value="{{ classroom.id }}">{{ classroom.grade }} {{ classroom.section|default:"" }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">
+            <i class="bx bx-search"></i>
+            Search Results
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Results Display -->
+  <div class="results-display" id="resultsDisplay" style="display: none;">
+    <div class="results-header">
+      <div class="results-info">
+        <h2 id="resultsTitle">Exam Results</h2>
+        <p id="resultsSubtitle">Class results overview</p>
+      </div>
+      <div class="results-actions">
+        <button class="btn btn-success" id="declareBtn" onclick="declareResults()">
+          <i class="bx bx-file"></i>
+          Declare Results (PDF)
+        </button>
+      </div>
+    </div>
+
+    <!-- Results Summary -->
+    <div class="results-summary">
+      <div class="summary-grid">
+        <div class="summary-card">
+          <div class="summary-icon">
+            <i class="bx bx-group"></i>
+          </div>
+          <div class="summary-info">
+            <h3 id="totalStudents">-</h3>
+            <p>Total Students</p>
+          </div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-icon pass">
+            <i class="bx bx-check-circle"></i>
+          </div>
+          <div class="summary-info">
+            <h3 id="passedStudents">-</h3>
+            <p>Passed</p>
+          </div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-icon fail">
+            <i class="bx bx-x-circle"></i>
+          </div>
+          <div class="summary-info">
+            <h3 id="failedStudents">-</h3>
+            <p>Failed</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Results Table -->
+    <div class="results-table-container">
+      <div class="table-wrapper" style="border: none;">
+        <table class="results-table" id="resultsTable">
+          <thead>
+            <tr>
+              <th>S.No.</th>
+              <th>Roll No.</th>
+              <th>Student Name</th>
+              <th>Total Marks</th>
+              <th>Obtained Marks</th>
+              <th>Percentage</th>
+              <th>Rank</th>
+              <th>Result</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="resultsBody">
+            <!-- Results will be loaded here -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block inline_js %}
+<script>
+let currentExamId = null;
+let currentClassroomId = null;
+
+function searchResults(event) {
+  event.preventDefault();
+
+  const examId = document.getElementById('examSelect').value;
+  const classroomId = document.getElementById('classSelect').value;
+
+  if (!examId || !classroomId) {
+    alert('Please select both exam and class.');
+    return;
+  }
+
+  currentExamId = examId;
+  currentClassroomId = classroomId;
+
+  loadClassResults(examId, classroomId);
+}
+
+function loadClassResults(examId, classroomId) {
+  fetch(`/academics/get-class-results/${examId}/${classroomId}/`)
+    .then(response => response.json())
+    .then(data => {
+      displayResults(data);
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('Error loading results.');
+    });
+}
+
+function displayResults(data) {
+  // Update header
+  document.getElementById('resultsTitle').textContent = `${data.exam.name} - Results`;
+  document.getElementById('resultsSubtitle').textContent = `Class ${data.classroom.grade} ${data.classroom.section || ''} | ${data.exam.term} ${data.exam.session}`;
+
+  // Update summary
+  document.getElementById('totalStudents').textContent = data.students.length;
+  const passed = data.students.filter(s => s.results && Object.values(s.results).some(r => r && r.marks_obtained !== null)).length;
+  const failed = data.students.length - passed;
+  document.getElementById('passedStudents').textContent = passed;
+  document.getElementById('failedStudents').textContent = failed;
+
+  // Update table
+  const tbody = document.getElementById('resultsBody');
+  tbody.innerHTML = '';
+
+  if (data.students.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" class="no-results">No results found for this exam and class.</td></tr>';
+  } else {
+    data.students.forEach((student, index) => {
+      const resultClass = student.percentage >= 33 ? 'pass' : 'fail';
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td class="text-center">${index + 1}</td>
+        <td class="text-center">${student.roll_no}</td>
+        <td>${student.name}</td>
+        <td class="text-center">${student.total_marks}</td>
+        <td class="text-center">${student.obtained_marks}</td>
+        <td class="text-center">${student.percentage.toFixed(2)}%</td>
+        <td class="text-center">${student.rank}</td>
+        <td class="text-center result-${resultClass}">${student.percentage >= 33 ? 'Pass' : 'Fail'}</td>
+        <td class="text-center">
+          <a href="/academics/generate-marksheet/${student.id}/" class="btn btn-info btn-sm" title="Generate Marksheet">
+            <i class="bx bx-file"></i> Marksheet
+          </a>
+        </td>
+      `;
+      tbody.appendChild(row);
+    });
+  }
+
+  // Show results display
+  document.getElementById('resultsDisplay').style.display = 'block';
+  document.getElementById('resultsDisplay').scrollIntoView({ behavior: 'smooth' });
+}
+
+function declareResults() {
+  if (!currentExamId || !currentClassroomId) return;
+
+  // Redirect to PDF generation
+  window.location.href = `/academics/declare-class-results/${currentExamId}/${currentClassroomId}/`;
+}
+</script>
+{% endblock %}
+
+{% block inline_css %}
+<style>
+.search-results-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.search-result-page-header {
+  margin-bottom: 3rem;
+  text-align: center;
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.breadcrumb a {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.breadcrumb a:hover {
+  color: color-mix(in srgb, var(--color-primary), var(--color-black) 20%);
+}
+
+.separator {
+  color: #999;
+  font-weight: bold;
+}
+
+.page-header h1 {
+  margin: 0 0 0.5rem 0;
+  color: var(--color-black);
+  font-size: 2.5rem;
+  font-weight: 700;
+}
+
+.page-subtitle {
+  margin: 0;
+  color: #666;
+  font-size: 1.1rem;
+}
+
+.search-form {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+
+.form-card h2 {
+  margin: 0 0 1.5rem 0;
+  color: var(--color-primary);
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  margin-bottom: 0.5rem;
+  color: var(--color-black);
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.form-group select {
+  padding: 0.75rem 1rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: white;
+  cursor: pointer;
+  transition: border-color 0.3s ease;
+}
+
+.form-group select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.form-actions {
+  text-align: center;
+}
+
+.results-display {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.results-header {
+  padding: 2rem;
+  border-bottom: 1px solid #e1e5e9;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.results-info h2 {
+  margin: 0 0 0.25rem 0;
+  color: var(--color-primary);
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.results-info p {
+  margin: 0;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.results-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.results-summary {
+  padding: 2rem;
+  border-bottom: 1px solid #e1e5e9;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+}
+
+.summary-card {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.summary-icon {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 12px;
+  background: var(--color-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  color: var(--color-primary);
+}
+
+.summary-icon.pass {
+  background: rgba(40, 167, 69, 0.1);
+  color: #28a745;
+}
+
+.summary-icon.fail {
+  background: rgba(220, 53, 69, 0.1);
+  color: #dc3545;
+}
+
+.summary-info h3 {
+  margin: 0 0 0.25rem 0;
+  color: var(--color-black);
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.summary-info p {
+  margin: 0;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.results-table-container {
+  padding: 2rem;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid #e1e5e9;
+}
+
+.results-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+}
+
+.results-table th,
+.results-table td {
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+  vertical-align: middle;
+}
+
+.results-table th {
+  background: var(--color-secondary);
+  color: var(--color-black);
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.results-table tbody tr:hover {
+  background: #f8f9fa;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.result-pass {
+  color: #28a745;
+  font-weight: 600;
+}
+
+.result-fail {
+  color: #dc3545;
+  font-weight: 600;
+}
+
+.no-results {
+  text-align: center;
+  color: #666;
+  font-style: italic;
+  padding: 2rem;
+}
+
+.btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: color-mix(in srgb, var(--color-primary), var(--color-black) 10%);
+  transform: translateY(-1px);
+}
+
+.btn-success {
+  background: #28a745;
+  color: white;
+}
+
+.btn-success:hover {
+  background: color-mix(in srgb, #28a745, var(--color-black) 10%);
+}
+
+@media (max-width: 768px) {
+  .search-results-container {
+    padding: 1rem;
+  }
+
+  .page-header h1 {
+    font-size: 2rem;
+  }
+
+  .search-form {
+    padding: 1.5rem;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .results-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .results-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .results-table th,
+  .results-table td {
+    padding: 0.5rem;
+    font-size: 0.9rem;
+  }
+
+  .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+</style>
+{% endblock %}

@@ -1,0 +1,936 @@
+{% extends 'dashboard/layout.html' %}
+{% load static %}
+
+{% block content %}
+  <div class="notice-board-container">
+    <h1>Notice Board</h1>
+    <p>Stay updated with the latest notifications from the administration.</p>
+
+    {% if role == 'Admin' %}
+      <div class="admin-actions">
+        <button class="btn btn-primary" id="create-notice-btn">Create New Notice</button>
+        <div class="bulk-actions" style="display: none;">
+          <button class="btn btn-outline" form="notices-form" name="action" value="enable" id="enable-btn" style="display: none;">Enable Selected</button>
+          <button class="btn btn-outline" form="notices-form" name="action" value="disable" id="disable-btn">Disable Selected</button>
+          <button class="btn btn-outline" form="notices-form" name="action" value="delete">Delete Selected</button>
+        </div>
+      </div>
+    {% endif %}
+
+    {% if notices %}
+      <form id="notices-form" method="post" action="">
+        {% csrf_token %}
+        <div class="notices-stack">
+          {% for notice in notices %}
+            <div class="notice-card {% if not notice.is_active %}inactive{% endif %}">
+              {% if role == 'Admin' %}
+                <div class="notice-checkbox-container">
+                  <input type="checkbox" name="notice_ids" value="{{ notice.id }}" class="notice-checkbox" />
+                </div>
+              {% endif %}
+              <div class="notice-main">
+                <div class="notice-header-row">
+                  <h3>{{ notice.title }}</h3>
+                  <div class="notice-badges">
+                    <span class="notice-type-badge {% if notice.notice_type == 'PUBLIC' or notice.notice_type == 'ALL_STUDENTS' or notice.notice_type == 'ALL_TEACHERS' %}
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        announcement
+
+
+
+
+
+
+
+
+
+
+
+
+
+                      {% else %}
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        individual
+
+
+
+
+
+
+
+
+
+
+
+
+
+                      {% endif %}">
+                      {{ notice.get_notice_type_display }}
+                    </span>
+                    {% if notice.attachment %}
+                      <span class="attachment-badge" title="Attachment: {{ notice.attachment.name }}"><i class="bx bx-paperclip"></i> {{ notice.attachment.name|truncatechars:25 }}</span>
+                    {% endif %}
+                    {% if role == 'Admin' %}
+                      <span class="notice-status {% if notice.is_active %}
+                          
+                          
+                          
+                          
+                          
+                          
+                          
+                          
+                          
+                          
+                          
+                          
+                          
+                          active
+
+
+
+
+
+
+
+
+
+
+
+
+
+                        {% else %}
+                          
+                          
+                          
+                          
+                          
+                          
+                          
+                          
+                          
+                          
+                          
+                          
+                          
+                          inactive
+
+
+
+
+
+
+
+
+
+
+
+
+
+                        {% endif %}">
+                        {{ notice.is_active|yesno:'Active,Inactive' }}
+                      </span>
+                    {% endif %}
+                  </div>
+                </div>
+                <div class="notice-content-row">
+                  <p>{{ notice.content|truncatechars:100 }}</p>
+                  {% if role == 'Admin' %}
+                    {% if notice.notice_type == 'INDIVIDUAL_STUDENT' and notice.target_students.all %}
+                      <div class="notice-targets">Targeted Students: {{ notice.target_students.all|join:', ' }}</div>
+                    {% elif notice.notice_type == 'CLASS_STUDENTS' and notice.target_class %}
+                      <div class="notice-targets">Targeted Class: {{ notice.target_class }}</div>
+                    {% elif notice.notice_type == 'INDIVIDUAL_TEACHER' and notice.target_teachers.all %}
+                      <div class="notice-targets">Targeted Teachers: {{ notice.target_teachers.all|join:', ' }}</div>
+                    {% endif %}
+                  {% endif %}
+                  <div class="notice-actions">
+                    {% if notice.attachment %}
+                      <a href="{% url 'notices:download_notice_attachment' notice.id %}" class="btn btn-primary btn-sm download-btn" title="Download Attachment"><i class="bx bx-download"></i> Download</a>
+                    {% endif %}
+                    {% if role == 'Admin' %}
+                      <button type="button"
+                        class="icon-btn edit-btn"
+                        title="Edit Notice"
+                        data-notice-id="{{ notice.id }}"
+                        data-title="{{ notice.title }}"
+                        data-content="{{ notice.content }}"
+                        data-notice-type="{{ notice.notice_type }}"
+                        data-target-students="{% for student in notice.target_students.all %}
+                          {{ student.id }}{% if not forloop.last %},{% endif %}
+                        {% endfor %}"
+                        data-target-teachers="{% for teacher in notice.target_teachers.all %}
+                          {{ teacher.id }}{% if not forloop.last %},{% endif %}
+                        {% endfor %}"
+                        data-target-class="{{ notice.target_class.id|default:'' }}"
+                        data-attachment="{% if notice.attachment %}{{ notice.attachment.name }}{% endif %}">
+                        <i class="bx bx-edit"></i>
+                      </button>
+                    {% endif %}
+                    {% if notice.notice_type in 'INDIVIDUAL_STUDENT,INDIVIDUAL_TEACHER' and role in 'Student,Teacher' %}
+                      <button type="button" class="btn btn-outline btn-sm dismiss-notice-btn" data-notice-id="{{ notice.id }}" title="Dismiss Notice"><i class="bx bx-x"></i> Dismiss</button>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </form>
+    {% else %}
+      <div class="no-notices">
+        <p>No notices available at the moment.</p>
+      </div>
+    {% endif %}
+
+    {% if role == 'Admin' %}
+      <div id="notice-modal" class="modal">
+        <div class="modal-content">
+          <span class="close">&times;</span>
+          <h2>Create New Notice</h2>
+          <form id="notice-form" method="post" action="{% url 'notices:create_notice' %}" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" id="notice-id" name="notice_id" value="" />
+            <input type="hidden" id="clear-attachment" name="clear_attachment" value="false" />
+            <div class="form-group">
+              <label for="{{ form.title.id_for_label }}">Title</label>
+              {{ form.title }}
+            </div>
+            <div class="form-group">
+              <label for="{{ form.content.id_for_label }}">Content</label>
+              {{ form.content }}
+            </div>
+            <div class="form-group">
+              <label for="{{ form.notice_type.id_for_label }}">Notice Type</label>
+              {{ form.notice_type }}
+            </div>
+            <div class="form-group" id="target-class-group" style="display: none;">
+              <label for="{{ form.target_class.id_for_label }}">Target Class</label>
+              {{ form.target_class }}
+            </div>
+            <div class="form-group" id="target-students-group" style="display: none;">
+              <label for="{{ form.target_students.id_for_label }}">Target Students</label>
+              {{ form.target_students }}
+            </div>
+            <div class="form-group" id="target-teachers-group" style="display: none;">
+              <label for="{{ form.target_teachers.id_for_label }}">Target Teachers</label>
+              {{ form.target_teachers }}
+            </div>
+            <div class="form-group">
+              <label for="{{ form.attachment.id_for_label }}">Attachment</label>
+              <div id="current-attachment" style="display: none; margin-bottom: 0.5rem; color: #666; font-size: 0.9rem;">
+                Current attachment: <span id="current-attachment-name"></span>
+                <button type="button" id="clear-attachment-btn" class="btn btn-outline" style="margin-left: 1rem; padding: 0.25rem 0.5rem; font-size: 0.8rem;">Clear</button>
+              </div>
+              {{ form.attachment }}
+            </div>
+            <button type="submit" class="btn btn-primary" id="submit-btn">Create Notice</button>
+          </form>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  {% if role == 'Admin' %}
+    <script>
+      // Modal functionality
+      const modal = document.getElementById('notice-modal')
+      const modalTitle = modal.querySelector('h2')
+      const form = document.getElementById('notice-form')
+      const submitBtn = document.getElementById('submit-btn')
+      const noticeIdField = document.getElementById('notice-id')
+      const currentAttachment = document.getElementById('current-attachment')
+      const currentAttachmentName = document.getElementById('current-attachment-name')
+      const createBtn = document.getElementById('create-notice-btn')
+      const span = document.getElementsByClassName('close')[0]
+      const noticeTypeSelect = document.getElementById('id_notice_type')
+      const targetClassGroup = document.getElementById('target-class-group')
+      const targetStudentsGroup = document.getElementById('target-students-group')
+      const targetTeachersGroup = document.getElementById('target-teachers-group')
+      
+      // Function to toggle target fields based on notice type
+      function toggleTargetFields() {
+        const selectedType = noticeTypeSelect.value
+        targetClassGroup.style.display = selectedType === 'CLASS_STUDENTS' ? 'block' : 'none'
+        targetStudentsGroup.style.display = selectedType === 'INDIVIDUAL_STUDENT' ? 'block' : 'none'
+        targetTeachersGroup.style.display = selectedType === 'INDIVIDUAL_TEACHER' ? 'block' : 'none'
+      }
+      
+      // Add event listener to notice type select
+      if (noticeTypeSelect) {
+        noticeTypeSelect.addEventListener('change', toggleTargetFields)
+      }
+      
+      if (createBtn) {
+        createBtn.onclick = function () {
+          resetModal()
+          toggleTargetFields()
+          modal.style.display = 'block'
+        }
+      }
+      
+      document.querySelectorAll('.edit-btn').forEach((btn) => {
+        btn.onclick = function () {
+          const data = this.dataset
+          populateModal(data)
+          modal.style.display = 'block'
+        }
+      })
+      
+      function resetModal() {
+        form.reset()
+        noticeIdField.value = ''
+        modalTitle.textContent = 'Create New Notice'
+        submitBtn.textContent = 'Create Notice'
+        currentAttachment.style.display = 'none'
+      }
+      
+      function populateModal(data) {
+        document.getElementById('id_title').value = data.title
+        document.getElementById('id_content').value = data.content
+        document.getElementById('id_notice_type').value = data.noticeType
+      
+        // Clear all selects first
+        document.getElementById('id_target_students').selectedIndex = -1
+        document.getElementById('id_target_teachers').selectedIndex = -1
+        document.getElementById('id_target_class').selectedIndex = -1
+      
+        if (data.targetStudents) {
+          const studentIds = data.targetStudents.split(',')
+          const select = document.getElementById('id_target_students')
+          Array.from(select.options).forEach((option) => {
+            const isSelected = studentIds.includes(option.value)
+            option.selected = isSelected
+          })
+      
+          // Update visual display after setting selections
+          setTimeout(() => {
+            updateSelectedStudents()
+          }, 50)
+        }
+      
+        if (data.targetTeachers) {
+          const teacherIds = data.targetTeachers.split(',')
+          const select = document.getElementById('id_target_teachers')
+          Array.from(select.options).forEach((option) => {
+            option.selected = teacherIds.includes(option.value)
+          })
+        }
+      
+        if (data.targetClass) {
+          document.getElementById('id_target_class').value = data.targetClass
+        }
+      
+        noticeIdField.value = data.noticeId
+        modalTitle.textContent = 'Edit Notice'
+        submitBtn.textContent = 'Update Notice'
+      
+        // Toggle fields based on notice type
+        toggleTargetFields()
+      
+        if (data.noticeId && data.attachment) {
+          const filename = data.attachment.split('/').pop()
+          currentAttachmentName.textContent = filename
+          currentAttachment.style.display = 'block'
+        } else {
+          currentAttachment.style.display = 'none'
+        }
+      }
+      
+      span.onclick = function () {
+        modal.style.display = 'none'
+      }
+      
+      window.onclick = function (event) {
+        if (event.target == modal) {
+          modal.style.display = 'none'
+        }
+      }
+      
+      const checkboxes = document.querySelectorAll('.notice-checkbox')
+      const bulkActions = document.querySelector('.bulk-actions')
+      
+      checkboxes.forEach((checkbox) => {
+        checkbox.addEventListener('change', function () {
+          updateBulkActions()
+        })
+      })
+      
+      function updateBulkActions() {
+        const checkedBoxes = document.querySelectorAll('.notice-checkbox:checked')
+        const enableBtn = document.getElementById('enable-btn')
+        const disableBtn = document.getElementById('disable-btn')
+      
+        if (checkedBoxes.length > 0) {
+          bulkActions.style.display = 'block'
+          let hasInactive = false
+          let hasActive = false
+          checkedBoxes.forEach((checkbox) => {
+            const noticeCard = checkbox.closest('.notice-card')
+            if (noticeCard.classList.contains('inactive')) {
+              hasInactive = true
+            } else {
+              hasActive = true
+            }
+          })
+          enableBtn.style.display = hasInactive ? 'inline-block' : 'none'
+          disableBtn.style.display = hasActive ? 'inline-block' : 'none'
+        } else {
+          bulkActions.style.display = 'none'
+        }
+      }
+      
+      document.getElementById('notices-form').addEventListener('submit', function (e) {
+        const action = e.submitter.value
+        if (action === 'disable') {
+          this.action = '{% url "notices:bulk_disable_notices" %}'
+        } else if (action === 'enable') {
+          this.action = '{% url "notices:bulk_enable_notices" %}'
+        } else if (action === 'delete') {
+          this.action = '{% url "notices:bulk_delete_notices" %}'
+        }
+      })
+      
+      // Handle notice form submission
+      document.getElementById('notice-form').addEventListener('submit', function (e) {
+        e.preventDefault() // Prevent default submission for debugging
+      
+        const hiddenSelect = document.querySelector('.searchable-student-select')
+        if (hiddenSelect) {
+          const selectedOptions = hiddenSelect.querySelectorAll('option:checked')
+          Array.from(selectedOptions).forEach((option) => {})
+        }
+      
+        // Submit the form normally after logging
+        this.submit()
+      })
+      
+      // Searchable student selection functionality
+      document.addEventListener('DOMContentLoaded', function () {
+        initializeSearchableStudentSelect()
+      })
+      
+      function initializeSearchableStudentSelect() {
+        const container = document.querySelector('.searchable-select-container')
+        if (!container) return
+      
+        const searchInput = container.querySelector('.search-input')
+        const hiddenSelect = container.querySelector('.searchable-student-select')
+        const selectedStudentsDiv = container.querySelector('.selected-students')
+        const searchResultsDiv = container.querySelector('.search-results')
+      
+        if (!searchInput || !hiddenSelect) return
+      
+        // Initialize selected students from hidden select
+        updateSelectedStudents()
+      
+        // Search input event listener
+        searchInput.addEventListener('input', function () {
+          const query = this.value.trim()
+          if (query.length < 2) {
+            searchResultsDiv.style.display = 'none'
+            return
+          }
+      
+          // Fetch search results
+          fetch(`{% url "notices:search_students" %}?q=${encodeURIComponent(query)}`)
+            .then((response) => {
+              return response.json()
+            })
+            .then((data) => {
+              displaySearchResults(data.students)
+            })
+            .catch((error) => {
+              console.error('Search error:', error)
+            })
+        })
+      
+        // Hide search results when clicking outside
+        document.addEventListener('click', function (e) {
+          if (!container.contains(e.target)) {
+            searchResultsDiv.style.display = 'none'
+          }
+        })
+      
+        function displaySearchResults(students) {
+          if (students.length === 0) {
+            searchResultsDiv.innerHTML = '<div class="no-results">No students found</div>'
+          } else {
+            searchResultsDiv.innerHTML = ''
+            students.forEach((student) => {
+              const itemDiv = document.createElement('div')
+              itemDiv.className = 'search-result-item'
+              itemDiv.setAttribute('data-student-id', student.id)
+      
+              const infoDiv = document.createElement('div')
+              infoDiv.className = 'student-info'
+              infoDiv.innerHTML = `<strong>${student.name}</strong><br><small>Roll: ${student.roll_no}, Class: ${student.classroom}</small>`
+      
+              const addBtn = document.createElement('button')
+              addBtn.type = 'button'
+              addBtn.className = 'add-student-btn'
+              addBtn.textContent = 'Add'
+              addBtn.setAttribute('data-student-id', student.id)
+              addBtn.setAttribute('data-student-display', student.display)
+      
+              itemDiv.appendChild(infoDiv)
+              itemDiv.appendChild(addBtn)
+              searchResultsDiv.appendChild(itemDiv)
+            })
+          }
+          searchResultsDiv.style.display = 'block'
+      
+          // Use event delegation for Add buttons
+          searchResultsDiv.onclick = function (e) {
+            if (e.target.classList.contains('add-student-btn')) {
+              const studentId = parseInt(e.target.getAttribute('data-student-id'))
+              const studentDisplay = e.target.getAttribute('data-student-display')
+              addStudent(studentId, studentDisplay)
+            }
+          }
+        }
+      
+        // Show search results when focusing on search input
+        searchInput.addEventListener('focus', function () {
+          if (this.value.trim().length >= 2) {
+            this.dispatchEvent(new Event('input'))
+          }
+        })
+      }
+      
+      function addStudent(studentId, studentDisplay) {
+        const container = document.querySelector('.searchable-select-container')
+        if (!container) {
+          console.error('Container not found!')
+          return
+        }
+        const hiddenSelect = container.querySelector('.searchable-student-select')
+        const selectedStudentsDiv = container.querySelector('.selected-students')
+        const searchInput = container.querySelector('.search-input')
+      
+        // Check if student is already selected
+        const existingOptions = hiddenSelect.querySelectorAll('option')
+        let found = false
+        for (let option of existingOptions) {
+          if (parseInt(option.value) === studentId) {
+            found = true
+            if (option.selected) {
+              return // Already selected
+            }
+          }
+        }
+        if (found) {
+        } else {
+        }
+      
+        // Add option to hidden select
+        const option = document.createElement('option')
+        option.value = studentId
+        option.text = studentDisplay
+        option.selected = true
+        hiddenSelect.appendChild(option)
+      
+        // Force the selected property to ensure it sticks
+        option.selected = true
+      
+        // Additional check - use setAttribute as well
+        if (!option.selected) {
+          option.setAttribute('selected', 'selected')
+        }
+      
+        // Clear placeholder text if it exists
+        const placeholder = selectedStudentsDiv.querySelector('.no-students-selected')
+        if (placeholder) {
+          placeholder.remove()
+        }
+      
+        // Add to selected students display
+        const selectedDiv = document.createElement('div')
+        selectedDiv.className = 'selected-student-item'
+        selectedDiv.setAttribute('data-student-id', studentId)
+      
+        const span = document.createElement('span')
+        span.textContent = studentDisplay
+      
+        const removeBtn = document.createElement('button')
+        removeBtn.type = 'button'
+        removeBtn.className = 'remove-student-btn'
+        removeBtn.textContent = '×'
+        removeBtn.setAttribute('data-student-id', studentId)
+        removeBtn.onclick = () => removeStudent(studentId)
+      
+        selectedDiv.appendChild(span)
+        selectedDiv.appendChild(removeBtn)
+        selectedStudentsDiv.appendChild(selectedDiv)
+      
+        // Clear search
+        searchInput.value = ''
+        container.querySelector('.search-results').style.display = 'none'
+      
+        // Update visual display of selected students
+        updateSelectedStudents()
+      
+        // Debug: Check if the specific student was added
+        const specificOption = hiddenSelect.querySelector(`option[value="${studentId}"]`)
+        if (specificOption) {
+        }
+      }
+      
+      function removeStudent(studentId) {
+        const container = document.querySelector('.searchable-select-container')
+        if (!container) {
+          console.error('Container not found in removeStudent!')
+          return
+        }
+        const hiddenSelect = container.querySelector('.searchable-student-select')
+        const selectedStudentsDiv = container.querySelector('.selected-students')
+      
+        // Remove from hidden select
+        const option = hiddenSelect.querySelector(`option[value="${studentId}"]`)
+        if (option) {
+          option.remove()
+        }
+      
+        // Remove from display - find by data attribute
+        const selectedItems = selectedStudentsDiv.querySelectorAll('.selected-student-item')
+        selectedItems.forEach((item) => {
+          if (item.getAttribute('data-student-id') == studentId) {
+            item.remove()
+          }
+        })
+      }
+      
+      function updateSelectedStudents() {
+        const container = document.querySelector('.searchable-select-container')
+        if (!container) {
+          console.error('Container not found in updateSelectedStudents!')
+          return
+        }
+      
+        const hiddenSelect = container.querySelector('.searchable-student-select')
+        const selectedStudentsDiv = container.querySelector('.selected-students')
+      
+        if (!hiddenSelect || !selectedStudentsDiv) {
+          console.error('Hidden select or selected students div not found!')
+          return
+        }
+      
+        // Clear current display
+        selectedStudentsDiv.innerHTML = ''
+      
+        // Add placeholder if no students selected
+        if (hiddenSelect.querySelectorAll('option:checked').length === 0) {
+          selectedStudentsDiv.innerHTML = '<div class="no-students-selected" style="color: #999; font-style: italic;">No students selected yet. Search and click "Add" to select students.</div>'
+        }
+      
+        // Add currently selected students
+        const selectedOptions = hiddenSelect.querySelectorAll('option')
+        const checkedOptions = hiddenSelect.querySelectorAll('option:checked')
+      
+        selectedOptions.forEach((option) => {
+          if (option.selected) {
+            const selectedDiv = document.createElement('div')
+            selectedDiv.className = 'selected-student-item'
+            selectedDiv.setAttribute('data-student-id', option.value)
+      
+            const span = document.createElement('span')
+            span.textContent = option.text
+      
+            const removeBtn = document.createElement('button')
+            removeBtn.type = 'button'
+            removeBtn.className = 'remove-student-btn'
+            removeBtn.textContent = '×'
+            removeBtn.setAttribute('data-student-id', option.value)
+            removeBtn.onclick = () => removeStudent(parseInt(option.value))
+      
+            selectedDiv.appendChild(span)
+            selectedDiv.appendChild(removeBtn)
+            selectedStudentsDiv.appendChild(selectedDiv)
+          }
+        })
+      }
+      
+      // Initialize searchable student select when modal opens
+      if (createBtn) {
+        const originalOnclick = createBtn.onclick
+        createBtn.onclick = function () {
+          originalOnclick.call(this)
+          setTimeout(() => {
+            initializeSearchableStudentSelect()
+          }, 100)
+        }
+      }
+      
+      // Also initialize when editing
+      document.querySelectorAll('.edit-btn').forEach((btn) => {
+        const originalOnclick = btn.onclick
+        btn.onclick = function () {
+          originalOnclick.call(this)
+          setTimeout(() => {
+            initializeSearchableStudentSelect()
+          }, 100)
+        }
+      })
+    </script>
+  {% endif %}
+
+  <style>
+    .download-btn {
+      background: #28a745;
+      color: white;
+      border: none;
+      padding: 0.4rem 0.8rem;
+      border-radius: 4px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      font-size: 0.85rem;
+      transition: background-color 0.3s ease;
+    }
+    
+    .download-btn:hover {
+      background: #218838;
+      color: white;
+      text-decoration: none;
+    }
+    
+    .download-btn i {
+      font-size: 1rem;
+    }
+    
+    .notice-actions {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+    
+    .icon-btn {
+      background: none;
+      border: none;
+      color: #666;
+      padding: 0.5rem;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    
+    .icon-btn:hover {
+      background: #f8f9fa;
+    }
+    
+    .edit-btn {
+      color: #007bff;
+    }
+    
+    .edit-btn:hover {
+      background: #e3f2fd;
+    }
+    
+    .attachment-badge {
+      background: #e9ecef;
+      color: #495057;
+      padding: 0.2rem 0.5rem;
+      border-radius: 3px;
+      font-size: 0.75rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.2rem;
+      margin-left: 0.5rem;
+      border: 1px solid #dee2e6;
+    }
+    
+    .attachment-badge i {
+      font-size: 0.8rem;
+    }
+    
+    /* Searchable Student Select Styles */
+    .searchable-select-container {
+      position: relative;
+      width: 100%;
+    }
+    
+    .search-input {
+      width: 100%;
+      padding: 0.5rem;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .search-input:focus {
+      outline: none;
+      border-color: #007bff;
+      box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    }
+    
+    .selected-students {
+      margin-bottom: 0.5rem;
+      min-height: 2rem;
+      padding: 0.5rem;
+      border: 2px dashed #ddd;
+      border-radius: 4px;
+      background: #fafafa;
+    }
+    
+    .selected-student-item {
+      display: inline-flex;
+      align-items: center;
+      background: #e3f2fd;
+      border: 1px solid #2196f3;
+      border-radius: 20px;
+      padding: 0.25rem 0.75rem;
+      margin: 0.2rem;
+      font-size: 0.85rem;
+      gap: 0.5rem;
+    }
+    
+    .remove-student-btn {
+      background: none;
+      border: none;
+      color: #2196f3;
+      font-weight: bold;
+      cursor: pointer;
+      padding: 0;
+      line-height: 1;
+      font-size: 1rem;
+      margin-left: 0.2rem;
+    }
+    
+    .search-results {
+      position: absolute;
+      z-index: 1000;
+      width: 100%;
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid #ccc;
+      background: white;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      border-radius: 4px;
+      display: none;
+    }
+    
+    .search-result-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem;
+      border-bottom: 1px solid #eee;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    
+    .search-result-item:hover {
+      background-color: #f8f9fa;
+    }
+    
+    .search-result-item:last-child {
+      border-bottom: none;
+    }
+    
+    .add-student-btn {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 0.25rem 0.75rem;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+    
+    .no-results {
+      padding: 0.5rem;
+      color: #6c757d;
+      font-style: italic;
+    }
+    
+    /* Custom styling for Django's multi-select for students/teachers when not using the custom widget */
+    #id_target_students,
+    #id_target_teachers {
+      min-height: 100px;
+    }
+    
+    .notice-targets {
+      font-size: 0.85rem;
+      color: #666;
+      margin-top: 0.5rem;
+      font-style: italic;
+    }
+    
+    .notice-link {
+      color: #007bff;
+      text-decoration: none;
+      font-weight: 500;
+      margin-left: 0.5rem;
+    }
+    
+    .notice-link:hover {
+      text-decoration: underline;
+      color: #0056b3;
+    }
+    
+    .notice-content-row p {
+      margin-bottom: 0;
+    }
+  </style>
+
+  {% block inline_js %}
+    <script>
+      // Dismiss notice functionality
+      document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.dismiss-notice-btn').forEach((btn) => {
+          btn.addEventListener('click', function () {
+            const noticeId = this.getAttribute('data-notice-id')
+            // Send AJAX request to dismiss
+            fetch(`/notices/dismiss/${noticeId}/`, {
+              method: 'POST',
+              headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json'
+              }
+            })
+              .then((response) => response.json())
+              .then((data) => {
+                if (data.success) {
+                  const noticeCard = document.querySelector(`.notice-card .dismiss-notice-btn[data-notice-id="${noticeId}"]`).closest('.notice-card')
+                  if (noticeCard) {
+                    noticeCard.style.display = 'none'
+                  }
+                } else {
+                  console.error('Failed to dismiss notice:', data.error)
+                }
+              })
+              .catch((error) => {
+                console.error('Error dismissing notice:', error)
+              })
+          })
+        })
+      })
+    </script>
+  {% endblock %}
+{% endblock %}

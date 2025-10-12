@@ -1,11 +1,123 @@
 {% extends 'main.html' %}
+{% load static %}
 {% block title %}
-  ACADEMICS | SITE
+  Academics | School Name
+{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/home.css' %}" />
 {% endblock %}
 
 {% block content %}
-  <section class="hero">
-    <h1>Academics</h1>
-    <p>Explore our academic programs and curriculum.</p>
+  <!-- Page Header -->
+  <section class="homepage-header">
+    <div class="container">
+      <h1>Academics</h1>
+      <p>Explore our academic programs and curriculum</p>
+    </div>
+  </section>
+
+  <!-- Curriculum Section -->
+  <section class="curriculum-section">
+    <div class="container">
+      <div class="curriculum-content">
+        <h2>Our Curriculum</h2>
+        <p>We offer a comprehensive curriculum that balances academic excellence with holistic development.</p>
+
+        <div class="curriculum-grid">
+          <div class="curriculum-item">
+            <div class="curriculum-icon">
+              <i class="bx bx-math"></i>
+            </div>
+            <h3>Mathematics</h3>
+            <p>Building strong foundations in mathematical concepts and problem-solving skills.</p>
+          </div>
+          <div class="curriculum-item">
+            <div class="curriculum-icon">
+              <i class="bx bx-test-tube"></i>
+            </div>
+            <h3>Science</h3>
+            <p>Hands-on learning in Physics, Chemistry, and Biology with modern laboratory facilities.</p>
+          </div>
+          <div class="curriculum-item">
+            <div class="curriculum-icon">
+              <i class="bx bx-book-open"></i>
+            </div>
+            <h3>Languages</h3>
+            <p>Proficiency in English, Hindi, and regional languages with focus on communication skills.</p>
+          </div>
+          <div class="curriculum-item">
+            <div class="curriculum-icon">
+              <i class="bx bx-palette"></i>
+            </div>
+            <h3>Arts & Humanities</h3>
+            <p>Creative expression through visual arts, music, and social studies.</p>
+          </div>
+          <div class="curriculum-item">
+            <div class="curriculum-icon">
+              <i class="bx bx-dumbbell"></i>
+            </div>
+            <h3>Physical Education</h3>
+            <p>Sports and physical activities for overall health and teamwork.</p>
+          </div>
+          <div class="curriculum-item">
+            <div class="curriculum-icon">
+              <i class="bx bx-brain"></i>
+            </div>
+            <h3>Computer Science</h3>
+            <p>Digital literacy and programming skills for the modern world.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Grade Levels Section -->
+  <section class="grades-section">
+    <div class="container">
+      <h2>Grade Levels</h2>
+      <div class="grades-grid">
+        <div class="grade-card">
+          <h3>Primary (Grades 1-5)</h3>
+          <p>Foundation building with play-based learning and basic skills development.</p>
+        </div>
+        <div class="grade-card">
+          <h3>Middle School (Grades 6-8)</h3>
+          <p>Transition to advanced concepts with increased independence and critical thinking.</p>
+        </div>
+        <div class="grade-card">
+          <h3>High School (Grades 9-10)</h3>
+          <p>Preparation for board examinations with specialized subject choices.</p>
+        </div>
+        <div class="grade-card">
+          <h3>Senior Secondary (Grades 11-12)</h3>
+          <p>Stream selection and career guidance for higher education and professional paths.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Assessment Section -->
+  <section class="assessment-section">
+    <div class="container">
+      <div class="assessment-content">
+        <h2>Assessment & Evaluation</h2>
+        <p>Continuous assessment ensures comprehensive evaluation of student progress.</p>
+
+        <div class="assessment-methods">
+          <div class="method">
+            <h3>Formative Assessment</h3>
+            <p>Ongoing evaluation through quizzes, projects, and class participation.</p>
+          </div>
+          <div class="method">
+            <h3>Summative Assessment</h3>
+            <p>Comprehensive exams at the end of terms and academic years.</p>
+          </div>
+          <div class="method">
+            <h3>Practical Evaluation</h3>
+            <p>Hands-on assessment in science, arts, and vocational subjects.</p>
+          </div>
+        </div>
+      </div>
+    </div>
   </section>
 {% endblock %}

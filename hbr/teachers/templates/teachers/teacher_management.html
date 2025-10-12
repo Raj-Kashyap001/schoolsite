@@ -1,0 +1,75 @@
+{% extends 'dashboard/layout.html' %}
+{% load static %}
+
+{% block content %}
+  <div class="teacher-management-container">
+    <div class="header-section" style="justify-content: center;">
+      <h1 style="text-align: center !important;">Teacher Management</h1>
+    </div>
+    <div style="margin-bottom: 1rem;">
+      <a href="{% url 'teachers:add_teacher' %}" class="btn btn-primary"><i class="bx bx-plus"></i> Add New Teacher</a>
+    </div>
+
+    <div class="teachers-table-container">
+      <table class="teachers-table">
+        <thead>
+          <tr>
+            <th>Profile</th>
+            <th>Name</th>
+            <th>Subject</th>
+            <th>Qualification</th>
+            <th>Mobile</th>
+            <th>Class Teacher</th>
+            <th>Classes</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for teacher in teachers %}
+            <tr>
+              <td class="profile-cell">
+                {% if teacher.profile_photo %}
+                  <img src="{{ teacher.profile_photo.url }}" alt="Profile" class="profile-thumb" />
+                {% else %}
+                  <div class="profile-avatar">
+                    <i class="bx bx-user"></i>
+                  </div>
+                {% endif %}
+              </td>
+              <td>{{ teacher.user.get_full_name }}</td>
+              <td>{{ teacher.subject }}</td>
+              <td>{{ teacher.qualification|default:'Not specified' }}</td>
+              <td>{{ teacher.mobile_no|default:'Not provided' }}</td>
+              <td>
+                {% for classroom in teacher.classroom.all %}
+                  {% if classroom.class_teacher == teacher %}
+                    <span class="class-teacher-badge">{{ classroom }}</span>
+                  {% endif %}
+                {% empty %}
+                  No
+                {% endfor %}
+              </td>
+              <td>
+                {% if teacher.classroom.all %}
+                  {{ teacher.classroom.all|join:', ' }}
+                {% else %}
+                  No classes assigned
+                {% endif %}
+              </td>
+              <td class="actions">
+                <a href="{% url 'teachers:profile' %}?teacher_id={{ teacher.id }}" class="btn btn-view btn-sm"><i class="bx bx-user"></i> View</a>
+                <a href="{% url 'teachers:edit_teacher' teacher.id %}" class="btn btn-edit btn-sm"><i class="bx bx-edit"></i> Edit</a>
+                <a href="{% url 'teachers:manage_salary' teacher.id %}" class="btn btn-salary btn-sm"><i class="bx bx-rupee"></i> Salary</a>
+                <a href="{% url 'teachers:delete_teacher' teacher.id %}" class="btn btn-delete btn-sm"><i class="bx bx-trash"></i> Delete</a>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="8">No teachers found.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endblock %}

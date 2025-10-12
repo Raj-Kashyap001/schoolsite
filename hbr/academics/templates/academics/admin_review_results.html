@@ -1,0 +1,1044 @@
+{% extends 'dashboard/layout.html' %}
+{% load static %}
+
+{% block content %}
+<div class="review-results-container">
+  <!-- Header -->
+  <div class="page-header">
+    <div class="breadcrumb">
+      <a href="{% url 'academics:admin_exam_management' %}">Exam Management</a>
+      <span class="separator">></span>
+      <span>Review Results</span>
+    </div>
+    <h1>Review & Publish Results</h1>
+    <p class="page-subtitle">Review exam results before publishing them to students</p>
+  </div>
+
+  <!-- Exam Selection -->
+  <div class="exam-selection" id="exam-selection">
+    <div class="selection-header">
+      <h2>Select Exam to Review</h2>
+      <p>Choose an exam to view and manage its results</p>
+    </div>
+
+    {% if exams %}
+      <div class="exams-grid">
+        {% for exam in exams %}
+          <div class="exam-card" onclick="selectExam({{ exam.id }}, '{{ exam.name }}')">
+            <div class="exam-icon">
+              <i class="bx bx-book"></i>
+            </div>
+            <div class="exam-info">
+              <h3>{{ exam.name }}</h3>
+              <p>{{ exam.term.name }} - {{ exam.term.academic_session.year }}</p>
+              <div class="exam-meta">
+                {% if exam.is_yearly_final %}
+                  <span class="meta-badge">
+                    <i class="bx bx-trophy"></i>
+                    Final Exam
+                  </span>
+                {% endif %}
+                <span class="meta-badge">
+                  <i class="bx {% if exam.marks_entry_open %}bx-lock-open{% else %}bx-lock{% endif %}"></i>
+                  {% if exam.marks_entry_open %}Entry Open{% else %}Entry Closed{% endif %}
+                </span>
+              </div>
+            </div>
+            <div class="exam-arrow">
+              <i class="bx bx-chevron-right"></i>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-icon">
+          <i class="bx bx-search"></i>
+        </div>
+        <h3>No Exams Available</h3>
+        <p>Create exams first to review their results.</p>
+        <a href="{% url 'academics:admin_create_exam' %}" class="btn btn-primary">
+          <i class="bx bx-plus"></i>
+          Create Exam
+        </a>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Results Viewer (Hidden initially) -->
+  <div class="results-viewer" id="resultsViewer" style="display: none;">
+    <div class="viewer-header">
+      <div class="viewer-info">
+        <h2 id="viewerTitle">Exam Results</h2>
+        <p id="viewerSubtitle">Review results before publishing</p>
+      </div>
+      <div class="viewer-actions">
+        <button class="btn btn-outline" onclick="closeResults()">
+          <i class="bx bx-arrow-back"></i>
+          Back to Exams
+        </button>
+        <button class="btn btn-success btn-lg" id="publishBtn" onclick="publishResults()">
+          <i class="bx bx-check-circle"></i>
+          Publish Results
+        </button>
+      </div>
+    </div>
+
+    <!-- Results Summary -->
+    <div class="results-summary">
+      <div class="summary-grid">
+        <div class="summary-card">
+          <div class="summary-icon">
+            <i class="bx bx-group"></i>
+          </div>
+          <div class="summary-info">
+            <h3 id="totalStudents">-</h3>
+            <p>Total Students</p>
+          </div>
+        </div>
+
+        <div class="summary-card">
+          <div class="summary-icon submitted">
+            <i class="bx bx-check-circle"></i>
+          </div>
+          <div class="summary-info">
+            <h3 id="submittedResults">-</h3>
+            <p>Results Submitted</p>
+          </div>
+        </div>
+
+        <div class="summary-card">
+          <div class="summary-icon locked">
+            <i class="bx bx-lock"></i>
+          </div>
+          <div class="summary-info">
+            <h3 id="lockedResults">-</h3>
+            <p>Results Locked</p>
+          </div>
+        </div>
+
+        <div class="summary-card">
+          <div class="summary-icon published">
+            <i class="bx bx-globe"></i>
+          </div>
+          <div class="summary-info">
+            <h3 id="publishedResults">-</h3>
+            <p>Results Published</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Results Table -->
+    <div class="results-table-container">
+      <div class="table-controls">
+        <div class="search-box">
+          <i class="bx bx-search"></i>
+          <input type="text" id="searchInput" placeholder="Search students..." onkeyup="filterResults()">
+        </div>
+        <div class="filter-controls">
+          <select id="statusFilter" onchange="filterResults()">
+            <option value="">All Status</option>
+            <option value="DRAFT">Draft</option>
+            <option value="SUBMITTED">Submitted</option>
+            <option value="LOCKED">Locked</option>
+            <option value="PUBLISHED">Published</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="table-wrapper">
+        <table class="results-table" id="resultsTable">
+          <thead>
+            <tr>
+              <th>Roll No</th>
+              <th>Student Name</th>
+              <th>Class</th>
+              <th>Subject</th>
+              <th>Marks</th>
+              <th>Grade</th>
+              <th>Status</th>
+              <th>Submitted By</th>
+              <th>Submitted At</th>
+            </tr>
+          </thead>
+          <tbody id="resultsBody">
+            <!-- Results will be loaded here -->
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-footer">
+        <div class="results-info" id="resultsInfo">
+          Showing 0 results
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Publish Confirmation Modal -->
+<div id="publishModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Publish Results</h2>
+      <button class="close-btn" onclick="closePublishModal()">
+        <i class="bx bx-x"></i>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <div class="confirm-icon">
+        <i class="bx bx-globe"></i>
+      </div>
+      <h3>Make Results Public?</h3>
+      <p>Once published, students will be able to view their results. This action cannot be undone.</p>
+
+      <div class="publish-summary" id="publishSummary">
+        <!-- Summary will be populated by JS -->
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closePublishModal()">Cancel</button>
+      <button class="btn btn-success" id="confirmPublishBtn" onclick="confirmPublish()">Publish Results</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block inline_js %}
+<script>
+let currentExamId = null;
+let allResults = [];
+
+function selectExam(examId, examName) {
+  currentExamId = examId;
+  document.getElementById('viewerTitle').textContent = `${examName} - Results`;
+  document.getElementById('exam-selection').style.display = 'none';
+  document.getElementById('resultsViewer').style.display = 'block';
+
+  loadExamResults(examId);
+}
+
+function closeResults() {
+  document.getElementById('resultsViewer').style.display = 'none';
+  document.getElementById('exam-selection').style.display = 'block';
+  currentExamId = null;
+  allResults = [];
+}
+
+function loadExamResults(examId) {
+  fetch(`/academics/admin/get-exam-results/${examId}/`)
+    .then(response => response.json())
+    .then(data => {
+      allResults = data.results || [];
+      displayResults(allResults);
+      updateSummary(allResults);
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('Error loading exam results.');
+    });
+}
+
+function displayResults(results) {
+  const tbody = document.getElementById('resultsBody');
+  tbody.innerHTML = '';
+
+  if (results.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" class="no-results">No results found for this exam.</td></tr>';
+    document.getElementById('resultsInfo').textContent = 'No results found';
+    return;
+  }
+
+  results.forEach(result => {
+    const row = document.createElement('tr');
+
+    row.innerHTML = `
+      <td>${result.roll_no}</td>
+      <td>${result.student_name}</td>
+      <td><span class="class-badge">${result.classroom}</span></td>
+      <td>${result.subject}</td>
+      <td class="marks-cell">${result.marks_obtained || 'N/A'}</td>
+      <td>${result.grade || 'N/A'}</td>
+      <td><span class="status-badge status-${result.status.toLowerCase()}">${result.status}</span></td>
+      <td>${result.submitted_by || 'N/A'}</td>
+      <td>${result.submitted_at || 'N/A'}</td>
+    `;
+
+    tbody.appendChild(row);
+  });
+
+  document.getElementById('resultsInfo').textContent = `Showing ${results.length} results`;
+}
+
+function updateSummary(results) {
+  const summary = {
+    total: results.length,
+    submitted: results.filter(r => r.status === 'SUBMITTED').length,
+    locked: results.filter(r => r.status === 'LOCKED').length,
+    published: results.filter(r => r.status === 'PUBLISHED').length
+  };
+
+  document.getElementById('totalStudents').textContent = summary.total;
+  document.getElementById('submittedResults').textContent = summary.submitted;
+  document.getElementById('lockedResults').textContent = summary.locked;
+  document.getElementById('publishedResults').textContent = summary.published;
+
+  // Enable/disable publish button based on results
+  const publishBtn = document.getElementById('publishBtn');
+  const hasUnpublished = results.some(r => r.status !== 'PUBLISHED');
+  publishBtn.disabled = !hasUnpublished;
+}
+
+function filterResults() {
+  const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+  const statusFilter = document.getElementById('statusFilter').value;
+
+  let filtered = allResults;
+
+  if (searchTerm) {
+    filtered = filtered.filter(result =>
+      result.student_name.toLowerCase().includes(searchTerm) ||
+      result.roll_no.toString().includes(searchTerm) ||
+      result.subject.toLowerCase().includes(searchTerm)
+    );
+  }
+
+  if (statusFilter) {
+    filtered = filtered.filter(result => result.status === statusFilter);
+  }
+
+  displayResults(filtered);
+}
+
+function publishResults() {
+  if (!currentExamId) return;
+
+  // Calculate summary for modal
+  const unpublished = allResults.filter(r => r.status !== 'PUBLISHED');
+  const summaryDiv = document.getElementById('publishSummary');
+
+  summaryDiv.innerHTML = `
+    <div class="publish-stats">
+      <div class="stat-item">
+        <span class="stat-number">${unpublished.length}</span>
+        <span class="stat-label">Results to Publish</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-number">${allResults.filter(r => r.status === 'PUBLISHED').length}</span>
+        <span class="stat-label">Already Published</span>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('publishModal').style.display = 'block';
+}
+
+function closePublishModal() {
+  document.getElementById('publishModal').style.display = 'none';
+}
+
+function confirmPublish() {
+  if (!currentExamId) return;
+
+  document.getElementById('confirmPublishBtn').disabled = true;
+  document.getElementById('confirmPublishBtn').innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Publishing...';
+
+  fetch(`/academics/admin/publish-results/${currentExamId}/`, {
+    method: 'POST',
+    headers: {
+      'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      closePublishModal();
+      loadExamResults(currentExamId); // Reload results
+      alert('Results published successfully!');
+    } else {
+      alert('Error publishing results.');
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('An error occurred while publishing results.');
+  })
+  .finally(() => {
+    document.getElementById('confirmPublishBtn').disabled = false;
+    document.getElementById('confirmPublishBtn').innerHTML = 'Publish Results';
+  });
+}
+
+// Close modals when clicking outside
+window.onclick = function(event) {
+  const modal = document.getElementById('publishModal');
+  if (event.target == modal) {
+    closePublishModal();
+  }
+}
+</script>
+{% endblock %}
+
+{% block inline_css %}
+<style>
+.review-results-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+/* Header */
+.page-header {
+  margin-bottom: 3rem;
+  text-align: center;
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.breadcrumb a {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.breadcrumb a:hover {
+  color: color-mix(in srgb, var(--color-primary), var(--color-black) 20%);
+}
+
+.separator {
+  color: #999;
+  font-weight: bold;
+}
+
+.page-header h1 {
+  margin: 0 0 0.5rem 0;
+  color: var(--color-black);
+  font-size: 2.5rem;
+  font-weight: 700;
+}
+
+.page-subtitle {
+  margin: 0;
+  color: #666;
+  font-size: 1.1rem;
+}
+
+/* Exam Selection */
+.exam-selection {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+
+.selection-header {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.selection-header h2 {
+  margin: 0 0 0.5rem 0;
+  color: var(--color-primary);
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.selection-header p {
+  margin: 0;
+  color: #666;
+  font-size: 1rem;
+}
+
+.exams-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+.exam-card {
+  background: #fafbfc;
+  border: 1px solid #e1e5e9;
+  border-radius: 12px;
+  padding: 1.5rem;
+  cursor: pointer;
+  
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.exam-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  border-color: var(--color-primary);
+}
+
+.exam-icon {
+  width: 3rem;
+  height: 3rem;
+  background: var(--color-primary);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.5rem;
+}
+
+.exam-info {
+  flex: 1;
+}
+
+.exam-info h3 {
+  margin: 0 0 0.25rem 0;
+  color: var(--color-black);
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.exam-info p {
+  margin: 0 0 0.5rem 0;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.exam-meta {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.meta-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.4rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: var(--color-secondary);
+  color: var(--color-primary);
+}
+
+.exam-arrow {
+  color: #ccc;
+  font-size: 1.5rem;
+  transition: color 0.3s ease;
+}
+
+.exam-card:hover .exam-arrow {
+  color: var(--color-primary);
+}
+
+/* Results Viewer */
+.results-viewer {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.viewer-header {
+  padding: 2rem;
+  border-bottom: 1px solid #e1e5e9;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.viewer-info h2 {
+  margin: 0 0 0.25rem 0;
+  color: var(--color-primary);
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.viewer-info p {
+  margin: 0;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.viewer-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+/* Results Summary */
+.results-summary {
+  padding: 2rem;
+  border-bottom: 1px solid #e1e5e9;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+}
+
+.summary-card {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.summary-icon {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 12px;
+  background: var(--color-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  color: var(--color-primary);
+}
+
+.summary-icon.submitted {
+  background: rgba(255, 193, 7, 0.1);
+  color: #ffc107;
+}
+
+.summary-icon.locked {
+  background: rgba(220, 53, 69, 0.1);
+  color: #dc3545;
+}
+
+.summary-icon.published {
+  background: rgba(40, 167, 69, 0.1);
+  color: #28a745;
+}
+
+.summary-info h3 {
+  margin: 0 0 0.25rem 0;
+  color: var(--color-black);
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.summary-info p {
+  margin: 0;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+/* Results Table */
+.results-table-container {
+  padding: 2rem;
+}
+
+.table-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  gap: 1rem;
+}
+
+.search-box {
+  position: relative;
+  flex: 1;
+  max-width: 300px;
+}
+
+.search-box i {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #666;
+}
+
+.search-box input {
+  width: 100%;
+  padding: 0.75rem 1rem 0.75rem 2.5rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  transition: border-color 0.3s ease;
+}
+
+.search-box input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.filter-controls select {
+  padding: 0.75rem 1rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: white;
+  cursor: pointer;
+  transition: border-color 0.3s ease;
+}
+
+.filter-controls select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.table-wrapper {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid #e1e5e9;
+}
+
+.results-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+}
+
+.results-table th,
+.results-table td {
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+  vertical-align: middle;
+}
+
+.results-table th {
+  background: var(--color-secondary);
+  color: var(--color-black);
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.results-table tbody tr:hover {
+  background: #f8f9fa;
+}
+
+.class-badge {
+  background: var(--color-secondary);
+  color: var(--color-primary);
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.marks-cell {
+  font-weight: 600;
+  color: var(--color-black);
+}
+
+.status-badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-draft {
+  background: rgba(108, 117, 125, 0.1);
+  color: #6c757d;
+}
+
+.status-submitted {
+  background: rgba(255, 193, 7, 0.1);
+  color: #ffc107;
+}
+
+.status-locked {
+  background: rgba(220, 53, 69, 0.1);
+  color: #dc3545;
+}
+
+.status-published {
+  background: rgba(40, 167, 69, 0.1);
+  color: #28a745;
+}
+
+.no-results {
+  text-align: center;
+  color: #666;
+  font-style: italic;
+  padding: 2rem;
+}
+
+.table-footer {
+  margin-top: 1rem;
+  text-align: right;
+}
+
+.results-info {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: #666;
+}
+
+.empty-icon {
+  font-size: 4rem;
+  color: var(--color-primary);
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.empty-state h3 {
+  margin: 0 0 0.5rem 0;
+  color: var(--color-black);
+  font-size: 1.5rem;
+}
+
+.empty-state p {
+  margin: 0 0 2rem 0;
+  font-size: 1rem;
+}
+
+/* Modal Styles */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+  background-color: white;
+  margin: 10% auto;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid #e1e5e9;
+}
+
+.modal-header h2 {
+  margin: 0;
+  color: var(--color-primary);
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #666;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  
+}
+
+.close-btn:hover {
+  background: #f8f9fa;
+  color: var(--color-black);
+}
+
+.modal-body {
+  padding: 2rem;
+  text-align: center;
+}
+
+.confirm-icon {
+  font-size: 3rem;
+  color: var(--color-primary);
+  margin-bottom: 1rem;
+}
+
+.modal-body h3 {
+  margin: 0 0 1rem 0;
+  color: var(--color-black);
+  font-size: 1.25rem;
+}
+
+.modal-body p {
+  margin: 0 0 1.5rem 0;
+  color: #666;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.publish-summary {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.publish-stats {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-number {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  margin-bottom: 0.25rem;
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  padding: 1.5rem 2rem;
+  background: #f8f9fa;
+}
+
+/* Button Styles */
+.btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: color-mix(in srgb, var(--color-primary), var(--color-black) 10%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(3, 104, 53, 0.3);
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--color-primary);
+  border: 2px solid var(--color-primary);
+}
+
+.btn-outline:hover {
+  background: var(--color-primary);
+  color: white;
+}
+
+.btn-success {
+  background: #28a745;
+  color: white;
+}
+
+.btn-success:hover {
+  background: color-mix(in srgb, #28a745, var(--color-black) 10%);
+}
+
+.btn-lg {
+  padding: 0.875rem 2rem;
+  font-size: 1rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .review-results-container {
+    padding: 1rem;
+  }
+
+  .page-header h1 {
+    font-size: 2rem;
+  }
+
+  .exams-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .exam-card {
+    padding: 1rem;
+  }
+
+  .viewer-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .viewer-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .table-controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .search-box {
+    max-width: none;
+  }
+
+  .results-table th,
+  .results-table td {
+    padding: 0.5rem;
+    font-size: 0.9rem;
+  }
+
+  .publish-stats {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .modal-actions {
+    flex-direction: column;
+  }
+
+  .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+</style>
+{% endblock %}

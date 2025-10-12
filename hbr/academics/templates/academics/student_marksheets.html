@@ -1,0 +1,353 @@
+{% extends 'dashboard/layout.html' %}
+{% load static %}
+
+{% block content %}
+  {% if messages %}
+    <div class="messages-container">
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+  <div class="student-marksheets-container">
+    <!-- Header -->
+    <div class="page-header">
+      <div class="breadcrumb">
+        <a href="{% url 'academics:result_management' %}">Result Management</a>
+        <span class="separator">></span>
+        <span>Student Marksheets</span>
+      </div>
+      <h1>Student Marksheets</h1>
+      <p class="page-subtitle">Generate individual student marksheets for final exams</p>
+    </div>
+
+    <!-- Selection Form -->
+    <div class="selection-form">
+      <div class="form-card">
+        <h2>Select Class and Student</h2>
+        <form id="marksheetForm">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="classroomSelect">Class</label>
+              <select id="classroomSelect" required>
+                <option value="">Choose a class...</option>
+                {% for classroom in classrooms %}
+                  <option value="{{ classroom.id }}">{{ classroom.grade }} {{ classroom.section|default:'' }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="studentSelect">Student</label>
+              <select id="studentSelect" required disabled>
+                <option value="">Select a class first...</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary" id="generateBtn" disabled>
+              <i class="bx bx-file"></i>
+              Generate Marksheet
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Status Message -->
+    <div class="status-message" id="statusMessage" style="display: none;">
+      <div class="message-content">
+        <p id="messageText"></p>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block inline_js %}
+  <script>
+    let selectedStudentId = null
+    
+    document.getElementById('classroomSelect').addEventListener('change', function () {
+      const classroomId = this.value
+      const studentSelect = document.getElementById('studentSelect')
+      const generateBtn = document.getElementById('generateBtn')
+    
+      if (classroomId) {
+        // Load students for the selected classroom
+        fetch(`/academics/get-students-for-marksheet/${classroomId}/`)
+          .then((response) => response.json())
+          .then((data) => {
+            studentSelect.innerHTML = '<option value="">Choose a student...</option>'
+            data.students.forEach((student) => {
+              const option = document.createElement('option')
+              option.value = student.id
+              option.textContent = `${student.roll_no} - ${student.name}`
+              studentSelect.appendChild(option)
+            })
+            studentSelect.disabled = false
+          })
+          .catch((error) => {
+            console.error('Error:', error)
+            alert('Error loading students.')
+          })
+      } else {
+        studentSelect.innerHTML = '<option value="">Select a class first...</option>'
+        studentSelect.disabled = true
+        generateBtn.disabled = true
+      }
+    })
+    
+    document.getElementById('studentSelect').addEventListener('change', function () {
+      const generateBtn = document.getElementById('generateBtn')
+      selectedStudentId = this.value
+      generateBtn.disabled = !this.value
+    })
+    
+    document.getElementById('marksheetForm').addEventListener('submit', function (e) {
+      e.preventDefault()
+    
+      if (!selectedStudentId) return
+    
+      // Hide any previous messages
+      document.getElementById('statusMessage').style.display = 'none'
+    
+      // Generate marksheet
+      window.location.href = `/academics/generate-marksheet/${selectedStudentId}/`
+    })
+  </script>
+{% endblock %}
+
+{% block inline_css %}
+  <style>
+    .messages-container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 1rem;
+    }
+    
+    .alert {
+      padding: 0.75rem 1rem;
+      margin-bottom: 1rem;
+      border: 1px solid transparent;
+      border-radius: 0.375rem;
+    }
+    
+    .alert-error {
+      color: #721c24;
+      background-color: #f8d7da;
+      border-color: #f5c6cb;
+    }
+    
+    .alert-success {
+      color: #155724;
+      background-color: #d4edda;
+      border-color: #c3e6cb;
+    }
+    
+    .alert-warning {
+      color: #856404;
+      background-color: #fff3cd;
+      border-color: #ffeaa7;
+    }
+    
+    .alert-info {
+      color: #0c5460;
+      background-color: #d1ecf1;
+      border-color: #bee5eb;
+    }
+    
+    .btn-close {
+      background: none;
+      border: none;
+      font-size: 1.25rem;
+      line-height: 1;
+      color: inherit;
+      opacity: 0.5;
+      cursor: pointer;
+    }
+    
+    .btn-close:hover {
+      opacity: 0.75;
+    }
+    
+    .student-marksheets-container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 2rem 1rem;
+    }
+    
+    .page-header {
+      margin-bottom: 3rem;
+      text-align: center;
+    }
+    
+    .breadcrumb {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+      color: #666;
+    }
+    
+    .breadcrumb a {
+      color: var(--color-primary);
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.3s ease;
+    }
+    
+    .breadcrumb a:hover {
+      color: color-mix(in srgb, var(--color-primary), var(--color-black) 20%);
+    }
+    
+    .separator {
+      color: #999;
+      font-weight: bold;
+    }
+    
+    .page-header h1 {
+      margin: 0 0 0.5rem 0;
+      color: var(--color-black);
+      font-size: 2.5rem;
+      font-weight: 700;
+    }
+    
+    .page-subtitle {
+      margin: 0;
+      color: #666;
+      font-size: 1.1rem;
+    }
+    
+    .selection-form {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      padding: 2rem;
+      margin-bottom: 2rem;
+    }
+    
+    .form-card h2 {
+      margin: 0 0 1.5rem 0;
+      color: var(--color-primary);
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+    
+    .form-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .form-group label {
+      margin-bottom: 0.5rem;
+      color: var(--color-black);
+      font-weight: 500;
+      font-size: 0.9rem;
+    }
+    
+    .form-group select {
+      padding: 0.75rem 1rem;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      background: white;
+      cursor: pointer;
+      transition: border-color 0.3s ease;
+    }
+    
+    .form-group select:focus {
+      outline: none;
+      border-color: var(--color-primary);
+    }
+    
+    .form-group select:disabled {
+      background: #f8f9fa;
+      cursor: not-allowed;
+    }
+    
+    .form-actions {
+      text-align: center;
+    }
+    
+    .status-message {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      padding: 2rem;
+    }
+    
+    .message-content {
+      text-align: center;
+    }
+    
+    .message-content p {
+      margin: 0;
+      font-size: 1.1rem;
+      color: #666;
+    }
+    
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+      transition: all 0.3s ease;
+    }
+    
+    .btn-primary {
+      background: var(--color-primary);
+      color: white;
+    }
+    
+    .btn-primary:hover:not(:disabled) {
+      background: color-mix(in srgb, var(--color-primary), var(--color-black) 10%);
+      transform: translateY(-1px);
+    }
+    
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    @media (max-width: 768px) {
+      .student-marksheets-container {
+        padding: 1rem;
+      }
+    
+      .page-header h1 {
+        font-size: 2rem;
+      }
+    
+      .selection-form {
+        padding: 1.5rem;
+      }
+    
+      .form-row {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+      }
+    
+      .status-message {
+        padding: 1.5rem;
+      }
+    }
+  </style>
+{% endblock %}

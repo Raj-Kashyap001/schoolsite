@@ -1,0 +1,266 @@
+{% extends 'dashboard/layout.html' %}
+{% load static %}
+
+{% block content %}
+  <div class="exam-management-container">
+    <!-- Header Section -->
+    <div class="page-header">
+      <div class="header-content" style="justify-content: center;" >
+        <div class="header-text">
+          <h1>Exam Management</h1>
+          <p class="session-badge" style="justify-self: flex-end;">{{ current_session.year }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+      <!-- Bulk operations button moved to exam section header -->
+    </div>
+
+    <div class="actions-grid">
+        <a href="{% url 'academics:admin_create_exam' %}" class="action-card primary">
+          <div class="action-icon">
+            <i class="bx bx-plus-circle"></i>
+          </div>
+          <div class="action-content">
+            <h3>Create Exam</h3>
+            <p>Add new examination</p>
+          </div>
+          <div class="action-arrow">
+            <i class="bx bx-chevron-right"></i>
+          </div>
+        </a>
+
+        <a href="{% url 'academics:admin_assign_subjects' %}" class="action-card secondary">
+          <div class="action-icon">
+            <i class="bx bx-user-check"></i>
+          </div>
+          <div class="action-content">
+            <h3>Assign Subjects</h3>
+            <p>Manage teacher assignments</p>
+          </div>
+          <div class="action-arrow">
+            <i class="bx bx-chevron-right"></i>
+          </div>
+        </a>
+
+        <a href="{% url 'academics:admin_marks_entry_control' %}" class="action-card accent">
+          <div class="action-icon">
+            <i class="bx bx-lock-open-alt"></i>
+          </div>
+          <div class="action-content">
+            <h3>Marks Control</h3>
+            <p>Open/close entry windows</p>
+          </div>
+          <div class="action-arrow">
+            <i class="bx bx-chevron-right"></i>
+          </div>
+        </a>
+
+        <a href="{% url 'academics:admin_review_results' %}" class="action-card success">
+          <div class="action-icon">
+            <i class="bx bx-check-circle"></i>
+          </div>
+          <div class="action-content">
+            <h3>Review Results</h3>
+            <p>Publish exam results</p>
+          </div>
+          <div class="action-arrow">
+            <i class="bx bx-chevron-right"></i>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <!-- Exams List -->
+    <div class="exams-section">
+      <div class="section-header">
+        <div class="header-left">
+          <h2>Existing Exams</h2>
+          <div class="section-stats">
+            <span class="stat-badge">{{ exams|length }} Exams</span>
+          </div>
+        </div>
+        <div class="header-right">
+          <button class="btn btn-outline btn-sm" onclick="toggleBulkMode()">
+            <i class="bx bx-select-multiple"></i>
+            Bulk Operations
+          </button>
+        </div>
+      </div>
+
+      <!-- Bulk Actions Bar (Hidden by default) -->
+      <div class="bulk-actions-bar" id="bulkActionsBar" style="display: none;">
+        <div class="bulk-info">
+          <span id="selectedCount">0</span> exams selected
+        </div>
+        <div class="bulk-buttons">
+          <button class="btn btn-danger btn-sm" onclick="bulkDelete()" disabled id="bulkDeleteBtn">
+            <i class="bx bx-trash"></i>
+            Delete Selected
+          </button>
+          <button class="btn btn-outline btn-sm" onclick="clearSelection()">
+            <i class="bx bx-x"></i>
+            Clear
+          </button>
+        </div>
+      </div>
+
+      {% if exams %}
+        <div class="exams-grid">
+          {% for exam in exams %}
+            <div class="exam-card" data-id="{{ exam.id }}">
+              <div class="exam-checkbox">
+                <input type="checkbox" class="exam-checkbox-input" value="{{ exam.id }}" onchange="updateBulkActions()" />
+              </div>
+              <div class="exam-content">
+                <div class="exam-header">
+                <div class="exam-title">
+                  <h3>{{ exam.name }}</h3>
+                  <span class="exam-term">{{ exam.term.name }}</span>
+                </div>
+                <div class="exam-badges">
+                  {% if exam.is_yearly_final %}
+                    <span class="badge badge-primary">
+                      <i class="bx bx-trophy"></i>
+                      Final Exam
+                    </span>
+                  {% endif %}
+                  <span class="badge {% if exam.marks_entry_open %}
+                      
+                      badge-success
+
+                    {% else %}
+                      
+                      badge-danger
+
+                    {% endif %}">
+                    <i class="bx {% if exam.marks_entry_open %}
+                        
+                        bx-lock-open
+
+                      {% else %}
+                        
+                        bx-lock
+
+                      {% endif %}">
+
+                    </i>
+                    {% if exam.marks_entry_open %}
+                      Entry Open
+                    {% else %}
+                      Entry Closed
+                    {% endif %}
+                  </span>
+                </div>
+              </div>
+
+              {% if exam.description %}
+                <div class="exam-description">
+                  <p>{{ exam.description|truncatechars:100 }}</p>
+                </div>
+              {% endif %}
+
+              <div class="exam-actions">
+                <a href="{% url 'academics:admin_edit_exam' exam.id %}" class="btn btn-outline btn-sm">
+                  <i class="bx bx-edit"></i>
+                  Edit
+                </a>
+              </div>
+             </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <div class="empty-icon">
+            <i class="bx bx-book"></i>
+          </div>
+          <h3>No Exams Found</h3>
+          <p>Create your first exam to get started with exam management.</p>
+          <a href="{% url 'academics:admin_create_exam' %}" class="btn btn-primary">
+            <i class="bx bx-plus"></i>
+            Create First Exam
+          </a>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+{% endblock %}
+
+
+{% block inline_js %}
+<script>
+let bulkMode = false;
+
+function toggleBulkMode() {
+  bulkMode = !bulkMode;
+  const bulkBar = document.getElementById('bulkActionsBar');
+  const checkboxes = document.querySelectorAll('.exam-checkbox-input');
+
+  if (bulkMode) {
+    bulkBar.style.display = 'flex';
+    checkboxes.forEach(cb => cb.style.display = 'block');
+  } else {
+    bulkBar.style.display = 'none';
+    checkboxes.forEach(cb => {
+      cb.style.display = 'none';
+      cb.checked = false;
+    });
+    updateBulkActions();
+  }
+}
+
+function updateBulkActions() {
+  const checkboxes = document.querySelectorAll('.exam-checkbox-input:checked');
+  const count = checkboxes.length;
+  const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+
+  document.getElementById('selectedCount').textContent = count;
+  bulkDeleteBtn.disabled = count === 0;
+}
+
+function clearSelection() {
+  document.querySelectorAll('.exam-checkbox-input').forEach(cb => {
+    cb.checked = false;
+  });
+  updateBulkActions();
+}
+
+function bulkDelete() {
+  const selectedIds = Array.from(document.querySelectorAll('.exam-checkbox-input:checked')).map(cb => cb.value);
+
+  if (selectedIds.length === 0) {
+    alert('Please select exams to delete.');
+    return;
+  }
+
+  if (confirm(`Are you sure you want to delete ${selectedIds.length} exam(s)? This action cannot be undone and will also delete all associated results and assignments.`)) {
+    // Show loading state
+    const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+    bulkDeleteBtn.disabled = true;
+    bulkDeleteBtn.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Deleting...';
+
+    // Since we don't have a bulk delete endpoint, we'll delete them one by one
+    Promise.all(selectedIds.map(id =>
+      fetch(`/academics/admin/delete-exam/${id}/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+      })
+    ))
+    .then(() => {
+      location.reload();
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('An error occurred during bulk deletion.');
+      bulkDeleteBtn.disabled = false;
+      bulkDeleteBtn.innerHTML = '<i class="bx bx-trash"></i> Delete Selected';
+    });
+  }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends 'dashboard/layout.html' %}
+{% load static %}
+
+{% block content %}
+  <div class="payments-container">
+    <h1>My Salary Records</h1>
+    <table class="payments-table">
+      <thead>
+        <tr>
+          <th>Description</th>
+          <th>Amount</th>
+          <th>Payment Date</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for salary in salaries %}
+          <tr>
+            <td>{{ salary.description }}</td>
+            <td>₹{{ salary.amount }}</td>
+            <td>{{ salary.payment_date|date:'d/m/Y' }}</td>
+            <td>
+              {% if salary.attachment %}
+                <a href="{{ salary.attachment.url }}" target="_blank" class="btn btn-download">Download Attachment</a>
+              {% else %}
+                No attachment
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="4">No salary records found.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}
+
+{% block inline_js %}
+
+{% endblock %}

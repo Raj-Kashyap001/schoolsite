@@ -1,0 +1,82 @@
+{% extends 'dashboard/layout.html' %}
+
+{% block content %}
+  <div class="profile-container">
+    {% csrf_token %}
+    <h1>{{ user.first_name }} {{ user.last_name }}'s Profile</h1>
+
+    <div class="profile-cards">
+      <!-- Profile Card -->
+      <div class="profile-card profile-info">
+        <h2><i class="bx bx-user"></i> Administrator Info</h2>
+        {% if admin %}
+          <div class="profile-photo-section">
+            {% if admin.profile_photo %}
+              <div class="profile-photo-container">
+                <img src="{{ admin.profile_photo.url }}" alt="Profile Photo" class="profile-photo" style="width: 120px; object-fit: cover; display:block; object-position: center; aspect-ratio: 1; margin-bottom: 1rem;" />
+              </div>
+            {% else %}
+              <div class="no-photo">No Photo</div>
+            {% endif %}
+          </div>
+          <div class="profile-details">
+            <p>
+              <strong>Department:</strong> {{ admin.department|default:'Not specified' }}
+            </p>
+            <p>
+              <strong>Designation:</strong> {{ admin.designation|default:'Not specified' }}
+            </p>
+            <p>
+              <strong>Mobile No:</strong> {{ admin.mobile_no|default:'Not provided' }}
+            </p>
+          </div>
+          <div class="profile-actions">
+            <button class="btn btn-primary" id="change-photo-btn">
+              <i class="bx bx-image-add"></i>
+              {% if admin.profile_photo %}
+                Change
+              {% else %}
+                Upload
+              {% endif %}Profile Image
+            </button>
+            <input type="file" id="profile-photo-input" accept="image/*" style="display: none;" />
+          </div>
+        {% else %}
+          <p>No administrator information found.</p>
+        {% endif %}
+      </div>
+
+      <!-- Right Column: Account Info and Notifications -->
+      <div class="right-column">
+        <!-- Account Info Card -->
+        <div class="profile-card account-info">
+          <h2><i class="bx bx-info-circle"></i> Account Information</h2>
+          <p>
+            <strong>Username:</strong> {{ user.username }}
+          </p>
+          <p>
+            <strong>First Name:</strong> {{ user.first_name }}
+          </p>
+          <p>
+            <strong>Last Name:</strong> {{ user.last_name }}
+          </p>
+          <p>
+            <strong>Email:</strong> {{ user.email }}
+          </p>
+          <p>
+            <strong>Last Login:</strong> {{ user.last_login|date:'M d, Y H:i' }}
+          </p>
+          <p>
+            <strong>Date Joined:</strong> {{ user.date_joined|date:'M d, Y' }}
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% load static %}
+  <script>
+    // Set the profile URL for admin
+    window.profileUrl = '/administration/profile/'
+  </script>
+  <script src="{% static 'js/profile_image_change.js' %}?v=4"></script>
+{% endblock %}

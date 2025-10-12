@@ -1,94 +1,320 @@
 {% extends 'dashboard/layout.html' %}
 
 {% block content %}
-  <div class="leave-container">
-    <h1>Leave Applications</h1>
+  <div class="leave-management-container">
+    <div class="leave-page-header">
+      <h1>Leave Management</h1>
+      {% if role != 'Admin' %}
+        <button id="applyLeaveBtn" class="btn btn-primary"><i class="bx bx-plus"></i> Apply for Leave</button>
+      {% endif %}
+    </div>
+
     {% if error %}
-      <p class="error">{{ error }}</p>
+      <div class="error-message">
+        <i class="bx bx-error-circle"></i>
+        {{ error }}
+      </div>
     {% else %}
       {% if role == 'Admin' %}
-        <!-- Admin View - Manage Teacher Leaves -->
-        <div class="admin-leave-section">
-          <h2>Teacher Leave Management</h2>
-          {% if all_teacher_leaves %}
-            <table class="leave-table">
-              <thead>
-                <tr>
-                  <th>Teacher</th>
-                  <th>Apply Date</th>
-                  <th>Reason</th>
-                  <th>From</th>
-                  <th>To</th>
-                  <th>Status</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for leave in all_teacher_leaves %}
-                  <tr>
-                    <td>{{ leave.teacher.user.get_full_name }}</td>
-                    <td>{{ leave.apply_date|date:'d/m/Y H:i' }}</td>
-                    <td>{{ leave.reason }}</td>
-                    <td>{{ leave.from_date|date:'d/m/Y' }}</td>
-                    <td>{{ leave.to_date|date:'d/m/Y' }}</td>
-                    <td class="status-{{ leave.status|lower }}">{{ leave.status }}</td>
-                    <td>
-                      {% if leave.status == 'PENDING' %}
-                        <button class="btn btn-success approve-btn" data-id="{{ leave.id }}" style="margin-right: 5px;"><i class="bx bx-check"></i> Approve</button>
-                        <button class="btn btn-danger reject-btn" data-id="{{ leave.id }}"><i class="bx bx-x"></i> Reject</button>
-                      {% else %}
-                        <small>Approved by: {{ leave.approved_by.get_full_name|default:'N/A' }}</small>
+        <!-- Admin View with Tabs -->
+        <div class="admin-tabs">
+          <div class="tab-buttons">
+            <button class="tab-btn active" data-tab="teachers"><i class="bx bx-chalkboard"></i> Teacher Requests</button>
+            <button class="tab-btn" data-tab="students"><i class="bx bx-user"></i> Student Requests</button>
+          </div>
+
+          <!-- Teachers Tab -->
+          <div id="teachers-tab" class="tab-content active">
+            <div class="data-table-section">
+              <form method="GET" class="table-controls" id="teacher-form">
+                <input type="hidden" name="student_page" value="{{ request.GET.student_page|default:'1' }}" />
+                <input type="hidden" name="active_tab" value="teachers" id="teacher-active-tab" />
+                <div class="search-box">
+                  <i class="bx bx-search"></i>
+                  <input type="text" name="teacher_search" placeholder="Search teachers..." value="{{ request.GET.teacher_search|default:'' }}" />
+                </div>
+                <div class="filter-controls">
+                  <select name="teacher_status">
+                    <option value="">All Status</option>
+                    <option value="PENDING" {% if request.GET.teacher_status == 'PENDING' %}selected{% endif %}>Pending</option>
+                    <option value="APPROVED" {% if request.GET.teacher_status == 'APPROVED' %}selected{% endif %}>Approved</option>
+                    <option value="REJECTED" {% if request.GET.teacher_status == 'REJECTED' %}selected{% endif %}>Rejected</option>
+                  </select>
+                  <button type="submit" class="btn btn-primary btn-sm" style="margin-left: 0.5rem;">Filter</button>
+                </div>
+              </form>
+
+              <div class="table-container">
+                <table class="data-table" id="teachers-table">
+                  <thead>
+                    <tr>
+                      <th>Teacher</th>
+                      <th>Apply Date</th>
+                      <th>Reason</th>
+                      <th>From</th>
+                      <th>To</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for leave in all_teacher_leaves %}
+                      <tr data-status="{{ leave.status }}" data-teacher="{{ leave.teacher.user.get_full_name|lower }}">
+                        <td>
+                          <div class="user-info">
+                            <div class="user-avatar">
+                              {% if leave.teacher.profile_photo %}
+                                <img src="{{ leave.teacher.profile_photo.url }}" alt="Profile" />
+                              {% else %}
+                                <i class="bx bx-chalkboard"></i>
+                              {% endif %}
+                            </div>
+                            <div class="user-details">
+                              <strong>{{ leave.teacher.user.get_full_name }}</strong>
+                              <small>{{ leave.teacher.subject }}</small>
+                            </div>
+                          </div>
+                        </td>
+                        <td>{{ leave.apply_date|date:'d/m/Y H:i' }}</td>
+                        <td>
+                          <span class="reason-text" title="{{ leave.reason }}">{{ leave.reason|truncatechars:30 }}</span>
+                        </td>
+                        <td>{{ leave.from_date|date:'d/m/Y' }}</td>
+                        <td>{{ leave.to_date|date:'d/m/Y' }}</td>
+                        <td>
+                          <span class="status-badge status-{{ leave.status|lower }}">{{ leave.status }}</span>
+                        </td>
+                        <td>
+                          {% if leave.status == 'PENDING' %}
+                            <button class="btn btn-success btn-sm approve-btn" data-id="{{ leave.id }}"><i class="bx bx-check"></i> Approve</button>
+                            <button class="btn btn-danger btn-sm reject-btn" data-id="{{ leave.id }}"><i class="bx bx-x"></i> Reject</button>
+                          {% else %}
+                            <small class="approved-by">Approved by: {{ leave.approved_by.get_full_name|default:'N/A' }}</small>
+                          {% endif %}
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+
+              {% if not all_teacher_leaves %}
+                <div class="no-data">
+                  <i class="bx bx-user-check"></i>
+                  <p>No teacher leave requests found.</p>
+                </div>
+              {% endif %}
+
+              {% if teacher_paginator.num_pages > 1 %}
+                <div class="pagination">
+                  <div class="pagination-info">
+                    <span>Page {{ all_teacher_leaves.number }} of {{ teacher_paginator.num_pages }}</span>
+                    <span>{{ teacher_paginator.count }} total requests</span>
+                  </div>
+                  <div class="pagination-controls">
+                    {% if all_teacher_leaves.has_previous %}
+                      <a href="?teacher_page=1&student_page={{ all_student_leaves.number }}&teacher_search={{ request.GET.teacher_search|default:'' }}&teacher_status={{ request.GET.teacher_status|default:'' }}" class="btn btn-outline btn-sm"><i class="bx bx-chevrons-left"></i></a>
+                      <a href="?teacher_page={{ all_teacher_leaves.previous_page_number }}&student_page={{ all_student_leaves.number }}&teacher_search={{ request.GET.teacher_search|default:'' }}&teacher_status={{ request.GET.teacher_status|default:'' }}" class="btn btn-outline btn-sm"><i class="bx bx-chevron-left"></i></a>
+                    {% endif %}
+
+                    {% for num in all_teacher_leaves.paginator.page_range %}
+                      {% if all_teacher_leaves.number == num %}
+                        <span class="btn btn-primary btn-sm current-page">{{ num }}</span>
+                      {% elif num > all_teacher_leaves.number|add:'-3' and num < all_teacher_leaves.number|add:'3' %}
+                        <a href="?teacher_page={{ num }}&student_page={{ all_student_leaves.number }}&teacher_search={{ request.GET.teacher_search|default:'' }}&teacher_status={{ request.GET.teacher_status|default:'' }}" class="btn btn-outline btn-sm">{{ num }}</a>
                       {% endif %}
-                    </td>
-                  </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          {% else %}
-            <p>No teacher leave requests found.</p>
-          {% endif %}
+                    {% endfor %}
+
+                    {% if all_teacher_leaves.has_next %}
+                      <a href="?teacher_page={{ all_teacher_leaves.next_page_number }}&student_page={{ all_student_leaves.number }}&teacher_search={{ request.GET.teacher_search|default:'' }}&teacher_status={{ request.GET.teacher_status|default:'' }}" class="btn btn-outline btn-sm"><i class="bx bx-chevron-right"></i></a>
+                      <a href="?teacher_page={{ teacher_paginator.num_pages }}&student_page={{ all_student_leaves.number }}&teacher_search={{ request.GET.teacher_search|default:'' }}&teacher_status={{ request.GET.teacher_status|default:'' }}" class="btn btn-outline btn-sm"><i class="bx bx-chevrons-right"></i></a>
+                    {% endif %}
+                  </div>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Students Tab -->
+          <div id="students-tab" class="tab-content">
+            <div class="data-table-section">
+              <form method="GET" class="table-controls" id="student-form">
+                <input type="hidden" name="teacher_page" value="{{ request.GET.teacher_page|default:'1' }}" />
+                <input type="hidden" name="active_tab" value="students" id="student-active-tab" />
+                <div class="search-box">
+                  <i class="bx bx-search"></i>
+                  <input type="text" name="student_search" placeholder="Search students..." value="{{ request.GET.student_search|default:'' }}" />
+                </div>
+                <div class="filter-controls">
+                  <select name="student_status">
+                    <option value="">All Status</option>
+                    <option value="PENDING" {% if request.GET.student_status == 'PENDING' %}selected{% endif %}>Pending</option>
+                    <option value="APPROVED" {% if request.GET.student_status == 'APPROVED' %}selected{% endif %}>Approved</option>
+                    <option value="REJECTED" {% if request.GET.student_status == 'REJECTED' %}selected{% endif %}>Rejected</option>
+                  </select>
+                  <button type="submit" class="btn btn-primary btn-sm" style="margin-left: 0.5rem;">Filter</button>
+                </div>
+              </form>
+
+              <div class="table-container">
+                <table class="data-table" id="students-table">
+                  <thead>
+                    <tr>
+                      <th>Student</th>
+                      <th>Apply Date</th>
+                      <th>Reason</th>
+                      <th>From</th>
+                      <th>To</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for leave in all_student_leaves %}
+                      <tr data-status="{{ leave.status }}" data-student="{{ leave.student.user.get_full_name|lower }}">
+                        <td>
+                          <div class="user-info">
+                            <div class="user-avatar">
+                              {% if leave.student.profile_photo %}
+                                <img src="{{ leave.student.profile_photo.url }}" alt="Profile" />
+                              {% else %}
+                                <i class="bx bx-user"></i>
+                              {% endif %}
+                            </div>
+                            <div class="user-details">
+                              <strong>{{ leave.student.user.get_full_name }}</strong>
+                              <small>{{ leave.student.classroom }}</small>
+                            </div>
+                          </div>
+                        </td>
+                        <td>{{ leave.apply_date|date:'d/m/Y H:i' }}</td>
+                        <td>
+                          <span class="reason-text" title="{{ leave.reason }}">{{ leave.reason|truncatechars:30 }}</span>
+                        </td>
+                        <td>{{ leave.from_date|date:'d/m/Y' }}</td>
+                        <td>{{ leave.to_date|date:'d/m/Y' }}</td>
+                        <td>
+                          <span class="status-badge status-{{ leave.status|lower }}">{{ leave.status }}</span>
+                        </td>
+                        <td>
+                          {% if leave.status == 'PENDING' %}
+                            <button class="btn btn-success btn-sm approve-btn" data-id="{{ leave.id }}"><i class="bx bx-check"></i> Approve</button>
+                            <button class="btn btn-danger btn-sm reject-btn" data-id="{{ leave.id }}"><i class="bx bx-x"></i> Reject</button>
+                          {% else %}
+                            <small class="approved-by">Approved by: {{ leave.approved_by.get_full_name|default:'N/A' }}</small>
+                          {% endif %}
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+
+              {% if not all_student_leaves %}
+                <div class="no-data">
+                  <i class="bx bx-user-check"></i>
+                  <p>No student leave requests found.</p>
+                </div>
+              {% endif %}
+
+              {% if student_paginator.num_pages > 1 %}
+                <div class="pagination">
+                  <div class="pagination-info">
+                    <span>Page {{ all_student_leaves.number }} of {{ student_paginator.num_pages }}</span>
+                    <span>{{ student_paginator.count }} total requests</span>
+                  </div>
+                  <div class="pagination-controls">
+                    {% if all_student_leaves.has_previous %}
+                      <a href="?student_page=1&teacher_page={{ all_teacher_leaves.number }}&student_search={{ request.GET.student_search|default:'' }}&student_status={{ request.GET.student_status|default:'' }}" class="btn btn-outline btn-sm"><i class="bx bx-chevrons-left"></i></a>
+                      <a href="?student_page={{ all_student_leaves.previous_page_number }}&teacher_page={{ all_teacher_leaves.number }}&student_search={{ request.GET.student_search|default:'' }}&student_status={{ request.GET.student_status|default:'' }}" class="btn btn-outline btn-sm"><i class="bx bx-chevron-left"></i></a>
+                    {% endif %}
+
+                    {% for num in all_student_leaves.paginator.page_range %}
+                      {% if all_student_leaves.number == num %}
+                        <span class="btn btn-primary btn-sm current-page">{{ num }}</span>
+                      {% elif num > all_student_leaves.number|add:'-3' and num < all_student_leaves.number|add:'3' %}
+                        <a href="?student_page={{ num }}&teacher_page={{ all_teacher_leaves.number }}&student_search={{ request.GET.student_search|default:'' }}&student_status={{ request.GET.student_status|default:'' }}" class="btn btn-outline btn-sm">{{ num }}</a>
+                      {% endif %}
+                    {% endfor %}
+
+                    {% if all_student_leaves.has_next %}
+                      <a href="?student_page={{ all_student_leaves.next_page_number }}&teacher_page={{ all_teacher_leaves.number }}&student_search={{ request.GET.student_search|default:'' }}&student_status={{ request.GET.student_status|default:'' }}" class="btn btn-outline btn-sm"><i class="bx bx-chevron-right"></i></a>
+                      <a href="?student_page={{ student_paginator.num_pages }}&teacher_page={{ all_teacher_leaves.number }}&student_search={{ request.GET.student_search|default:'' }}&student_status={{ request.GET.student_status|default:'' }}" class="btn btn-outline btn-sm"><i class="bx bx-chevrons-right"></i></a>
+                    {% endif %}
+                  </div>
+                </div>
+              {% endif %}
+            </div>
+          </div>
         </div>
       {% else %}
         <!-- Student/Teacher View - Apply and View Own Leaves -->
-        <div class="apply-leave-section">
-          <button id="applyLeaveBtn" class="btn btn-primary">Apply for Leave</button>
-        </div>
+        <div class="user-leave-section">
+          <div class="section-header">
+            <h2>Your Leave Requests</h2>
+            <button id="applyLeaveBtn" class="btn btn-primary"><i class="bx bx-plus"></i> Apply for Leave</button>
+          </div>
 
-        <div class="leave-table-section">
-          <h2>Your Leave Requests</h2>
-          {% if leaves %}
-            <table class="leave-table">
-              <thead>
-                <tr>
-                  <th>Apply Date</th>
-                  <th>Reason</th>
-                  <th>From</th>
-                  <th>To</th>
-                  <th>Status</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for leave in leaves %}
+          <div class="data-table-section">
+            <form method="GET" class="table-controls">
+              <div class="search-box">
+                <i class="bx bx-search"></i>
+                <input type="text" name="user_search" placeholder="Search your requests..." value="{{ request.GET.user_search|default:'' }}" />
+              </div>
+              <div class="filter-controls">
+                <select name="user_status">
+                  <option value="">All Status</option>
+                  <option value="PENDING" {% if request.GET.user_status == 'PENDING' %}selected{% endif %}>Pending</option>
+                  <option value="APPROVED" {% if request.GET.user_status == 'APPROVED' %}selected{% endif %}>Approved</option>
+                  <option value="REJECTED" {% if request.GET.user_status == 'REJECTED' %}selected{% endif %}>Rejected</option>
+                </select>
+                <button type="submit" class="btn btn-primary btn-sm" style="margin-left: 0.5rem;">Filter</button>
+              </div>
+            </form>
+
+            <div class="table-container">
+              <table class="data-table" id="user-leaves-table">
+                <thead>
                   <tr>
-                    <td>{{ leave.apply_date|date:'d/m/Y H:i' }}</td>
-                    <td>{{ leave.reason }}</td>
-                    <td>{{ leave.from_date|date:'d/m/Y' }}</td>
-                    <td>{{ leave.to_date|date:'d/m/Y' }}</td>
-                    <td class="status-{{ leave.status|lower }}">{{ leave.status }}</td>
-                    <td>
-                      {% if leave.status == 'PENDING' %}
-                        <button class="btn btn-outline edit-btn" data-id="{{ leave.id }}"><i class="bxr bx-pencil"></i></button>
-                        <button class="btn btn-inverted delete-btn" data-id="{{ leave.id }}"><i class="bxr bx-trash"></i></button>
-                      {% endif %}
-                    </td>
+                    <th>Apply Date</th>
+                    <th>Reason</th>
+                    <th>From</th>
+                    <th>To</th>
+                    <th>Status</th>
+                    <th>Actions</th>
                   </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          {% else %}
-            <p>No leave requests found.</p>
-          {% endif %}
+                </thead>
+                <tbody>
+                  {% for leave in leaves %}
+                    <tr data-status="{{ leave.status }}">
+                      <td>{{ leave.apply_date|date:'d/m/Y H:i' }}</td>
+                      <td>
+                        <span class="reason-text" title="{{ leave.reason }}">{{ leave.reason|truncatechars:30 }}</span>
+                      </td>
+                      <td>{{ leave.from_date|date:'d/m/Y' }}</td>
+                      <td>{{ leave.to_date|date:'d/m/Y' }}</td>
+                      <td>
+                        <span class="status-badge status-{{ leave.status|lower }}">{{ leave.status }}</span>
+                      </td>
+                      <td>
+                        {% if leave.status == 'PENDING' %}
+                          <button class="btn btn-outline btn-sm edit-btn" data-id="{{ leave.id }}"><i class="bx bx-edit"></i> Edit</button>
+                          <button class="btn btn-inverted btn-sm delete-btn" data-id="{{ leave.id }}"><i class="bx bx-trash"></i> Delete</button>
+                        {% endif %}
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+
+            {% if not leaves %}
+              <div class="no-data">
+                <i class="bx bx-calendar-check"></i>
+                <p>No leave requests found.</p>
+              </div>
+            {% endif %}
+          </div>
         </div>
       {% endif %}
     {% endif %}
@@ -122,7 +348,52 @@
 {% block inline_js %}
   {% load static %}
   <script>
-    const leaveUrl = "{% url 'leave' %}"
+    const leaveUrl = "{% url 'leave:leave' %}"
+
+    // Tab switching functionality for admin
+    {% if role == 'Admin' %}
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    // Function to set active tab
+    function setActiveTab(tabName) {
+      // Remove active class from all buttons and contents
+      tabButtons.forEach(btn => btn.classList.remove('active'));
+      tabContents.forEach(content => content.classList.remove('active'));
+
+      // Add active class to specified button and content
+      const activeButton = document.querySelector(`[data-tab="${tabName}"]`);
+      if (activeButton) {
+        activeButton.classList.add('active');
+        document.getElementById(tabName + '-tab').classList.add('active');
+      }
+
+      // Update hidden inputs in forms
+      document.getElementById('teacher-active-tab').value = tabName;
+      document.getElementById('student-active-tab').value = tabName;
+    }
+
+    // Initialize tabs
+    tabButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        const tabName = button.getAttribute('data-tab');
+        setActiveTab(tabName);
+        // Store active tab in localStorage
+        localStorage.setItem('activeLeaveTab', tabName);
+      });
+    });
+
+    // Restore active tab on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      // Check URL parameters first (from form submission)
+      const urlParams = new URLSearchParams(window.location.search);
+      const activeTabParam = urlParams.get('active_tab');
+
+      let activeTab = activeTabParam || localStorage.getItem('activeLeaveTab') || 'teachers';
+
+      setActiveTab(activeTab);
+    });
+    {% endif %}
   </script>
   <script src="{% static 'js/apply_leave_module.js' %}"></script>
 {% endblock %}

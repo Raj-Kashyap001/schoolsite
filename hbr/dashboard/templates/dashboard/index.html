@@ -1,7 +1,565 @@
 {% extends 'dashboard/layout.html' %}
+{% load static %}
+
+{% block head %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}" />
+{% endblock %}
 
 {% block content %}
   <div class="dashboard-home">
-    <h1>Hello Mr. {{ user.first_name }}</h1>
+    <!-- Welcome Header -->
+    <div class="welcome-section">
+      <div class="welcome-content">
+        <div class="welcome-greeting">
+          <h1>
+            Good{% if current_time.hour >= 12 %}
+              Afternoon
+            {% else %}
+              Morning
+            {% endif %}, {{ user.first_name }}! 👋
+          </h1>
+          <p class="role-badge">{{ role }}</p>
+        </div>
+        <p class="welcome-message">Here's what's happening in your dashboard today.</p>
+      </div>
+      <div class="current-session">
+        <div class="session-card">
+          <div class="session-icon">
+            <i class="bx bx-calendar"></i>
+          </div>
+          <div class="session-info">
+            <span class="session-label">Current Session</span>
+            <span class="session-value">{{ current_session.year|default:'2024-2025' }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="stats-grid">
+      {% for key, value in stats.items %}
+        <div class="stat-card">
+          <div class="stat-icon">
+            {% if key == 'total_students' %}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+            {% elif key == 'total_teachers' %}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+            {% elif key == 'total_exams' %}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+              </svg>
+            {% elif key == 'pending_leaves' %}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+                <path d="M12 14h.01"></path>
+                <path d="M12 18h.01"></path>
+                <path d="M16 14h.01"></path>
+                <path d="M8 14h.01"></path>
+                <path d="M8 18h.01"></path>
+              </svg>
+            {% elif key == 'active_notices' %}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+              </svg>
+            {% elif key == 'my_students' %}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+            {% elif key == 'pending_results' %}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                <path d="M9 14l2 2 4-4"></path>
+              </svg>
+            {% elif key == 'my_attendance' %}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+                <polyline points="9 14 11 16 15 12"></polyline>
+              </svg>
+            {% elif key == 'pending_fees' %}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                <line x1="1" y1="10" x2="23" y2="10"></line>
+              </svg>
+            {% elif key == 'my_leaves' %}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+            {% else %}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+              </svg>
+            {% endif %}
+          </div>
+          <div class="stat-content">
+            <h3>{{ value }}{% if key == 'my_attendance' %}%{% endif %}</h3>
+            <p>
+              {% if key == 'total_students' %}
+                Total Students
+              {% elif key == 'total_teachers' %}
+                Total Teachers
+              {% elif key == 'total_exams' %}
+                Total Exams
+              {% elif key == 'pending_leaves' %}
+                Pending Leaves
+              {% elif key == 'active_notices' %}
+                Active Notices
+              {% elif key == 'my_students' %}
+                My Students
+              {% elif key == 'pending_results' %}
+                Pending Results
+              {% elif key == 'my_attendance' %}
+                Attendance Rate
+              {% elif key == 'pending_fees' %}
+                Pending Fees
+              {% elif key == 'my_leaves' %}
+                My Leaves
+              {% else %}
+                {{ key|title|cut:'_' }}
+              {% endif %}
+            </p>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+    {% if charts %}
+      <div class="charts-section">
+        <h2>Analytics & Insights</h2>
+        <div class="charts-grid">
+          {% if role == 'Admin' %}
+            <div class="chart-card">
+              <h3>Attendance Trend (Last 7 Days)</h3>
+              <canvas id="attendanceChart" width="400" height="200"></canvas>
+            </div>
+            <div class="chart-card">
+              <h3>Exam Performance Distribution</h3>
+              <canvas id="performanceChart" width="400" height="200"></canvas>
+            </div>
+            <div class="chart-card">
+              <h3>Leave Status Overview</h3>
+              <canvas id="leaveChart" width="400" height="200"></canvas>
+            </div>
+          {% elif role == 'Teacher' %}
+            <div class="chart-card">
+              <h3>Class Performance</h3>
+              <canvas id="classPerformanceChart" width="400" height="200"></canvas>
+            </div>
+            <div class="chart-card">
+              <h3>Attendance Overview</h3>
+              <canvas id="teacherAttendanceChart" width="400" height="200"></canvas>
+            </div>
+          {% elif role == 'Student' %}
+            <div class="chart-card">
+              <h3>Performance Trend</h3>
+              <canvas id="studentPerformanceChart" width="400" height="200"></canvas>
+            </div>
+            <div class="chart-card">
+              <h3>Weekly Attendance</h3>
+              <canvas id="studentAttendanceChart" width="400" height="200"></canvas>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+
+    <div class="quick-actions-section">
+      <h2>Quick Actions</h2>
+      <div class="actions-grid">
+        {% for action in quick_actions %}
+          <a href="{{ action.url }}" class="action-card action-{{ action.color }}">
+            <div class="action-icon">
+              <i class="bx bx-{{ action.icon }}"></i>
+            </div>
+            <div class="action-content">
+              <h4>{{ action.title }}</h4>
+              <span class="action-arrow"><i class="bx bx-chevron-right"></i></span>
+            </div>
+          </a>
+        {% endfor %}
+      </div>
+    </div>
+
+    {% if recent_activity %}
+      <div class="activity-section">
+        <h2>Recent Activity</h2>
+        <div class="activity-list">
+          {% for activity in recent_activity %}
+            <div class="activity-item activity-{{ activity.type }}">
+              <div class="activity-icon">
+                <i class="bx bx-{% if activity.type == 'leave' %}
+                    
+                    calendar
+
+                  {% elif activity.type == 'result' %}
+                    
+                    chart
+
+                  {% elif activity.type == 'attendance' %}
+                    
+                    check-circle
+
+                  {% else %}
+                    
+                    bell
+
+                  {% endif %}">
+
+                </i>
+              </div>
+              <div class="activity-content">
+                <p>{{ activity.message }}</p>
+                <span class="activity-time">{{ activity.time|timesince }} ago</span>
+              </div>
+              {% if activity.status %}
+                <div class="activity-status status-{{ activity.status }}">{{ activity.status|title }}</div>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+
+    <div class="modules-section">
+      <h2>Available Modules</h2>
+      <div class="modules-grid">
+        {% for section in dashboard_sections %}
+          <a href="{{ section.url }}" class="module-card">
+            <div class="module-icon">
+              <i class="bx bx-{{ section.icon }}"></i>
+            </div>
+            <h4>{{ section.name }}</h4>
+          </a>
+        {% endfor %}
+      </div>
+    </div>
   </div>
+{% endblock %}
+
+{% block inline_js %}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  {{ charts|json_script:'chart-data' }}
+  <script>
+    // Chart data from Django
+    const role = '{{ role }}'
+    const charts = JSON.parse(document.getElementById('chart-data').textContent || '{}')
+    
+    // Define consistent colors from CSS variables (must match the CSS)
+    const PRIMARY_COLOR = '#6a6ee0'
+    const SUCCESS_COLOR = '#48bb78'
+    const WARNING_COLOR = '#ed8936'
+    const DANGER_COLOR = '#e53e3e'
+    const INFO_COLOR = '#4299e1'
+    const LIGHT_PRIMARY = 'rgba(106, 110, 224, 0.1)'
+    const LIGHT_SUCCESS = 'rgba(72, 187, 120, 0.1)'
+    const LIGHT_DANGER = 'rgba(229, 62, 62, 0.1)'
+    
+    // Chart configurations
+    if (role === 'Admin') {
+      // Attendance Trend Chart
+      const attendanceCtx = document.getElementById('attendanceChart')
+      if (attendanceCtx && charts.attendance_trend) {
+        const attendanceData = charts.attendance_trend
+        const labels = attendanceData.map((item) => item.date)
+        const presentData = attendanceData.map((item) => item.present)
+        const absentData = attendanceData.map((item) => item.absent)
+    
+        new Chart(attendanceCtx, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: 'Present',
+                data: presentData,
+                borderColor: SUCCESS_COLOR,
+                backgroundColor: LIGHT_SUCCESS,
+                tension: 0.4,
+                fill: true
+              },
+              {
+                label: 'Absent',
+                data: absentData,
+                borderColor: DANGER_COLOR,
+                backgroundColor: LIGHT_DANGER,
+                tension: 0.4,
+                fill: true
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'top'
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true
+              }
+            }
+          }
+        })
+      }
+    
+      // Performance Distribution Chart
+      const performanceCtx = document.getElementById('performanceChart')
+      if (performanceCtx && charts.exam_performance) {
+        new Chart(performanceCtx, {
+          type: 'doughnut',
+          data: {
+            labels: ['A Grade', 'B Grade', 'C Grade', 'D Grade', 'F Grade'],
+            datasets: [
+              {
+                data: Object.values(charts.exam_performance),
+                backgroundColor: [SUCCESS_COLOR, INFO_COLOR, WARNING_COLOR, '#ecc94b', DANGER_COLOR],
+                borderWidth: 1,
+                hoverOffset: 4
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'bottom'
+              }
+            }
+          }
+        })
+      }
+    
+      // Leave Status Chart
+      const leaveCtx = document.getElementById('leaveChart')
+      if (leaveCtx && charts.leave_status) {
+        new Chart(leaveCtx, {
+          type: 'bar',
+          data: {
+            labels: ['Approved', 'Pending', 'Rejected'],
+            datasets: [
+              {
+                data: Object.values(charts.leave_status),
+                backgroundColor: [SUCCESS_COLOR, WARNING_COLOR, DANGER_COLOR],
+                borderRadius: 4
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true
+              }
+            }
+          }
+        })
+      }
+    } else if (role === 'Teacher') {
+      // Class Performance Chart
+      const classPerformanceCtx = document.getElementById('classPerformanceChart')
+      if (classPerformanceCtx && charts.class_performance) {
+        const performanceData = charts.class_performance
+        const labels = performanceData.map((item) => item.exam)
+        const data = performanceData.map((item) => item.average)
+    
+        new Chart(classPerformanceCtx, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: 'Average Marks',
+                data: data,
+                backgroundColor: PRIMARY_COLOR,
+                borderColor: PRIMARY_COLOR,
+                borderWidth: 1,
+                borderRadius: 4
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                max: 100
+              }
+            }
+          }
+        })
+      }
+    
+      // Teacher Attendance Chart
+      const teacherAttendanceCtx = document.getElementById('teacherAttendanceChart')
+      if (teacherAttendanceCtx && charts.attendance_overview) {
+        const attendanceData = charts.attendance_overview
+        const labels = attendanceData.map((item) => item.date)
+        const data = attendanceData.map((item) => item.marked)
+    
+        new Chart(teacherAttendanceCtx, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: 'Attendance Marked',
+                data: data,
+                borderColor: PRIMARY_COLOR,
+                backgroundColor: LIGHT_PRIMARY,
+                tension: 0.4,
+                fill: true
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true
+              }
+            }
+          }
+        })
+      }
+    } else if (role === 'Student') {
+      // Student Performance Chart
+      const studentPerformanceCtx = document.getElementById('studentPerformanceChart')
+      if (studentPerformanceCtx && charts.performance_trend) {
+        const performanceData = charts.performance_trend
+        const labels = performanceData.map((item) => item.exam)
+        const data = performanceData.map((item) => item.marks)
+    
+        new Chart(studentPerformanceCtx, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: 'Marks',
+                data: data,
+                borderColor: PRIMARY_COLOR,
+                backgroundColor: LIGHT_PRIMARY,
+                tension: 0.4,
+                pointBackgroundColor: PRIMARY_COLOR,
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                fill: false
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                max: 100
+              }
+            }
+          }
+        })
+      }
+    
+      // Student Attendance Chart
+      const studentAttendanceCtx = document.getElementById('studentAttendanceChart')
+      if (studentAttendanceCtx && charts.attendance_chart) {
+        const attendanceData = charts.attendance_chart
+        const labels = attendanceData.map((item) => item.date)
+        const data = attendanceData.map((item) => (item.status === 'present' ? 1 : 0))
+    
+        new Chart(studentAttendanceCtx, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: 'Attendance',
+                data: data,
+                backgroundColor: function (context) {
+                  const value = context.parsed.y
+                  return value === 1 ? SUCCESS_COLOR : DANGER_COLOR
+                },
+                borderRadius: 4
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                max: 1,
+                ticks: {
+                  stepSize: 1,
+                  callback: function (value) {
+                    return value === 1 ? 'Present' : value === 0 ? 'Absent' : ''
+                  }
+                }
+              },
+              x: {
+                grid: {
+                  display: false
+                }
+              }
+            }
+          }
+        })
+      }
+    }
+  </script>
 {% endblock %}

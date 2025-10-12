@@ -1,10 +1,434 @@
 {% extends 'main.html' %}
+{% load static %}
 {% block title %}
-  HOME | SITE
+  Home | School Name
 {% endblock %}
 
 {% block content %}
-  <section class="hero">
-    <h1>Welcome to homepage!!!</h1>
+  <!-- Hero Carousel Section -->
+  {% if carousel_images %}
+    <section class="hero-carousel">
+      <div class="carousel-container">
+        <div class="carousel-wrapper">
+          {% for image in carousel_images %}
+            <div class="carousel-slide">
+              <img src="{{ image.image.url }}" alt="{{ image.title }}" />
+              <div class="carousel-overlay">
+                <div class="carousel-content">
+                  <h1>{{ image.title }}</h1>
+                  {% if image.caption %}
+                    <p>{{ image.caption }}</p>
+                  {% endif %}
+                  {% if image.link_url %}
+                    <a href="{{ image.link_url }}" class="btn btn-hero">Learn More</a>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+        <div class="carousel-nav">
+          <button class="carousel-prev" aria-label="Previous slide"><i class="bx bx-chevron-left"></i></button>
+          <div class="carousel-dots"></div>
+          <button class="carousel-next" aria-label="Next slide"><i class="bx bx-chevron-right"></i></button>
+        </div>
+      </div>
+    </section>
+  {% endif %}
+
+  <!-- Welcome Section -->
+  <section class="welcome-section">
+    <div class="container">
+      <div class="welcome-content">
+        <div class="welcome-text">
+          <h2>Welcome to Our School</h2>
+          <p class="lead">Nurturing young minds for a brighter tomorrow</p>
+          <p>We are committed to providing quality education that empowers students to reach their full potential. Our experienced faculty, modern facilities, and comprehensive curriculum create an environment where every student can thrive.</p>
+          <a href="/about" class="btn btn-primary">About Us</a>
+        </div>
+        <div class="welcome-image">
+          <img src="{% static 'images/school-building.png' %}" alt="School Building" />
+        </div>
+      </div>
+    </div>
   </section>
+
+  <!-- Quick Links Section -->
+  <section class="quick-links-section">
+    <div class="container">
+      <div class="quick-links-grid">
+        <a href="/admissions" class="quick-link-card">
+          <div class="quick-link-icon">
+            <i class="bx bx-user-plus"></i>
+          </div>
+          <h3>Admissions</h3>
+          <p>Join our learning community</p>
+        </a>
+        <a href="/academics" class="quick-link-card">
+          <div class="quick-link-icon">
+            <i class="bx bx-book-open"></i>
+          </div>
+          <h3>Academics</h3>
+          <p>Explore our curriculum</p>
+        </a>
+        <a href="/faculty" class="quick-link-card">
+          <div class="quick-link-icon">
+            <i class="bx bx-group"></i>
+          </div>
+          <h3>Faculty</h3>
+          <p>Meet our teachers</p>
+        </a>
+        <a href="/events" class="quick-link-card">
+          <div class="quick-link-icon">
+            <i class="bx bx-calendar"></i>
+          </div>
+          <h3>Events</h3>
+          <p>Upcoming activities</p>
+        </a>
+        <a href="/result" class="quick-link-card">
+          <div class="quick-link-icon">
+            <i class="bx bx-trophy"></i>
+          </div>
+          <h3>Results</h3>
+          <p>Academic achievements</p>
+        </a>
+        <a href="/contact" class="quick-link-card">
+          <div class="quick-link-icon">
+            <i class="bx bx-phone"></i>
+          </div>
+          <h3>Contact</h3>
+          <p>Get in touch</p>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- News & Announcements -->
+  <section class="news-section">
+    <div class="container">
+      <h2 class="section-title">Latest News & Announcements</h2>
+      <div class="news-grid">
+        {% for notice in public_notices %}
+          <div class="news-card{% if forloop.first %} featured{% endif %}">
+            {% if notice.attachment %}
+              <div class="news-badge">
+                <a href="{{ notice.attachment.url }}" download class="attachment-btn"><i class="bx bx-file"></i> Download Attachment</a>
+              </div>
+            {% endif %}
+            <div class="news-content">
+              <span class="news-date"><i class="bx bx-calendar"></i> {{ notice.created_at|date:'M d, Y' }}</span>
+              <h3>{{ notice.title }}</h3>
+              <p>{{ notice.content|truncatewords:20 }}</p>
+              <a href="{% url 'news' %}" class="news-link">Read More <i class="bx bx-right-arrow-alt"></i></a>
+            </div>
+          </div>
+        {% empty %}
+          <div class="news-card">
+            <div class="news-content">
+              <span class="news-date"><i class="bx bx-calendar"></i> Coming Soon</span>
+              <h3>No Announcements Yet</h3>
+              <p>Check back later for the latest news and announcements.</p>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+      <div class="news-footer">
+        <a href="{% url 'news' %}" class="btn btn-outline">View All News</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Gallery Section -->
+  {% if gallery_images %}
+    <section class="gallery-section">
+      <div class="container">
+        <h2 class="section-title">School Gallery</h2>
+        <p class="section-subtitle">A glimpse into our vibrant school life</p>
+        <div class="gallery-grid">
+          {% for image in gallery_images|slice:':6' %}
+            <div class="gallery-item" data-category="{{ image.category }}">
+              <div class="gallery-image-wrapper">
+                <img src="{{ image.image.url }}" alt="{{ image.title }}" loading="lazy" />
+                <div class="gallery-overlay">
+                  <div class="gallery-info">
+                    <h3>{{ image.title }}</h3>
+                    {% if image.description %}
+                      <p>{{ image.description }}</p>
+                    {% endif %}
+                    <span class="category-badge">{{ image.get_category_display }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+        <div class="gallery-footer">
+          <a href="/gallery" class="btn btn-outline">View Full Gallery</a>
+        </div>
+      </div>
+    </section>
+  {% endif %}
+
+  <!-- Testimonials Section -->
+  <section class="testimonials-section">
+    <div class="container">
+      <h2 class="section-title">What Parents Say</h2>
+      <div class="testimonials-grid">
+        <div class="testimonial-card">
+          <div class="testimonial-quote">
+            <i class="bx bxs-quote-alt-left"></i>
+          </div>
+          <p>"The school has provided an excellent learning environment for my child. The teachers are dedicated and caring."</p>
+          <div class="testimonial-author">
+            <div class="author-avatar">
+              <img src="{% static 'images/parent-1.jpg' %}" alt="Parent" />
+            </div>
+            <div class="author-info">
+              <h4>Mrs. Sharma</h4>
+              <span>Parent of Grade 8 Student</span>
+            </div>
+          </div>
+        </div>
+        <div class="testimonial-card">
+          <div class="testimonial-quote">
+            <i class="bx bxs-quote-alt-left"></i>
+          </div>
+          <p>"My daughter has grown both academically and personally. The extracurricular activities are outstanding."</p>
+          <div class="testimonial-author">
+            <div class="author-avatar">
+              <img src="{% static 'images/parent-2.jpg' %}" alt="Parent" />
+            </div>
+            <div class="author-info">
+              <h4>Mr. Patel</h4>
+              <span>Parent of Grade 10 Student</span>
+            </div>
+          </div>
+        </div>
+        <div class="testimonial-card">
+          <div class="testimonial-quote">
+            <i class="bx bxs-quote-alt-left"></i>
+          </div>
+          <p>"The focus on holistic development and values-based education makes this school truly special."</p>
+          <div class="testimonial-author">
+            <div class="author-avatar">
+              <img src="{% static 'images/parent-3.jpg' %}" alt="Parent" />
+            </div>
+            <div class="author-info">
+              <h4>Mrs. Verma</h4>
+              <span>Parent of Grade 5 Student</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats Section -->
+  <section class="stats-section">
+    <div class="container">
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="stat-icon">
+            <i class="bx bx-user"></i>
+          </div>
+          <div class="stat-number">1500+</div>
+          <div class="stat-label">Students</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-icon">
+            <i class="bx bx-book"></i>
+          </div>
+          <div class="stat-number">50+</div>
+          <div class="stat-label">Faculty Members</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-icon">
+            <i class="bx bx-trophy"></i>
+          </div>
+          <div class="stat-number">100+</div>
+          <div class="stat-label">Awards Won</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-icon">
+            <i class="bx bx-star"></i>
+          </div>
+          <div class="stat-number">25+</div>
+          <div class="stat-label">Years of Excellence</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="cta-section">
+    <div class="container">
+      <div class="cta-content">
+        <h2>Ready to Join Our School Family?</h2>
+        <p>Start your child's journey towards excellence today</p>
+        <div class="cta-buttons">
+          <a href="/admissions" class="btn btn-primary btn-lg">Apply Now</a>
+          <a href="/contact" class="btn btn-outline btn-lg">Schedule Visit</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Popup Modal -->
+  {% if popup %}
+    <div id="popup-modal" class="popup-modal">
+      <div class="popup-content">
+        <button class="popup-close" id="popup-close" aria-label="Close popup"><i class="bx bx-x"></i></button>
+        <img src="{{ popup.image.url }}" alt="{{ popup.title }}" />
+        {% if popup.link_url %}
+          <div class="popup-actions">
+            <a href="{{ popup.link_url }}" class="btn btn-primary">Learn More</a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+{% endblock %}
+
+{% block inline_js %}
+  <script>
+  // Carousel functionality
+  {% if carousel_images %}
+  document.addEventListener('DOMContentLoaded', function() {
+    const carouselWrapper = document.querySelector('.carousel-wrapper');
+    const slides = document.querySelectorAll('.carousel-slide');
+    const prevBtn = document.querySelector('.carousel-prev');
+    const nextBtn = document.querySelector('.carousel-next');
+    const dotsContainer = document.querySelector('.carousel-dots');
+
+    if (!carouselWrapper || slides.length === 0) return;
+
+    let currentIndex = 0;
+    let autoplayInterval;
+
+    // Create dots
+    slides.forEach((_, index) => {
+      const dot = document.createElement('div');
+      dot.classList.add('carousel-dot');
+      if (index === 0) dot.classList.add('active');
+      dot.addEventListener('click', () => goToSlide(index));
+      dotsContainer.appendChild(dot);
+    });
+
+    const dots = document.querySelectorAll('.carousel-dot');
+
+    function updateDots() {
+      dots.forEach((dot, index) => {
+        dot.classList.toggle('active', index === currentIndex);
+      });
+    }
+
+    function goToSlide(index) {
+      currentIndex = index;
+      carouselWrapper.style.transform = `translateX(-${currentIndex * 100}%)`;
+      updateDots();
+    }
+
+    function nextSlide() {
+      currentIndex = (currentIndex + 1) % slides.length;
+      goToSlide(currentIndex);
+    }
+
+    function prevSlide() {
+      currentIndex = (currentIndex - 1 + slides.length) % slides.length;
+      goToSlide(currentIndex);
+    }
+
+    function startAutoplay() {
+      autoplayInterval = setInterval(nextSlide, 5000);
+    }
+
+    function stopAutoplay() {
+      clearInterval(autoplayInterval);
+    }
+
+    prevBtn.addEventListener('click', () => {
+      prevSlide();
+      stopAutoplay();
+      startAutoplay();
+    });
+
+    nextBtn.addEventListener('click', () => {
+      nextSlide();
+      stopAutoplay();
+      startAutoplay();
+    });
+
+    carouselWrapper.addEventListener('mouseenter', stopAutoplay);
+    carouselWrapper.addEventListener('mouseleave', startAutoplay);
+
+    startAutoplay();
+  });
+  {% endif %}
+
+  // Popup functionality
+  {% if popup %}
+  document.addEventListener('DOMContentLoaded', function() {
+    const popupModal = document.getElementById('popup-modal');
+    const popupClose = document.getElementById('popup-close');
+
+    if (!popupModal || !popupClose) return;
+
+    setTimeout(() => {
+      popupModal.style.display = 'flex';
+    }, 3000);
+
+    popupClose.addEventListener('click', () => {
+      popupModal.style.display = 'none';
+    });
+
+    popupModal.addEventListener('click', (e) => {
+      if (e.target === popupModal) {
+        popupModal.style.display = 'none';
+      }
+    });
+  });
+  {% endif %}
+
+  // Stats counter animation
+  document.addEventListener('DOMContentLoaded', function() {
+    const statsSection = document.querySelector('.stats-section');
+    const statNumbers = document.querySelectorAll('.stat-number');
+    let animated = false;
+
+    function animateStats() {
+      if (animated) return;
+      
+      statNumbers.forEach(stat => {
+        const target = parseInt(stat.textContent);
+        const duration = 2000;
+        const increment = target / (duration / 16);
+        let current = 0;
+
+        const timer = setInterval(() => {
+          current += increment;
+          if (current >= target) {
+            stat.textContent = stat.textContent;
+            clearInterval(timer);
+          } else {
+            stat.textContent = Math.floor(current) + (stat.textContent.includes('+') ? '+' : '');
+          }
+        }, 16);
+      });
+      
+      animated = true;
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          animateStats();
+        }
+      });
+    }, { threshold: 0.5 });
+
+    if (statsSection) {
+      observer.observe(statsSection);
+    }
+  });
+</script>
 {% endblock %}
