@@ -98,3 +98,10 @@ def user_notifications(request):
 
         return {"notifications": notifications}
     return {}
+
+
+def school_name(request):
+    """Context processor to add school name to all templates"""
+    from decouple import config
+
+    return {"school_name": config("SCHOOL_NAME", default="SCHOOL")}

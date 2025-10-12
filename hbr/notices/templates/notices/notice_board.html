@@ -45,7 +45,9 @@
                         
                         
                         
+                        
                         announcement
+
 
 
 
@@ -71,7 +73,9 @@
                         
                         
                         
+                        
                         individual
+
 
 
 
@@ -104,7 +108,9 @@
                           
                           
                           
+                          
                           active
+
 
 
 
@@ -130,7 +136,9 @@
                           
                           
                           
+                          
                           inactive
+
 
 
 
@@ -314,11 +322,9 @@
         if (data.targetStudents) {
           const studentIds = data.targetStudents.split(',')
           const select = document.getElementById('id_target_students')
-          console.log('Editing notice with target students:', studentIds)
           Array.from(select.options).forEach((option) => {
             const isSelected = studentIds.includes(option.value)
             option.selected = isSelected
-            console.log('Setting option', option.value, 'selected:', isSelected)
           })
       
           // Update visual display after setting selections
@@ -416,10 +422,7 @@
         const hiddenSelect = document.querySelector('.searchable-student-select')
         if (hiddenSelect) {
           const selectedOptions = hiddenSelect.querySelectorAll('option:checked')
-          console.log('Form submission - selected students:', selectedOptions.length)
-          Array.from(selectedOptions).forEach((option) => {
-            console.log('Selected student:', option.value, option.text)
-          })
+          Array.from(selectedOptions).forEach((option) => {})
         }
       
         // Submit the form normally after logging
@@ -445,9 +448,6 @@
         // Initialize selected students from hidden select
         updateSelectedStudents()
       
-        console.log('Widget initialized, found options:', hiddenSelect.querySelectorAll('option').length)
-        console.log('Selected options:', hiddenSelect.querySelectorAll('option:checked').length)
-      
         // Search input event listener
         searchInput.addEventListener('input', function () {
           const query = this.value.trim()
@@ -459,11 +459,9 @@
           // Fetch search results
           fetch(`{% url "notices:search_students" %}?q=${encodeURIComponent(query)}`)
             .then((response) => {
-              console.log('Response status:', response.status)
               return response.json()
             })
             .then((data) => {
-              console.log('Search data:', data)
               displaySearchResults(data.students)
             })
             .catch((error) => {
@@ -511,7 +509,6 @@
             if (e.target.classList.contains('add-student-btn')) {
               const studentId = parseInt(e.target.getAttribute('data-student-id'))
               const studentDisplay = e.target.getAttribute('data-student-display')
-              console.log('Add button clicked:', studentId, studentDisplay)
               addStudent(studentId, studentDisplay)
             }
           }
@@ -526,7 +523,6 @@
       }
       
       function addStudent(studentId, studentDisplay) {
-        console.log('addStudent called with:', studentId, studentDisplay)
         const container = document.querySelector('.searchable-select-container')
         if (!container) {
           console.error('Container not found!')
@@ -538,22 +534,17 @@
       
         // Check if student is already selected
         const existingOptions = hiddenSelect.querySelectorAll('option')
-        console.log('Checking existing options:', existingOptions.length)
         let found = false
         for (let option of existingOptions) {
-          console.log('Checking option:', option.value, 'vs', studentId, 'selected:', option.selected)
           if (parseInt(option.value) === studentId) {
             found = true
             if (option.selected) {
-              console.log('Student already selected, returning early')
               return // Already selected
             }
           }
         }
         if (found) {
-          console.log('Student found but not selected, will re-add')
         } else {
-          console.log('Student not found in existing options, proceeding to add')
         }
       
         // Add option to hidden select
@@ -562,16 +553,13 @@
         option.text = studentDisplay
         option.selected = true
         hiddenSelect.appendChild(option)
-        console.log('Option added to hidden select:', option.value, option.selected)
       
         // Force the selected property to ensure it sticks
         option.selected = true
-        console.log('Option after forcing selected:', option.selected)
       
         // Additional check - use setAttribute as well
         if (!option.selected) {
           option.setAttribute('selected', 'selected')
-          console.log('Used setAttribute to force selection')
         }
       
         // Clear placeholder text if it exists
@@ -598,30 +586,21 @@
         selectedDiv.appendChild(span)
         selectedDiv.appendChild(removeBtn)
         selectedStudentsDiv.appendChild(selectedDiv)
-        console.log('Visual element added to selected students div')
       
         // Clear search
         searchInput.value = ''
         container.querySelector('.search-results').style.display = 'none'
       
         // Update visual display of selected students
-        console.log('About to call updateSelectedStudents')
         updateSelectedStudents()
-        console.log('Called updateSelectedStudents')
-      
-        console.log('Student added successfully, total selected:', hiddenSelect.querySelectorAll('option').length)
-        console.log('Selected options after adding:', hiddenSelect.querySelectorAll('option:checked').length)
       
         // Debug: Check if the specific student was added
         const specificOption = hiddenSelect.querySelector(`option[value="${studentId}"]`)
-        console.log('Specific student option found:', specificOption ? 'YES' : 'NO')
         if (specificOption) {
-          console.log('Specific student selected:', specificOption.selected)
         }
       }
       
       function removeStudent(studentId) {
-        console.log('removeStudent called with:', studentId)
         const container = document.querySelector('.searchable-select-container')
         if (!container) {
           console.error('Container not found in removeStudent!')
@@ -646,7 +625,6 @@
       }
       
       function updateSelectedStudents() {
-        console.log('updateSelectedStudents called')
         const container = document.querySelector('.searchable-select-container')
         if (!container) {
           console.error('Container not found in updateSelectedStudents!')
@@ -672,15 +650,9 @@
         // Add currently selected students
         const selectedOptions = hiddenSelect.querySelectorAll('option')
         const checkedOptions = hiddenSelect.querySelectorAll('option:checked')
-        console.log('Total options found:', selectedOptions.length)
-        console.log('Checked options found:', checkedOptions.length)
-        console.log('Hidden select element:', hiddenSelect)
-        console.log('Selected students div:', selectedStudentsDiv)
       
         selectedOptions.forEach((option) => {
-          console.log('Option:', option.value, 'selected:', option.selected, 'text:', option.text)
           if (option.selected) {
-            console.log('Creating visual element for:', option.text)
             const selectedDiv = document.createElement('div')
             selectedDiv.className = 'selected-student-item'
             selectedDiv.setAttribute('data-student-id', option.value)
@@ -700,8 +672,6 @@
             selectedStudentsDiv.appendChild(selectedDiv)
           }
         })
-      
-        console.log('Final selected students div HTML:', selectedStudentsDiv.innerHTML)
       }
       
       // Initialize searchable student select when modal opens

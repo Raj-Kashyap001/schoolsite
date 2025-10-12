@@ -4,7 +4,7 @@
     <div class="school-info">
       {% load static %}
       <img src="{% static 'images/school-logo.png' %}" alt="HBR School Logo" class="school-logo" />
-      <h1>HBR School Dashboard</h1>
+      <h1>{{ school_name }} School Dashboard</h1>
       {% if current_session %}
         <p class="current-session">{{ current_session.year }}</p>
       {% endif %}

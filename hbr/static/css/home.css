@@ -55,6 +55,7 @@
   .homepage_header {
     display: flex;
     align-items: center;
+    justify-content: center;
     height: 4rem;
     justify-content: space-between;
     background: var(--color-secondary);
@@ -77,8 +78,16 @@
     }
 
     .logo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
       margin-left: 1rem !important;
     }
+
+    .school-logo-img {
+      height: 40px;
+      width: auto;
+      margin-right: 0.5rem;
   }
 }
 
@@ -122,6 +131,7 @@
   background: var(--color-secondary);
   transition: all 0.3s ease;
   opacity: 0;
+  z-index: 99999;
 
   &.active {
     transform: translateY(0%);
@@ -157,12 +167,12 @@
 
 .login-cta {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
   align-items: center;
   margin-top: 3rem;
   padding-bottom: 2rem;
   gap: 1.5rem;
-  flex-direction: column;
 
   a {
     font-size: 1.1rem;
@@ -180,12 +190,13 @@
     gap: 0.5rem;
 
     &:hover {
+
       background: color-mix(
         in srgb,
         var(--color-primary),
         var(--color-black) 20%
-      );
-      color: var(--color-white);
+      ) !important;
+      color: var(--color-white) !important;
       transform: translateY(-2px);
       box-shadow: 0 4px 15px rgba(3, 104, 53, 0.3);
     }
@@ -348,10 +359,238 @@ main {
 
 footer {
   width: 100%;
-  text-align: center;
-  background: var(--color-primary);
+  background: #1a1a2e;
   color: var(--color-white);
-  padding-block: 1rem;
+  padding: 3rem 0 1rem;
+  margin-top: auto;
+}
+
+.footer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.footer-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.footer-section h4 {
+  color: var(--color-white);
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.footer-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.footer-logo-img {
+  height: 50px;
+  width: auto;
+  filter: brightness(0) invert(1);
+}
+
+.footer-logo h3 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--color-white);
+}
+
+.footer-section p {
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}
+
+.footer-section ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.footer-section ul li {
+  margin-bottom: 0.5rem;
+}
+
+.footer-section ul li a {
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+  transition: all 0.3s ease;
+  display: inline-block;
+}
+
+.footer-section ul li a:hover {
+  color: var(--color-white);
+  transform: translateX(5px);
+}
+
+.social-links {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.social-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  color: var(--color-white);
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.social-link:hover {
+  background: var(--color-white);
+  color: var(--color-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.contact-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.contact-item i {
+  font-size: 1.2rem;
+  color: var(--color-white);
+  margin-top: 0.1rem;
+  flex-shrink: 0;
+}
+
+.newsletter {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.newsletter-input {
+  flex: 1;
+  padding: 0.75rem;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--color-white);
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.newsletter-input::placeholder {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.newsletter-input:focus {
+  outline: none;
+  border-color: var(--color-white);
+  background: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+}
+
+.newsletter-btn {
+  padding: 0.75rem 1rem;
+  background: var(--color-white);
+  color: var(--color-primary);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.newsletter-btn:hover {
+  background: color-mix(in srgb, var(--color-white), var(--color-black) 10%);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.footer-bottom {
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  padding-top: 1.5rem;
+}
+
+.footer-bottom-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.footer-bottom p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9rem;
+}
+
+.footer-bottom-links {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.footer-bottom-links a {
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: color 0.3s ease;
+}
+
+.footer-bottom-links a:hover {
+  color: var(--color-white);
+}
+
+/* Responsive Footer */
+@media (max-width: 768px) {
+  .footer-content {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    padding: 0 1rem;
+  }
+
+  .footer-bottom-content {
+    flex-direction: column;
+    text-align: center;
+    gap: 1rem;
+    padding: 0 1rem;
+  }
+
+  .footer-bottom-links {
+    justify-content: center;
+  }
+
+  .social-links {
+    justify-content: center;
+  }
+
+  .newsletter {
+    flex-direction: column;
+  }
+
+  .newsletter-btn {
+    align-self: stretch;
+  }
 }
 /* ===================================
    SCHOOL HOMEPAGE STYLES
@@ -495,7 +734,7 @@ footer {
 /* Welcome Section */
 .welcome-section {
   padding: 5rem 0;
-  background: #f8f9fa;
+  background: #f8f9fa !important;
 }
 
 .welcome-content {

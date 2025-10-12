@@ -1,6 +1,7 @@
 import pdfkit
 from django.db.models import Sum
 from .models import ExamResult
+from decouple import config
 
 
 def generate_marksheet_html(student, exam, results):
@@ -114,7 +115,7 @@ def generate_marksheet_html(student, exam, results):
     </head>
     <body>
         <div class="header">
-            <div class="school-name">HBR Public School</div>
+            <div class="school-name">{config('SCHOOL_NAME', default='SCHOOL')}</div>
             <div class="certificate-title">MARKSHEET</div>
             <div class="session-info">Academic Session: {exam.term.academic_session.year}</div>
         </div>
@@ -271,7 +272,7 @@ def generate_annual_result_sheet_html(classroom, exam, results_by_student):
     </head>
     <body>
         <div class="header">
-            <div class="school-name">HBR Public School</div>
+            <div class="school-name">{config('SCHOOL_NAME', default='SCHOOL')}</div>
             <div class="title">ANNUAL RESULT SHEET</div>
             <div class="session-info">Class: {classroom} | Academic Session: {exam.term.academic_session.year}</div>
         </div>

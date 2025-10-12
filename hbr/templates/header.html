@@ -1,5 +1,9 @@
 <header class="homepage_header">
-  <a class="logo" href="{% url 'home' %}">LOGO</a>
+  <a class="logo" href="{% url 'home' %}">
+    {% load static %}
+    <img src="{% static 'images/school-logo.png' %}" alt="School Logo" class="school-logo-img" />
+    {{ school_name }} English Medium Public School
+  </a>
   <button id="openMobileNav" style="margin-right: 1rem;" class="open-nav-btn"><i class="bx bx-menu"></i></button>
 
   {% with url_name=request.resolver_match.url_name %}

@@ -31,12 +31,11 @@ from .result_utils import (
     generate_annual_result_sheet_html,
     generate_marksheet_html,
     generate_marksheet_pdf,
-    generate_annual_result_sheet_pdf,
-    calculate_student_results,
-    get_class_results_summary,
+
 )
 
 import pdfkit
+from decouple import config
 
 
 def get_current_session(request=None):
@@ -1654,7 +1653,7 @@ def generate_result_declaration_html(exam, classroom, results):
     </head>
     <body>
         <div class="header">
-            <div class="school-name">HBR Public School</div>
+            <div class="school-name">{config('SCHOOL_NAME', default='SCHOOL')}</div>
             <div class="exam-info">Result Declaration - {exam.name}</div>
             <div class="class-info">Class: {classroom.grade} {classroom.section or ""} | Session: {exam.term.academic_session.year}</div>
         </div>
@@ -1794,7 +1793,7 @@ def generate_individual_result_html(student, exam):
     </head>
     <body>
         <div class="header">
-            <div class="school-name">HBR Public School</div>
+            <div class="school-name">{config('SCHOOL_NAME', default='SCHOOL')}</div>
             <div class="exam-info">Exam Result - {exam.name}</div>
             <div>Term: {exam.term.name} | Session: {exam.term.academic_session.year}</div>
         </div>

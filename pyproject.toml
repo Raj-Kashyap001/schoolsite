@@ -12,6 +12,7 @@ dependencies = [
     "pdfkit>=1.0.0",
     "pillow>=11.3.0",
     "psycopg2>=2.9.10",
+    "python-decouple>=3.8",
     "reportlab>=4.4.4",
     "wkhtmltopdf>=0.2",
 ]

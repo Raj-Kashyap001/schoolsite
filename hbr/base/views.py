@@ -186,6 +186,5 @@ def login_page(request: HttpRequest, role: str):
         "role": role,
         "valid_roles": valid_roles,
         "error_message": error_message,
-        "school_name": "HBR School",
     }
     return render(request, "base/login.html", context)

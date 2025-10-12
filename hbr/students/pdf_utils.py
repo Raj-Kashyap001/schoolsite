@@ -14,6 +14,7 @@ from reportlab.graphics.shapes import Drawing, Circle
 from io import BytesIO
 import os
 from django.conf import settings
+from decouple import config
 
 
 def generate_student_profile_pdf(student_data, user_data):
@@ -107,7 +108,7 @@ def generate_student_profile_pdf(student_data, user_data):
     )
 
     # --- Header with School Info ---
-    story.append(Paragraph("HBR Public School", school_title_style))
+    story.append(Paragraph(config("SCHOOL_NAME", default="SCHOOL"), school_title_style))
     story.append(
         Paragraph(
             "123 Education Street, Knowledge City - 400001", school_subtitle_style
@@ -355,7 +356,7 @@ def generate_certificate_pdf(student, certificate_type):
         "roll_no": student.roll_no,
         "admission_no": student.admission_no,
         "date": datetime.now().strftime("%d %B %Y"),
-        "school_name": "HBR Public School",
+        "school_name": config("SCHOOL_NAME", default="SCHOOL"),
     }
 
     # Use HTML template if available, otherwise use default
@@ -411,7 +412,7 @@ def generate_certificate_pdf(student, certificate_type):
         </head>
         <body>
             <div class="certificate">
-                <h1>HBR Public School</h1>
+                <h1>{{ school_name }}</h1>
                 <h2>Certificate of Achievement</h2>
                 <p class="content">This is to certify that</p>
                 <p class="student-name">{context['student_name']}</p>
@@ -422,7 +423,7 @@ def generate_certificate_pdf(student, certificate_type):
                 <div class="signature">
                     <p>___________________________</p>
                     <p>Principal</p>
-                    <p>HBR Public School</p>
+                    <p>{{ school_name }}</p>
                 </div>
             </div>
         </body>
@@ -511,7 +512,7 @@ def generate_certificate_pdf_fallback(student, certificate_type):
     )
 
     # Header
-    story.append(Paragraph("HBR Public School", school_title_style))
+    story.append(Paragraph(config("SCHOOL_NAME", default="SCHOOL"), school_title_style))
     story.append(Spacer(1, 0.5 * inch))
 
     # Certificate Title
@@ -542,7 +543,7 @@ def generate_certificate_pdf_fallback(student, certificate_type):
     story.append(Spacer(1, 1 * inch))
     story.append(Paragraph("___________________________", body_style))
     story.append(Paragraph("Principal", body_style))
-    story.append(Paragraph("HBR Public School", body_style))
+    story.append(Paragraph(config("SCHOOL_NAME", default="SCHOOL"), body_style))
 
     # Build PDF
     doc.build(story)
@@ -609,7 +610,7 @@ def generate_payment_receipt_pdf(payment):
     )
 
     # Header
-    story.append(Paragraph("HBR Public School", school_title_style))
+    story.append(Paragraph(config("SCHOOL_NAME", default="SCHOOL"), school_title_style))
     story.append(Spacer(1, 0.5 * inch))
 
     # Receipt Title
@@ -648,7 +649,7 @@ def generate_payment_receipt_pdf(payment):
     story.append(Spacer(1, 1 * inch))
     story.append(Paragraph("___________________________", body_style))
     story.append(Paragraph("Accounts Department", body_style))
-    story.append(Paragraph("HBR Public School", body_style))
+    story.append(Paragraph(config("SCHOOL_NAME", default="SCHOOL"), body_style))
 
     # Build PDF
     doc.build(story)

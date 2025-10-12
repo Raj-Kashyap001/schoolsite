@@ -14,6 +14,7 @@ from .models import (
 import random
 import string
 from datetime import datetime
+from decouple import config
 
 
 class StudentUserCreationForm(UserCreationForm):
@@ -247,7 +248,7 @@ def generate_admission_number(grade, year=None):
     if year is None:
         year = datetime.now().year
 
-    school_code = "HBR"
+    school_code = config("SCHOOL_CODE", default="HBR")
     year_short = str(year)[-2:]  # Last 2 digits of year
 
     # Extract numeric part from grade (e.g., "10th" -> "10")

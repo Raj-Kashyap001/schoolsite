@@ -15,6 +15,7 @@ from io import BytesIO
 import os
 from django.conf import settings
 from academics.models import ExamSchedule
+from decouple import config
 
 
 def generate_student_profile_pdf(student_data, user_data):
@@ -108,7 +109,7 @@ def generate_student_profile_pdf(student_data, user_data):
     )
 
     # --- Header with School Info ---
-    story.append(Paragraph("HBR Public School", school_title_style))
+    story.append(Paragraph(config("SCHOOL_NAME", default="SCHOOL"), school_title_style))
     story.append(
         Paragraph(
             "123 Education Street, Knowledge City - 400001", school_subtitle_style
@@ -404,7 +405,7 @@ def generate_admit_card_pdf(exam, student):
     )
 
     # Header
-    story.append(Paragraph("HBR Public School", school_title_style))
+    story.append(Paragraph(config("SCHOOL_NAME", default="SCHOOL"), school_title_style))
     story.append(
         Paragraph(
             "123 Education Street, Knowledge City - 400001", school_subtitle_style
@@ -583,7 +584,12 @@ def generate_admit_card_pdf(exam, student):
 
     current_date = datetime.now().strftime("%d %B %Y")
     story.append(Paragraph(f"Issued on: {current_date}", footer_style))
-    story.append(Paragraph("HBR Public School - Examination Department", footer_style))
+    story.append(
+        Paragraph(
+            f"{config('SCHOOL_NAME', default='SCHOOL')} - Examination Department",
+            footer_style,
+        )
+    )
 
     # Build PDF
     doc.build(story)
@@ -664,7 +670,7 @@ def generate_exam_timetable_pdf(exam, schedule_data, student=None):
     )
 
     # Header
-    story.append(Paragraph("HBR Public School", school_title_style))
+    story.append(Paragraph(config("SCHOOL_NAME", default="SCHOOL"), school_title_style))
     story.append(
         Paragraph(
             "123 Education Street, Knowledge City - 400001", school_subtitle_style
@@ -767,7 +773,12 @@ def generate_exam_timetable_pdf(exam, schedule_data, student=None):
 
     current_date = datetime.now().strftime("%d %B %Y")
     story.append(Paragraph(f"Generated on: {current_date}", footer_style))
-    story.append(Paragraph("HBR Public School - Examination Department", footer_style))
+    story.append(
+        Paragraph(
+            f"{config('SCHOOL_NAME', default='SCHOOL')} - Examination Department",
+            footer_style,
+        )
+    )
 
     # Build PDF
     doc.build(story)
@@ -834,7 +845,7 @@ def generate_payment_receipt_pdf(payment):
     )
 
     # Header
-    story.append(Paragraph("HBR Public School", school_title_style))
+    story.append(Paragraph(config("SCHOOL_NAME", default="SCHOOL"), school_title_style))
     story.append(Spacer(1, 0.5 * inch))
 
     # Receipt Title
@@ -873,7 +884,7 @@ def generate_payment_receipt_pdf(payment):
     story.append(Spacer(1, 1 * inch))
     story.append(Paragraph("___________________________", body_style))
     story.append(Paragraph("Accounts Department", body_style))
-    story.append(Paragraph("HBR Public School", body_style))
+    story.append(Paragraph(config("SCHOOL_NAME", default="SCHOOL"), body_style))
 
     # Build PDF
     doc.build(story)
@@ -951,7 +962,7 @@ def generate_certificate_pdf(student, certificate_type):
     )
 
     # Header
-    story.append(Paragraph("HBR Public School", school_title_style))
+    story.append(Paragraph(config("SCHOOL_NAME", default="SCHOOL"), school_title_style))
     story.append(Spacer(1, 0.5 * inch))
 
     # Certificate Title
@@ -988,7 +999,7 @@ def generate_certificate_pdf(student, certificate_type):
     story.append(Spacer(1, 1 * inch))
     story.append(Paragraph("___________________________", body_style))
     story.append(Paragraph("Principal", body_style))
-    story.append(Paragraph("HBR Public School", body_style))
+    story.append(Paragraph(config("SCHOOL_NAME", default="SCHOOL"), body_style))
 
     # Build PDF
     doc.build(story)

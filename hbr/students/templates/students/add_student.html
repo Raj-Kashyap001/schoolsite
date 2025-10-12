@@ -383,8 +383,6 @@
       // Global variable declarations
       let fullNameField, dobField, classroomSelect
       
-      console.log('DEBUG JS: Add student form JavaScript loaded')
-      
       // Profile photo preview functionality
       document.getElementById('id_profile_photo').addEventListener('change', function (e) {
         const file = e.target.files[0]
@@ -422,7 +420,6 @@
         // Use global variables (already declared at top)
       
         if (!fullNameField || !dobField || !classroomSelect) {
-          console.log('DEBUG JS: Required form fields not found')
           return
         }
       
@@ -465,8 +462,6 @@
           if (passwordPreview) passwordPreview.textContent = password
           if (admissionPreview) admissionPreview.textContent = admissionNo
           if (rollPreview) rollPreview.textContent = rollNo
-      
-          console.log('DEBUG JS: Preview fields updated')
         } else {
           // Reset preview fields
           const usernamePreview = document.getElementById('preview-username')
@@ -478,8 +473,6 @@
           if (passwordPreview) passwordPreview.textContent = '-'
           if (admissionPreview) admissionPreview.textContent = '-'
           if (rollPreview) rollPreview.textContent = '-'
-      
-          console.log('DEBUG JS: Preview fields reset')
         }
       }
       
@@ -529,9 +522,7 @@
       updateStreamVisibility()
       
       // Simple form submission logging
-      document.getElementById('add-student-form').addEventListener('submit', function (e) {
-        console.log('DEBUG JS: Form is being submitted')
-      })
+      document.getElementById('add-student-form').addEventListener('submit', function (e) {})
     </script>
   {% endblock %}
 {% endblock %}
