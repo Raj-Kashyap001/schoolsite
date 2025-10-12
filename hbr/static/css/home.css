@@ -58,11 +58,11 @@
     height: 4rem;
     justify-content: space-between;
     background: var(--color-secondary);
-    padding-inline: 1.5rem;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    padding-inline: 2rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     position: sticky;
     top: 0;
-    border-radius: 0px 0px 12px 12px !important;
+    border-radius: 0px !important;
     width: 100%;
     z-index: 99;
 
@@ -76,6 +76,10 @@
     a:hover {
       color: var(--color-primary);
     }
+
+    .logo {
+      margin-left: 1rem !important;
+    }
   }
 }
 
@@ -87,7 +91,8 @@
   }
   font-size: 1rem;
   font-weight: 500;
-  gap: 1.5rem;
+  padding-right: 1rem;
+  gap: 1rem;
 
   a {
     padding: 0.5rem 1rem;
@@ -130,14 +135,14 @@
   display: flex;
   align-items: start;
   flex-direction: column;
-  padding-top: 6rem;
+  padding-top: 5rem;
   padding-inline: 2rem;
 
   a {
     font-size: 1.5rem;
     font-weight: 600;
     margin-bottom: 1.5rem;
-    padding: 0.75rem 1rem;
+    padding: 0.75rem 1.5rem;
     border-radius: 12px;
     transition: all 0.3s ease;
     width: fit-content;
@@ -182,6 +187,7 @@
         var(--color-primary),
         var(--color-black) 20%
       );
+      color: var(--color-white);
       transform: translateY(-2px);
       box-shadow: 0 4px 15px rgba(3, 104, 53, 0.3);
     }
@@ -247,7 +253,7 @@
   height: 100%;
   display: flex;
   flex-grow: 1;
-  height: 3rem;
+  position: relative;
   &:hover .dropdown-content {
     display: flex;
   }
@@ -255,18 +261,28 @@
   &:hover .dropdown-arrow {
     transform: rotate(180deg);
   }
+
+  &::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    height: 15rem;
+    background: transparent;
+  }
   .dropdown-trigger {
     display: flex;
     align-items: center;
-    font-size: inherit;
+    font: inherit;
+    font-weight: 600;
     justify-content: center;
     border: none;
     background: transparent;
     position: relative;
     color: var(--color-black);
-    height: 105%;
-    width: 120%;
-    transform: translateY(-2px);
+    height: 120%;
+    width: 100%;
     i {
       font-size: 1.5rem;
       transition: all 0.3s ease;
@@ -275,20 +291,20 @@
 
   .dropdown-content {
     position: absolute;
-    top: 105%;
-    transform: translateX(-55%);
+    top: 100%;
+    transform: translateX(-60%) translateY(20px);
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
     display: none;
     background: var(--color-white);
     padding: 1rem;
+    border-radius: 0px;
     flex-direction: column;
     gap: 0.5rem;
-    border-radius: 12px;
-    min-width: 180px;
+    min-width: 198px;
     z-index: 1000;
 
     a {
-      padding: 0.75rem 1rem;
+      padding: 0.5rem;
       border-radius: 8px;
       display: flex;
       text-decoration: none;
@@ -359,7 +375,6 @@ footer {
 
 .carousel-wrapper {
   position: relative;
-  width: 100%;
   height: 100%;
   display: flex;
   transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
@@ -367,9 +382,8 @@ footer {
 
 .carousel-slide {
   position: relative;
-  min-width: 100%;
+  flex: 0 0 100%;
   height: 100%;
-  flex-shrink: 0;
 }
 
 .carousel-slide img {
@@ -1046,7 +1060,7 @@ footer {
 }
 
 .btn-primary:hover {
-  background: var(--color-accent);
+  /* background: var(--color-accent) !important; */
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
@@ -1242,6 +1256,140 @@ footer {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* News Page Styles */
+.page-header {
+  padding: 4rem 0 2rem;
+  background: var(--color-primary);
+  color: white;
+  text-align: center;
+}
+
+.page-header h1 {
+  font-size: 3rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.page-header p {
+  font-size: 1.2rem;
+  opacity: 0.9;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.news-list-section {
+  padding: 4rem 0;
+  background: #f8f9fa;
+}
+
+.news-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.news-item {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.news-item:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.news-item.featured {
+  border-left: 4px solid var(--color-primary);
+}
+
+.news-content {
+  padding: 2rem;
+}
+
+.news-meta {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.news-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #666;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.news-attachment {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--color-primary);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.news-item h2 {
+  font-size: 1.8rem;
+  color: var(--color-black);
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.news-text {
+  color: #555;
+  line-height: 1.7;
+  margin-bottom: 1.5rem;
+  font-size: 1.05rem;
+}
+
+.news-text p {
+  margin-bottom: 1rem;
+}
+
+.news-text p:last-child {
+  margin-bottom: 0;
+}
+
+.news-actions {
+  margin-top: 1.5rem;
+}
+
+.no-news {
+  text-align: center;
+  padding: 4rem 2rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.no-news-icon {
+  font-size: 4rem;
+  color: var(--color-primary);
+  margin-bottom: 1.5rem;
+  opacity: 0.5;
+}
+
+.no-news h2 {
+  font-size: 2rem;
+  color: var(--color-black);
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.no-news p {
+  font-size: 1.1rem;
+  color: #666;
+  max-width: 400px;
+  margin: 0 auto;
 }
 
 /* Print Styles */

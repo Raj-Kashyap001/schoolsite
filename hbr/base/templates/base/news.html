@@ -1,0 +1,55 @@
+{% extends 'main.html' %}
+{% load static %}
+{% block title %}
+  News & Announcements | School Name
+{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/home.css' %}" />
+{% endblock %}
+
+{% block content %}
+  <!-- Page Header -->
+  <section class="page-header">
+    <div class="container">
+      <h1>News & Announcements</h1>
+      <p>Stay updated with the latest news and announcements from our school</p>
+    </div>
+  </section>
+
+  <!-- News List Section -->
+  <section class="news-list-section">
+    <div class="container">
+      {% if notices %}
+        <div class="news-list">
+          {% for notice in notices %}
+            <div class="news-item{% if forloop.first %} featured{% endif %}">
+              <div class="news-content">
+                <div class="news-meta">
+                  <span class="news-date"><i class="bx bx-calendar"></i> {{ notice.created_at|date:'F d, Y' }}</span>
+                  {% if notice.attachment %}
+                    <span class="news-attachment"><i class="bx bx-paperclip"></i> Attachment</span>
+                  {% endif %}
+                </div>
+                <h2>{{ notice.title }}</h2>
+                <div class="news-text">{{ notice.content|linebreaks }}</div>
+                {% if notice.attachment %}
+                  <div class="news-actions">
+                    <a href="{{ notice.attachment.url }}" class="btn btn-outline" target="_blank" download><i class="bx bx-download"></i> Download Attachment</a>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="no-news">
+          <div class="no-news-icon">
+            <i class="bx bx-news"></i>
+          </div>
+          <h2>No News Yet</h2>
+          <p>Check back later for the latest announcements and updates.</p>
+        </div>
+      {% endif %}
+    </div>
+  </section>
+{% endblock %}

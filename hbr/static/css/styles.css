@@ -131,6 +131,7 @@ button {
       .confirm-buttons {
         display: flex;
         gap: 1rem;
+        padding: 1rem;
         justify-content: center;
 
         .btn {
@@ -151,7 +152,7 @@ button {
                 in srgb,
                 var(--color-primary),
                 var(--color-black) 10%
-              );
+              ) !important;
               transform: translateY(-2px);
               box-shadow: 0 8px 25px rgba(3, 104, 53, 0.3);
             }

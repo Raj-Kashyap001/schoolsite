@@ -5,6 +5,7 @@ from django.contrib.auth.models import Group, User
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.decorators import login_required
 from front_cms.models import CarouselImage, GalleryImage, PopupImage
+from notices.models import Notice
 
 
 def get_user_role(user):
@@ -37,10 +38,18 @@ def homepage(request: HttpRequest):
     # Get active popup (only one should be active at a time)
     popup = PopupImage.objects.filter(is_active=True).first()
 
+    # Get public notices
+    public_notices = Notice.objects.filter(
+        notice_type=Notice.NoticeType.PUBLIC, is_active=True
+    ).order_by("-created_at")[
+        :3
+    ]  # Limit to 3 for homepage
+
     context = {
         "carousel_images": carousel_images,
         "gallery_images": gallery_images,
         "popup": popup,
+        "public_notices": public_notices,
     }
     return render(request, "base/home.html", context)
 
@@ -55,6 +64,18 @@ def academics(request: HttpRequest):
 
 def apply_enroll(request: HttpRequest):
     return render(request, "base/apply_enroll.html")
+
+
+def news(request: HttpRequest):
+    # Get all active public notices
+    public_notices = Notice.objects.filter(
+        notice_type=Notice.NoticeType.PUBLIC, is_active=True
+    ).order_by("-created_at")
+
+    context = {
+        "notices": public_notices,
+    }
+    return render(request, "base/news.html", context)
 
 
 def login_page(request: HttpRequest, role: str):

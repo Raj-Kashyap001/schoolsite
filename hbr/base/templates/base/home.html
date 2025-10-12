@@ -3,9 +3,6 @@
 {% block title %}
   Home | School Name
 {% endblock %}
-{% block extra_css %}
-  <link rel="stylesheet" href="{% static 'css/home.css' %}" />
-{% endblock %}
 
 {% block content %}
   <!-- Hero Carousel Section -->
@@ -111,37 +108,35 @@
     <div class="container">
       <h2 class="section-title">Latest News & Announcements</h2>
       <div class="news-grid">
-        <div class="news-card featured">
-          <div class="news-badge">Featured</div>
-          <img src="{% static 'images/news-1.jpg' %}" alt="News" />
-          <div class="news-content">
-            <span class="news-date"><i class="bx bx-calendar"></i> Oct 10, 2025</span>
-            <h3>Annual Day Celebration 2025</h3>
-            <p>Join us for our grand annual day celebration showcasing student talents and achievements.</p>
-            <a href="/news/annual-day-2025" class="news-link">Read More <i class="bx bx-right-arrow-alt"></i></a>
+        {% for notice in public_notices %}
+          <div class="news-card{% if forloop.first %} featured{% endif %}">
+            {% if forloop.first %}
+              <div class="news-badge">Featured</div>
+            {% endif %}
+            {% if notice.attachment %}
+              <img src="{{ notice.attachment.url }}" alt="{{ notice.title }}" />
+            {% else %}
+
+            {% endif %}
+            <div class="news-content">
+              <span class="news-date"><i class="bx bx-calendar"></i> {{ notice.created_at|date:'M d, Y' }}</span>
+              <h3>{{ notice.title }}</h3>
+              <p>{{ notice.content|truncatewords:20 }}</p>
+              <a href="{% url 'news' %}" class="news-link">Read More <i class="bx bx-right-arrow-alt"></i></a>
+            </div>
           </div>
-        </div>
-        <div class="news-card">
-          <img src="{% static 'images/news-2.jpg' %}" alt="News" />
-          <div class="news-content">
-            <span class="news-date"><i class="bx bx-calendar"></i> Oct 5, 2025</span>
-            <h3>New Computer Lab Inauguration</h3>
-            <p>State-of-the-art computer lab with latest technology now available for students.</p>
-            <a href="/news/computer-lab" class="news-link">Read More <i class="bx bx-right-arrow-alt"></i></a>
+        {% empty %}
+          <div class="news-card">
+            <div class="news-content">
+              <span class="news-date"><i class="bx bx-calendar"></i> Coming Soon</span>
+              <h3>No Announcements Yet</h3>
+              <p>Check back later for the latest news and announcements.</p>
+            </div>
           </div>
-        </div>
-        <div class="news-card">
-          <img src="{% static 'images/news-3.jpg' %}" alt="News" />
-          <div class="news-content">
-            <span class="news-date"><i class="bx bx-calendar"></i> Sep 28, 2025</span>
-            <h3>Sports Day Winners</h3>
-            <p>Congratulations to all participants and winners of the inter-house sports competition.</p>
-            <a href="/news/sports-day" class="news-link">Read More <i class="bx bx-right-arrow-alt"></i></a>
-          </div>
-        </div>
+        {% endfor %}
       </div>
       <div class="news-footer">
-        <a href="/news" class="btn btn-outline">View All News</a>
+        <a href="{% url 'news' %}" class="btn btn-outline">View All News</a>
       </div>
     </div>
   </section>
