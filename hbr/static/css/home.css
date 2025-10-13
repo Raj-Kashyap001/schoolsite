@@ -343,6 +343,69 @@
   }
 }
 
+  .navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100dvh; /* Full height on all devices */
+  transform: translateY(-200%);
+  background: var(--color-secondary);
+  transition: all 0.3s ease;
+  opacity: 0;
+  z-index: 99999;
+  overflow-y: auto; /* ✅ allows scrolling on small screens */
+  overscroll-behavior: contain; /* prevents background bounce */
+  scrollbar-width: none; /* hide scrollbar (Firefox) */
+}
+.navbar::-webkit-scrollbar {
+  display: none; /* hide scrollbar (Chrome/Safari) */
+}
+
+.navbar.active {
+  transform: translateY(0%);
+  opacity: 1;
+}
+
+/* Responsive fixes */
+@media (max-width: 768px) {
+  .navbar {
+    padding-top: 1rem;
+    padding-bottom: 2rem;
+  }
+
+  .navlinks {
+    padding-top: 4rem;
+    padding-inline: 1.5rem;
+  }
+
+  .navlinks a {
+    font-size: 1.3rem;
+  }
+
+  .login-cta {
+    margin-top: 2rem;
+  }
+
+  .close-nav-btn {
+    top: 1rem;
+    right: 1rem;
+    width: 45px;
+    height: 45px;
+  }
+}
+
+@media (max-width: 400px) {
+  .navlinks a {
+    font-size: 1.1rem;
+  }
+
+  .login-cta a {
+    width: 160px;
+    font-size: 0.95rem;
+  }
+}
+
 .hero {
   max-width: 1200px;
   margin: 0 auto;
@@ -785,6 +848,61 @@ footer {
   transform: scale(1.02);
 }
 
+/* Responsive styles */
+@media (max-width: 992px) {
+  .welcome-home-content {
+    gap: 2rem;
+  }
+
+  .welcome-home-text h2 {
+    font-size: 2rem;
+  }
+
+  .welcome-home-text .lead {
+    font-size: 1.1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .welcome-home-content {
+    grid-template-columns: 1fr; /* Stack text and image */
+    text-align: center;
+  }
+
+  .welcome-home-text {
+    order: 1; /* keep text first */
+  }
+
+  .welcome-home-image {
+    order: 2;
+    max-width: 90%;
+    margin: 0 auto;
+  }
+
+  .welcome-home-text h2 {
+    font-size: 1.8rem;
+  }
+
+  .welcome-home-text p {
+    font-size: 1rem;
+  }
+
+  .welcome-home-section {
+    padding: 3rem 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .welcome-home-text h2 {
+    font-size: 1.6rem;
+  }
+
+  .welcome-home-text .lead {
+    font-size: 1rem;
+  }
+}
+
+  
 /* Quick Links Section */
 .quick-links-section {
   padding: 4rem 0;
