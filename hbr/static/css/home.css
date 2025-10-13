@@ -735,53 +735,53 @@ footer {
 }
 
 /* Welcome Section */
-.welcome-section {
+.welcome-home-section {
   padding: 5rem 0;
   background: #f8f9fa !important;
 }
 
-.welcome-content {
+.welcome-home-content {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 4rem;
   align-items: center;
 }
 
-.welcome-text h2 {
+.welcome-home-text h2 {
   font-size: 2.5rem;
   color: var(--color-black);
   margin-bottom: 1rem;
   font-weight: 700;
 }
 
-.welcome-text .lead {
+.welcome-home-text .lead {
   font-size: 1.3rem;
   color: var(--color-primary);
   margin-bottom: 1.5rem;
   font-weight: 500;
 }
 
-.welcome-text p {
+.welcome-home-text p {
   font-size: 1.1rem;
   line-height: 1.8;
   color: #555;
   margin-bottom: 2rem;
 }
 
-.welcome-image {
+.welcome-home-image {
   overflow: hidden;
   border: 1px solid #ddd;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.welcome-image img {
+.welcome-home-image img {
   width: 100%;
   height: auto;
   display: block;
   transition: transform 0.3s ease;
 }
 
-.welcome-image:hover img {
+.welcome-home-image:hover img {
   transform: scale(1.02);
 }
 
