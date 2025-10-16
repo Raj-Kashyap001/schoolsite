@@ -1,5 +1,4 @@
 django
-psycopg2
 django-browser-reload
 Pillow
 reportlab
