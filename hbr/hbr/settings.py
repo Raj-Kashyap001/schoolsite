@@ -84,7 +84,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "hbr.wsgi.application"
+# WSGI_APPLICATION = "hbr.wsgi.application"
 
 
 # Database

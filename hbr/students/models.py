@@ -69,7 +69,7 @@ class Student(models.Model):
     father_name = models.CharField(max_length=100)
     mother_name = models.CharField(max_length=100)
     dob = models.DateField()
-    mobile_no = models.BigIntegerField()
+    mobile_no = models.CharField(max_length=20, blank=True, default="")
     category = models.CharField(max_length=20, choices=Categories.choices, blank=True)
     gender = models.CharField(max_length=10, choices=Genders.choices)
     profile_photo = models.ImageField(

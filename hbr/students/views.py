@@ -1044,7 +1044,6 @@ def export_students(request: HttpRequest):
 
     return response
 
-
 @login_required
 def import_students(request: HttpRequest):
     """Admin view for importing students from CSV/Excel files"""
@@ -1067,6 +1066,7 @@ def import_students(request: HttpRequest):
                 file_path = fs.path(filename)
 
                 imported_count = 0
+                updated_count = 0
                 error_messages = []
 
                 try:
@@ -1082,15 +1082,7 @@ def import_students(request: HttpRequest):
                     for index, row in df.iterrows():
                         try:
                             current_row = index + 1
-                            print(
-                                f"DEBUG: Processing student {current_row}/{total_rows}"
-                            )
 
-                            # Show progress every 5 students
-                            if current_row % 5 == 0 or current_row == total_rows:
-                                print(
-                                    f"DEBUG: Progress: {current_row}/{total_rows} students processed"
-                                )
                             # Extract data from row (handle missing columns gracefully)
                             admission_no = str(row.get("Admission No", "")).strip()
                             first_name = str(row.get("First Name", "")).strip()
@@ -1099,23 +1091,24 @@ def import_students(request: HttpRequest):
 
                             if not first_name or not last_name:
                                 error_messages.append(
-                                    f"Row {index + 1}: First name and last name are required"
+                                    f"Row {current_row}: First name and last name are required"
                                 )
                                 continue
 
-                            # Check if student already exists
+                            # Check if student already exists by admission number
                             existing_student = None
-                            if admission_no:
+                            if admission_no and admission_no != "nan":
                                 existing_student = Student.objects.filter(
                                     admission_no=admission_no
                                 ).first()
 
                             if existing_student and not overwrite_existing:
                                 error_messages.append(
-                                    f"Row {index + 1}: Student with admission no {admission_no} already exists"
+                                    f"Row {current_row}: Student with admission no {admission_no} already exists"
                                 )
                                 continue
                             elif existing_student and overwrite_existing:
+                                print(f"DEBUG: Row {current_row} - updating existing student")
                                 # Update existing student
                                 user = existing_student.user
                                 user.first_name = first_name
@@ -1123,128 +1116,169 @@ def import_students(request: HttpRequest):
                                 user.email = email
                                 user.save()
 
-                                existing_student.father_name = str(
-                                    row.get("Father Name", "")
-                                ).strip()
-                                existing_student.mother_name = str(
-                                    row.get("Mother Name", "")
-                                ).strip()
-                                existing_student.mobile_no = (
-                                    int(row.get("Mobile No", 0))
-                                    if row.get("Mobile No")
-                                    else 0
-                                )
-                                existing_student.category = str(
-                                    row.get("Category", "")
-                                ).strip()
-                                existing_student.gender = str(
-                                    row.get("Gender", "")
-                                ).strip()
-                                existing_student.current_address = str(
-                                    row.get("Current Address", "")
-                                ).strip()
-                                existing_student.permanent_address = str(
-                                    row.get("Permanent Address", "")
-                                ).strip()
+                                existing_student.father_name = str(row.get("Father Name", "")).strip()
+                                existing_student.mother_name = str(row.get("Mother Name", "")).strip()
+
+                                # Handle mobile_no
+                                mobile_value = row.get("Mobile No")
+                                if pd.isna(mobile_value) or str(mobile_value).strip() == "":
+                                    existing_student.mobile_no = ""
+                                else:
+                                    existing_student.mobile_no = str(mobile_value).strip()
+
+                                existing_student.category = str(row.get("Category", "")).strip()
+                                existing_student.gender = str(row.get("Gender", "")).strip()
+                                existing_student.current_address = str(row.get("Current Address", "")).strip()
+                                existing_student.permanent_address = str(row.get("Permanent Address", "")).strip()
                                 existing_student.classroom = classroom
 
                                 # Handle optional fields
-                                if row.get("Date of Birth"):
-                                    existing_student.dob = pd.to_datetime(
-                                        row.get("Date of Birth")
-                                    ).date()
-                                if row.get("Weight"):
-                                    existing_student.weight = float(row.get("Weight"))
-                                if row.get("Height"):
-                                    existing_student.height = float(row.get("Height"))
+                                dob_str = str(row.get("Date of Birth", "")).strip()
+                                if dob_str and dob_str != "nan":
+                                    try:
+                                        existing_student.dob = pd.to_datetime(dob_str).date()
+                                    except (ValueError, TypeError):
+                                        pass
+
+                                # Handle weight
+                                weight_str = str(row.get("Weight", "")).strip()
+                                if weight_str and weight_str != "nan":
+                                    import re
+                                    match = re.match(r'(\d+(?:\.\d+)?)', weight_str)
+                                    if match:
+                                        existing_student.weight = float(match.group(1))
+
+                                # Handle height
+                                height_str = str(row.get("Height", "")).strip()
+                                if height_str and height_str != "nan":
+                                    import re
+                                    match = re.match(r'(\d+(?:\.\d+)?)', height_str)
+                                    if match:
+                                        existing_student.height = float(match.group(1))
 
                                 existing_student.save()
-                                imported_count += 1
+                                updated_count += 1
                             else:
                                 # Create new student
-                                # Generate username and password
-                                dob_str = str(row.get("Date of Birth", ""))
-                                if dob_str:
+                                
+                                # Parse date of birth
+                                dob_str = str(row.get("Date of Birth", "")).strip()
+                                if dob_str and dob_str != "nan":
                                     try:
                                         dob = pd.to_datetime(dob_str).date()
-                                    except:
+                                    except (ValueError, TypeError) as e:
                                         dob = None
                                 else:
                                     dob = None
 
+                                # Generate username and password
                                 username, password = generate_student_credentials(
                                     first_name,
                                     last_name,
                                     dob or pd.Timestamp.now().date(),
                                 )
 
+                                # Check if username already exists
+                                if User.objects.filter(username=username).exists():
+                                    # Username exists, try with a different suffix
+                                    import random
+                                    username = f"{username}_{random.randint(1000, 9999)}"
+
                                 # Create user
-                                user = User.objects.create_user(
-                                    username=username,
-                                    first_name=first_name,
-                                    last_name=last_name,
-                                    email=email,
-                                    password=password,
-                                )
+                                try:
+                                    user = User.objects.create_user(
+                                        username=username,
+                                        first_name=first_name,
+                                        last_name=last_name,
+                                        email=email,
+                                        password=password,
+                                    )
+                                except Exception as e:
+                                    error_messages.append(f"Row {current_row}: Error creating user - {str(e)}")
+                                    continue
 
                                 # Assign user to Student group
                                 from django.contrib.auth.models import Group
-
-                                student_group, created = Group.objects.get_or_create(
-                                    name="Student"
-                                )
+                                student_group, created = Group.objects.get_or_create(name="Student")
                                 user.groups.add(student_group)
 
                                 # Generate sequence and IDs
-                                existing_students = Student.objects.filter(
-                                    classroom=classroom
-                                )
+                                existing_students = Student.objects.filter(classroom=classroom)
                                 sequence = existing_students.count() + 1
 
-                                # Generate admission number if not provided
-                                if not admission_no:
-                                    admission_no = generate_admission_number(
-                                        classroom.grade
-                                    )
+                                # Use admission number from CSV or generate new one
+                                if not admission_no or admission_no == "nan":
+                                    admission_no = generate_admission_number(classroom.grade)
+                                
 
-                                roll_no = generate_roll_number(classroom, sequence)
+                                # Get roll number - prioritize CSV, then generate
+                                roll_no_from_csv = str(row.get("Roll No", "")).strip()
+                                
+                                if roll_no_from_csv and roll_no_from_csv != "nan" and roll_no_from_csv != "":
+                                    try:
+                                        roll_no_int = int(float(roll_no_from_csv))  # Handle both int and float strings
+                                    except (ValueError, TypeError) as e:
+                                        # If CSV roll number is invalid, use sequence
+                                        roll_no_int = sequence
+                                else:
+                                    # No valid roll number in CSV, use sequence as fallback
+                                    roll_no_int = sequence
+
 
                                 # Create student
-                                student = Student.objects.create(
-                                    user=user,
-                                    sr_no=sequence,
-                                    roll_no=roll_no,
-                                    admission_no=admission_no,
-                                    father_name=str(row.get("Father Name", "")).strip(),
-                                    mother_name=str(row.get("Mother Name", "")).strip(),
-                                    dob=dob,
-                                    mobile_no=(
-                                        int(row.get("Mobile No", 0))
-                                        if row.get("Mobile No")
-                                        else 0
-                                    ),
-                                    category=str(row.get("Category", "")).strip(),
-                                    gender=str(row.get("Gender", "")).strip(),
-                                    current_address=str(
-                                        row.get("Current Address", "")
-                                    ).strip(),
-                                    permanent_address=str(
-                                        row.get("Permanent Address", "")
-                                    ).strip(),
-                                    classroom=classroom,
-                                )
+                                try:
+                                    # Parse mobile number
+                                    mobile_value = row.get("Mobile No")
+                                    if pd.isna(mobile_value) or str(mobile_value).strip() == "":
+                                        mobile_no = ""
+                                    else:
+                                        mobile_no = str(mobile_value).strip()
 
-                                # Handle optional fields
-                                if row.get("Weight"):
-                                    student.weight = float(row.get("Weight"))
-                                if row.get("Height"):
-                                    student.height = float(row.get("Height"))
-                                student.save()
+                                    student = Student.objects.create(
+                                        user=user,
+                                        sr_no=sequence,
+                                        roll_no=roll_no_int,
+                                        admission_no=admission_no,
+                                        father_name=str(row.get("Father Name", "")).strip(),
+                                        mother_name=str(row.get("Mother Name", "")).strip(),
+                                        dob=dob,
+                                        mobile_no=mobile_no,
+                                        category=str(row.get("Category", "")).strip(),
+                                        gender=str(row.get("Gender", "")).strip(),
+                                        current_address=str(row.get("Current Address", "")).strip(),
+                                        permanent_address=str(row.get("Permanent Address", "")).strip(),
+                                        classroom=classroom,
+                                        plain_text_password=password,
+                                    )
 
-                                imported_count += 1
+                                    # Handle weight
+                                    weight_str = str(row.get("Weight", "")).strip()
+                                    if weight_str and weight_str != "nan":
+                                        import re
+                                        match = re.match(r'(\d+(?:\.\d+)?)', weight_str)
+                                        if match:
+                                            student.weight = float(match.group(1))
+
+                                    # Handle height
+                                    height_str = str(row.get("Height", "")).strip()
+                                    if height_str and height_str != "nan":
+                                        import re
+                                        match = re.match(r'(\d+(?:\.\d+)?)', height_str)
+                                        if match:
+                                            student.height = float(match.group(1))
+
+                                    student.save()
+
+                                    imported_count += 1
+
+                                except Exception as e:
+                                    import traceback
+                                    user.delete()  # Clean up the user we just created
+                                    error_messages.append(f"Row {current_row}: {str(e)}")
+                                    continue
 
                         except Exception as e:
-                            error_messages.append(f"Row {index + 1}: {str(e)}")
+                            error_messages.append(f"Row {current_row}: {str(e)}")
 
                 finally:
                     # Clean up uploaded file
@@ -1253,7 +1287,12 @@ def import_students(request: HttpRequest):
                 # Show results
                 if imported_count > 0:
                     messages.success(
-                        request, f"Successfully imported {imported_count} students."
+                        request, f"Successfully imported {imported_count} new students."
+                    )
+                
+                if updated_count > 0:
+                    messages.success(
+                        request, f"Successfully updated {updated_count} existing students."
                     )
 
                 if error_messages:
@@ -1268,6 +1307,9 @@ def import_students(request: HttpRequest):
                 return redirect("students:student_management")
 
             except Exception as e:
+                import traceback
+                print(f"DEBUG: File processing error: {type(e).__name__}: {e}")
+                print(f"DEBUG: Traceback: {traceback.format_exc()}")
                 messages.error(request, f"Error processing file: {e}")
                 return redirect("students:student_management")
 
@@ -1279,7 +1321,6 @@ def import_students(request: HttpRequest):
         "role": role,
     }
     return render(request, "students/import_students.html", context)
-
 
 @login_required
 def manage_certificate_types(request: HttpRequest):
