@@ -2,6 +2,8 @@ from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User, Group
 from django.db import transaction
 from django.conf import settings
+import os
+import shutil
 
 # Import models across apps with safe fallbacks
 try:
@@ -46,6 +48,27 @@ def get_or_create_user(username, password, first_name, last_name, email=""):
     return user
 
 
+def clear_media_directory():
+    """Clear all media files to ensure demo data isolation."""
+    media_root = getattr(settings, "MEDIA_ROOT", None)
+    if media_root and os.path.exists(media_root):
+        try:
+            # Remove all contents of media directory but keep the directory itself
+            for filename in os.listdir(media_root):
+                file_path = os.path.join(media_root, filename)
+                try:
+                    if os.path.isfile(file_path):
+                        os.unlink(file_path)
+                    elif os.path.isdir(file_path):
+                        shutil.rmtree(file_path)
+                except Exception as e:
+                    # Log but don't fail on individual file deletion errors
+                    pass
+        except Exception:
+            # Silently fail if media directory cleanup has issues
+            pass
+
+
 class Command(BaseCommand):
     help = "Seed demo data for demo mode. Safe to re-run."
 
@@ -67,7 +90,10 @@ class Command(BaseCommand):
 
         # Optionally clear demo objects while preserving auth superuser if exists
         if reset:
-            # Delete dependent app data first in safe order
+            # Clear media files first to ensure data isolation
+            clear_media_directory()
+            
+            # Delete dependent app data in safe order
             if Notice:
                 Notice.objects.all().delete()
             if Student:
