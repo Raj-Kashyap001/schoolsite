@@ -43,10 +43,21 @@ def current_session(request):
 
 
 def user_role(request):
-    """Context processor to add user role to all templates"""
+    """Context processor to add user role to all templates and expose demo info for templates"""
+    from django.conf import settings
+
+    ctx = {}
     if request.user.is_authenticated:
-        return {"role": get_user_role(request.user)}
-    return {}
+        ctx["role"] = get_user_role(request.user)
+    # Expose demo mode and credentials for overlay on login screens
+    ctx["DEMO_MODE"] = getattr(settings, "DEMO_MODE", False)
+    if ctx["DEMO_MODE"]:
+        ctx["demo_credentials"] = {
+            "Admin": {"username": "demo_admin", "password": "demo1234"},
+            "Teacher": {"username": "demo_teacher", "password": "demo1234"},
+            "Student": {"username": "demo_student", "password": "demo1234"},
+        }
+    return ctx
 
 
 def user_notifications(request):
@@ -103,5 +114,9 @@ def user_notifications(request):
 def school_name(request):
     """Context processor to add school name to all templates"""
     from decouple import config
+    from django.conf import settings
 
-    return {"school_name": config("SCHOOL_NAME", default="SCHOOL")}
+    name = config("SCHOOL_NAME", default="SCHOOL")
+    if getattr(settings, "DEMO_MODE", False):
+        name = f"{name} Demo"
+    return {"school_name": name}

@@ -7,6 +7,19 @@
     {% include 'links.html' %}
   </head>
   <body>
+    {% if DEMO_MODE %}
+    <div style="position:fixed;top:10px;right:10px;z-index:9999;background:rgba(10,10,10,0.85);color:#fff;padding:12px 14px;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,0.3);font-family:system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;">
+      <div style="font-weight:700;letter-spacing:.5px;margin-bottom:6px;display:flex;align-items:center;gap:8px;">
+        <span style="display:inline-block;width:8px;height:8px;background:#22c55e;border-radius:50%;"></span>
+        Demo Mode
+      </div>
+      <div style="font-size:12px;line-height:1.4;">
+        <div><strong>Admin</strong>: {{ demo_credentials.Admin.username }} / {{ demo_credentials.Admin.password }}</div>
+        <div><strong>Teacher</strong>: {{ demo_credentials.Teacher.username }} / {{ demo_credentials.Teacher.password }}</div>
+        <div><strong>Student</strong>: {{ demo_credentials.Student.username }} / {{ demo_credentials.Student.password }}</div>
+      </div>
+    </div>
+    {% endif %}
     <div class="form-wrapper">
       <!-- School Header -->
       <div class="school-header">

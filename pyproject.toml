@@ -16,4 +16,6 @@ dependencies = [
     "reportlab>=4.4.4",
     "whitenoise",
     "wkhtmltopdf>=0.2",
+    "cloudinary>=1.41.0",
+    "django-cloudinary-storage>=0.3.0",
 ]

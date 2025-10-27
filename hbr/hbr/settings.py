@@ -53,6 +53,10 @@ INSTALLED_APPS = [
     "front_cms.apps.FrontCmsConfig",
 ]
 
+# Add Cloudinary storage for demo mode
+if DEMO_MODE:
+    INSTALLED_APPS += ["cloudinary", "cloudinary_storage"]
+
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
@@ -152,6 +156,11 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'    # where collectstatic puts files
 # Media files
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+# Cloudinary storage for demo mode
+if DEMO_MODE:
+    DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
+    MEDIA_URL = "/media/"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

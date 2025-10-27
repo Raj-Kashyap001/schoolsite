@@ -87,11 +87,13 @@ class Command(BaseCommand):
         teacher_user.groups.add(groups["Teacher"])  # type: ignore[attr-defined]
         student_user.groups.add(groups["Student"])  # type: ignore[attr-defined]
 
-        # Classroom
+        # Classroom: adapt to model fields (grade, section)
         classroom = None
         if Classroom:
+            # Create or get a Grade 1, Section A class without using a 'name' field
             classroom, _ = Classroom.objects.get_or_create(
-                name="Demo Class A", defaults={"section": "A", "class_teacher": None}
+                grade="1",
+                section="A",
             )
 
         # Teacher profile
@@ -100,39 +102,48 @@ class Command(BaseCommand):
                 user=teacher_user,
                 defaults={
                     "subject": "Mathematics",
-                    "mobile_no": "9999999999",
+                    "mobile_no": 9999999999,
+                    "plain_text_password": "demo1234",
                 },
             )
             # Associate teacher to classroom if the model supports it
             if classroom and hasattr(teacher, "classroom"):
                 try:
-                    teacher.classroom.add(classroom)  # ManyToMany in your admin hints
+                    # ManyToMany relation
+                    teacher.classroom.add(classroom)
                 except Exception:
                     try:
-                        teacher.classroom = classroom  # OneToOne/ForeignKey
+                        # ForeignKey/OneToOne
+                        setattr(teacher, "classroom", classroom)
                         teacher.save()
                     except Exception:
                         pass
 
         # Student profile
         if Student:
-            student, _ = Student.objects.get_or_create(
+            student_defaults = {
+                "sr_no": 1,
+                "admission_no": "DEM0001",
+                "roll_no": 1,
+                "father_name": "Demo Father",
+                "mother_name": "Demo Mother",
+                "dob": "2008-01-15",
+                "mobile_no": "8888888888",
+                "category": getattr(Student, "Categories", None).GENERAL if hasattr(Student, "Categories") else "GENERAL",
+                "gender": getattr(Student, "Genders", None).MALE if hasattr(Student, "Genders") else "MALE",
+                "current_address": "123 Demo Street",
+                "permanent_address": "123 Demo Street",
+                "plain_text_password": "demo1234",
+                "classroom": classroom,
+            }
+            student, created_student = Student.objects.get_or_create(
                 user=student_user,
-                defaults={
-                    "sr_no": 1,
-                    "admission_no": "DEM0001",
-                    "roll_no": 1,
-                    "father_name": "Demo Father",
-                    "mother_name": "Demo Mother",
-                    "mobile_no": "8888888888",
-                },
+                defaults=student_defaults,
             )
-            if classroom and hasattr(student, "classroom"):
-                try:
-                    student.classroom = classroom
-                    student.save()
-                except Exception:
-                    pass
+            # Ensure classroom set even if instance existed without it
+            if classroom and getattr(student, "classroom_id", None) is None:
+                student.classroom = classroom
+                student.save()
 
         # Notices to make the dashboard look alive
         if Notice:
