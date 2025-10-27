@@ -8,6 +8,7 @@ from front_cms.models import CarouselImage, GalleryImage, PopupImage
 from notices.models import Notice
 from academics.models import Exam, ExamResult
 from students.models import Student
+from decouple import config
 
 
 def get_user_role(user):
@@ -71,6 +72,13 @@ def admissions(request: HttpRequest):
 def faculty(request: HttpRequest):
     return render(request, "base/faculty.html")
 
+def gallery_view(request):
+    gallery_images = GalleryImage.objects.all().order_by('-created_at')
+    return render(request, 'base/gallery.html', {
+        'gallery_images': gallery_images,
+        'school_name': config("SCHOOL_NAME"),
+    })
+
 
 def events(request: HttpRequest):
     return render(request, "base/events.html")
@@ -82,6 +90,8 @@ def contact(request: HttpRequest):
 
 def apply_enroll(request: HttpRequest):
     return render(request, "base/apply_enroll.html")
+
+
 
 
 def news(request: HttpRequest):

@@ -348,18 +348,20 @@
   top: 0;
   left: 0;
   width: 100%;
-  height: 100dvh; /* Full height on all devices */
+  max-height: 100vh;
   transform: translateY(-200%);
   background: var(--color-secondary);
   transition: all 0.3s ease;
   opacity: 0;
   z-index: 99999;
-  overflow-y: auto; /* ✅ allows scrolling on small screens */
-  overscroll-behavior: contain; /* prevents background bounce */
-  scrollbar-width: none; /* hide scrollbar (Firefox) */
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
 }
+
 .navbar::-webkit-scrollbar {
-  display: none; /* hide scrollbar (Chrome/Safari) */
+  display: none;
 }
 
 .navbar.active {
@@ -367,16 +369,32 @@
   opacity: 1;
 }
 
+.navlinks {
+  display: flex;
+  align-items: start;
+  flex-direction: column;
+  padding-top: 5rem;
+  padding-inline: 2rem;
+  padding-bottom: 3rem;
+  max-height: calc(100vh - 5rem);
+  overflow-y: auto;
+}
+
+.navlinks::-webkit-scrollbar {
+  display: none;
+}
+
 /* Responsive fixes */
 @media (max-width: 768px) {
   .navbar {
-    padding-top: 1rem;
-    padding-bottom: 2rem;
+    max-height: 100vh;
   }
 
   .navlinks {
     padding-top: 4rem;
     padding-inline: 1.5rem;
+    padding-bottom: 2rem;
+    max-height: calc(100vh - 4rem);
   }
 
   .navlinks a {
@@ -385,6 +403,7 @@
 
   .login-cta {
     margin-top: 2rem;
+    padding-bottom: 1rem;
   }
 
   .close-nav-btn {
@@ -395,14 +414,56 @@
   }
 }
 
-@media (max-width: 400px) {
+@media (max-width: 480px) {
+  .navbar {
+    max-height: 100vh;
+  }
+
+  .navlinks {
+    padding-top: 3.5rem;
+    padding-inline: 1rem;
+    padding-bottom: 1.5rem;
+    max-height: calc(100vh - 3.5rem);
+  }
+
   .navlinks a {
     font-size: 1.1rem;
+    margin-bottom: 1rem;
+  }
+
+  .login-cta {
+    margin-top: 1.5rem;
+    gap: 1rem;
   }
 
   .login-cta a {
     width: 160px;
     font-size: 0.95rem;
+    padding: 0.6rem 1rem;
+  }
+
+  .close-nav-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 1.2rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .navlinks {
+    padding-top: 3rem;
+    padding-inline: 0.75rem;
+  }
+
+  .navlinks a {
+    font-size: 1rem;
+    margin-bottom: 0.8rem;
+    padding: 0.5rem 1rem;
+  }
+
+  .login-cta a {
+    width: 140px;
+    font-size: 0.85rem;
   }
 }
 

@@ -1,11 +1,287 @@
 {% extends 'main.html' %}
+{% load static %}
 {% block title %}
-  APPLY/ENROLL | SITE
+  Apply & Enroll | {{ school_name }}
 {% endblock %}
 
 {% block content %}
-  <section class="hero">
-    <h1>Apply/Enroll</h1>
-    <p>Apply for admission or enroll in our programs.</p>
+  <!-- Header Section -->
+  <section class="homepage-header">
+    <div class="container">
+      <h1>Apply & Enroll</h1>
+      <p>Join our community of learners and be part of our success story</p>
+    </div>
+  </section>
+
+  <!-- Admission Process Section -->
+  <section class="admissions-section">
+    <div class="container">
+      <h2 class="section-title">Admission Process</h2>
+      <p class="section-subtitle">Simple and transparent steps to join our school</p>
+      
+      <div class="admission-steps">
+        <div class="step">
+          <div class="step-number">1</div>
+          <h3 style="color: var(--color-black); font-weight: 600; margin-bottom: 1rem;">Registration</h3>
+          <p style="color: #666; line-height: 1.6;">
+            Fill out the online registration form with basic information about your child and family.
+          </p>
+        </div>
+
+        <div class="step">
+          <div class="step-number">2</div>
+          <h3 style="color: var(--color-black); font-weight: 600; margin-bottom: 1rem;">Document Submission</h3>
+          <p style="color: #666; line-height: 1.6;">
+            Submit required documents including birth certificate, previous school records, and address proof.
+          </p>
+        </div>
+
+        <div class="step">
+          <div class="step-number">3</div>
+          <h3 style="color: var(--color-black); font-weight: 600; margin-bottom: 1rem;">Entrance Test</h3>
+          <p style="color: #666; line-height: 1.6;">
+            Appear for an entrance assessment to evaluate academic level and aptitude.
+          </p>
+        </div>
+
+        <div class="step">
+          <div class="step-number">4</div>
+          <h3 style="color: var(--color-black); font-weight: 600; margin-bottom: 1rem;">Interview</h3>
+          <p style="color: #666; line-height: 1.6;">
+            Attend a personal interview with our admission team to discuss your child's goals.
+          </p>
+        </div>
+
+        <div class="step">
+          <div class="step-number">5</div>
+          <h3 style="color: var(--color-black); font-weight: 600; margin-bottom: 1rem;">Admission Letter</h3>
+          <p style="color: #666; line-height: 1.6;">
+            Receive admission confirmation and enrollment details via email or post.
+          </p>
+        </div>
+
+        <div class="step">
+          <div class="step-number">6</div>
+          <h3 style="color: var(--color-black); font-weight: 600; margin-bottom: 1rem;">Enrollment</h3>
+          <p style="color: #666; line-height: 1.6;">
+            Complete final enrollment formalities and welcome to our school family!
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Eligibility & Requirements Section -->
+  <section style="padding: 5rem 0; background: white;">
+    <div class="container">
+      <h2 class="section-title">Eligibility & Requirements</h2>
+      
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-top: 3rem;">
+        <div class="admission-info">
+          <h3 style="color: var(--color-primary); font-weight: 600; margin-bottom: 1.5rem; font-size: 1.2rem;">
+            <i class="bx bx-check-circle" style="margin-right: 0.5rem;"></i>
+            Age Requirements
+          </h3>
+          <ul style="list-style: none; padding: 0;">
+            <li style="padding: 0.75rem 0; border-bottom: 1px solid #eee; color: #555;">
+              <i class="bx bx-right-arrow-alt" style="color: var(--color-primary); margin-right: 0.5rem;"></i>
+              Nursery: 2.5 - 3.5 years
+            </li>
+            <li style="padding: 0.75rem 0; border-bottom: 1px solid #eee; color: #555;">
+              <i class="bx bx-right-arrow-alt" style="color: var(--color-primary); margin-right: 0.5rem;"></i>
+              KG: 3.5 - 4.5 years
+            </li>
+            <li style="padding: 0.75rem 0; border-bottom: 1px solid #eee; color: #555;">
+              <i class="bx bx-right-arrow-alt" style="color: var(--color-primary); margin-right: 0.5rem;"></i>
+              Grade 1: 5+ years
+            </li>
+            <li style="padding: 0.75rem 0; color: #555;">
+              <i class="bx bx-right-arrow-alt" style="color: var(--color-primary); margin-right: 0.5rem;"></i>
+              Other grades: As per CBSE guidelines
+            </li>
+          </ul>
+        </div>
+
+        <div class="admission-info">
+          <h3 style="color: var(--color-primary); font-weight: 600; margin-bottom: 1.5rem; font-size: 1.2rem;">
+            <i class="bx bx-file" style="margin-right: 0.5rem;"></i>
+            Required Documents
+          </h3>
+          <ul style="list-style: none; padding: 0;">
+            <li style="padding: 0.75rem 0; border-bottom: 1px solid #eee; color: #555;">
+              <i class="bx bx-right-arrow-alt" style="color: var(--color-primary); margin-right: 0.5rem;"></i>
+              Birth Certificate (Original & Copy)
+            </li>
+            <li style="padding: 0.75rem 0; border-bottom: 1px solid #eee; color: #555;">
+              <i class="bx bx-right-arrow-alt" style="color: var(--color-primary); margin-right: 0.5rem;"></i>
+              Previous School Records
+            </li>
+            <li style="padding: 0.75rem 0; border-bottom: 1px solid #eee; color: #555;">
+              <i class="bx bx-right-arrow-alt" style="color: var(--color-primary); margin-right: 0.5rem;"></i>
+              Address Proof (Utility Bill/Ration Card)
+            </li>
+            <li style="padding: 0.75rem 0; color: #555;">
+              <i class="bx bx-right-arrow-alt" style="color: var(--color-primary); margin-right: 0.5rem;"></i>
+              Passport Size Photographs (4 copies)
+            </li>
+          </ul>
+        </div>
+
+        <div class="admission-info">
+          <h3 style="color: var(--color-primary); font-weight: 600; margin-bottom: 1.5rem; font-size: 1.2rem;">
+            <i class="bx bx-info-circle" style="margin-right: 0.5rem;"></i>
+            Important Information
+          </h3>
+          <ul style="list-style: none; padding: 0;">
+            <li style="padding: 0.75rem 0; border-bottom: 1px solid #eee; color: #555;">
+              <i class="bx bx-right-arrow-alt" style="color: var(--color-primary); margin-right: 0.5rem;"></i>
+              Admission is merit-based and competitive
+            </li>
+            <li style="padding: 0.75rem 0; border-bottom: 1px solid #eee; color: #555;">
+              <i class="bx bx-right-arrow-alt" style="color: var(--color-primary); margin-right: 0.5rem;"></i>
+              Reservation as per government norms
+            </li>
+            <li style="padding: 0.75rem 0; border-bottom: 1px solid #eee; color: #555;">
+              <i class="bx bx-right-arrow-alt" style="color: var(--color-primary); margin-right: 0.5rem;"></i>
+              Admission fee is non-refundable
+            </li>
+            <li style="padding: 0.75rem 0; color: #555;">
+              <i class="bx bx-right-arrow-alt" style="color: var(--color-primary); margin-right: 0.5rem;"></i>
+              Decisions are final and binding
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Fee Structure Section -->
+  <section style="padding: 5rem 0; background: #f8f9fa;">
+    <div class="container">
+      <h2 class="section-title">Fee Structure</h2>
+      <p class="section-subtitle">Transparent and affordable education for all</p>
+      
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; margin-top: 3rem;">
+        <div style="background: white; padding: 2rem; border-radius: 8px; border-left: 4px solid var(--color-primary); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);">
+          <h3 style="color: var(--color-black); font-weight: 600; margin-bottom: 1rem;">Nursery to Grade 2</h3>
+          <div style="margin-bottom: 1rem;">
+            <p style="color: #666; margin-bottom: 0.5rem;">Annual Fee</p>
+            <p style="font-size: 1.8rem; color: var(--color-primary); font-weight: 700;">₹50,000</p>
+          </div>
+          <ul style="list-style: none; padding: 0; color: #666; font-size: 0.9rem;">
+            <li style="padding: 0.3rem 0;"><i class="bx bx-check" style="color: var(--color-primary); margin-right: 0.3rem;"></i>Tuition Fee</li>
+            <li style="padding: 0.3rem 0;"><i class="bx bx-check" style="color: var(--color-primary); margin-right: 0.3rem;"></i>Activity Fee</li>
+            <li style="padding: 0.3rem 0;"><i class="bx bx-check" style="color: var(--color-primary); margin-right: 0.3rem;"></i>Sports Fee</li>
+          </ul>
+        </div>
+
+        <div style="background: white; padding: 2rem; border-radius: 8px; border-left: 4px solid var(--color-primary); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);">
+          <h3 style="color: var(--color-black); font-weight: 600; margin-bottom: 1rem;">Grade 3 to Grade 5</h3>
+          <div style="margin-bottom: 1rem;">
+            <p style="color: #666; margin-bottom: 0.5rem;">Annual Fee</p>
+            <p style="font-size: 1.8rem; color: var(--color-primary); font-weight: 700;">₹65,000</p>
+          </div>
+          <ul style="list-style: none; padding: 0; color: #666; font-size: 0.9rem;">
+            <li style="padding: 0.3rem 0;"><i class="bx bx-check" style="color: var(--color-primary); margin-right: 0.3rem;"></i>Tuition Fee</li>
+            <li style="padding: 0.3rem 0;"><i class="bx bx-check" style="color: var(--color-primary); margin-right: 0.3rem;"></i>Lab Fee</li>
+            <li style="padding: 0.3rem 0;"><i class="bx bx-check" style="color: var(--color-primary); margin-right: 0.3rem;"></i>Sports & Activities</li>
+          </ul>
+        </div>
+
+        <div style="background: white; padding: 2rem; border-radius: 8px; border-left: 4px solid var(--color-primary); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);">
+          <h3 style="color: var(--color-black); font-weight: 600; margin-bottom: 1rem;">Grade 6 to Grade 10</h3>
+          <div style="margin-bottom: 1rem;">
+            <p style="color: #666; margin-bottom: 0.5rem;">Annual Fee</p>
+            <p style="font-size: 1.8rem; color: var(--color-primary); font-weight: 700;">₹80,000</p>
+          </div>
+          <ul style="list-style: none; padding: 0; color: #666; font-size: 0.9rem;">
+            <li style="padding: 0.3rem 0;"><i class="bx bx-check" style="color: var(--color-primary); margin-right: 0.3rem;"></i>Tuition Fee</li>
+            <li style="padding: 0.3rem 0;"><i class="bx bx-check" style="color: var(--color-primary); margin-right: 0.3rem;"></i>Lab & Computer Fee</li>
+            <li style="padding: 0.3rem 0;"><i class="bx bx-check" style="color: var(--color-primary); margin-right: 0.3rem;"></i>All Activities</li>
+          </ul>
+        </div>
+      </div>
+
+      <div style="background: white; padding: 2rem; border-radius: 8px; margin-top: 2rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);">
+        <p style="color: #666; line-height: 1.8;">
+          <strong>Note:</strong> Additional charges may apply for transportation, uniforms, books, and special programs. 
+          Scholarships are available for meritorious and economically disadvantaged students. Payment can be made in monthly, 
+          quarterly, or annual installments. For detailed information, please contact our admission office.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="cta-section">
+    <div class="container">
+      <div class="cta-content">
+        <h2>Ready to Start Your Journey?</h2>
+        <p>Take the first step towards quality education and holistic development</p>
+        <div class="cta-buttons">
+          <a href="/contact" class="btn btn-primary btn-lg">Contact Admissions</a>
+          <a href="/about" class="btn btn-outline btn-lg">Learn More About Us</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ Section -->
+  <section style="padding: 5rem 0; background: white;">
+    <div class="container">
+      <h2 class="section-title">Frequently Asked Questions</h2>
+      
+      <div style="max-width: 800px; margin: 3rem auto;">
+        <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px; margin-bottom: 1rem;">
+          <h4 style="color: var(--color-primary); font-weight: 600; margin-bottom: 0.5rem;">
+            <i class="bx bx-help-circle" style="margin-right: 0.5rem;"></i>
+            When does the admission process start?
+          </h4>
+          <p style="color: #666; margin: 0;">
+            The admission process typically starts in December and continues until all seats are filled. Early registration is recommended.
+          </p>
+        </div>
+
+        <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px; margin-bottom: 1rem;">
+          <h4 style="color: var(--color-primary); font-weight: 600; margin-bottom: 0.5rem;">
+            <i class="bx bx-help-circle" style="margin-right: 0.5rem;"></i>
+            Is there a scholarship program?
+          </h4>
+          <p style="color: #666; margin: 0;">
+            Yes, we offer merit-based scholarships and financial assistance for deserving students. Contact our office for details.
+          </p>
+        </div>
+
+        <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px; margin-bottom: 1rem;">
+          <h4 style="color: var(--color-primary); font-weight: 600; margin-bottom: 0.5rem;">
+            <i class="bx bx-help-circle" style="margin-right: 0.5rem;"></i>
+            What is the student-teacher ratio?
+          </h4>
+          <p style="color: #666; margin: 0;">
+            We maintain a healthy student-teacher ratio of 1:25 to ensure personalized attention and quality education.
+          </p>
+        </div>
+
+        <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px; margin-bottom: 1rem;">
+          <h4 style="color: var(--color-primary); font-weight: 600; margin-bottom: 0.5rem;">
+            <i class="bx bx-help-circle" style="margin-right: 0.5rem;"></i>
+            Do you provide transportation?
+          </h4>
+          <p style="color: #666; margin: 0;">
+            Yes, we provide safe and reliable transportation services. Additional charges apply for this facility.
+          </p>
+        </div>
+
+        <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px;">
+          <h4 style="color: var(--color-primary); font-weight: 600; margin-bottom: 0.5rem;">
+            <i class="bx bx-help-circle" style="margin-right: 0.5rem;"></i>
+            Can I visit the school before admission?
+          </h4>
+          <p style="color: #666; margin: 0;">
+            Absolutely! We encourage campus visits. Please contact our office to schedule a tour at your convenience.
+          </p>
+        </div>
+      </div>
+    </div>
   </section>
 {% endblock %}

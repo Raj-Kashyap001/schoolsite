@@ -1,0 +1,153 @@
+{% extends 'main.html' %} {% load static %} {% block title %} School Gallery |
+{{ school_name }} {% endblock %} {% block content %}
+<!-- Gallery Header -->
+<section class="homepage-header">
+  <div class="container">
+    <h1>School Gallery</h1>
+    <p>Explore the vibrant moments and memories from our school</p>
+  </div>
+</section>
+
+<!-- Gallery Section -->
+<section class="gallery-section">
+  <div class="container">
+    {% if gallery_images %}
+    <div class="gallery-grid">
+      {% for image in gallery_images %}
+      <div class="gallery-item" data-category="{{ image.category }}">
+        <div class="gallery-image-wrapper">
+          <img
+            src="{{ image.image.url }}"
+            alt="{{ image.title }}"
+            loading="lazy"
+          />
+          <div class="gallery-overlay">
+            <div class="gallery-info">
+              <h3>{{ image.title }}</h3>
+              {% if image.description %}
+              <p>{{ image.description }}</p>
+              {% endif %}
+              <span class="category-badge"
+                >{{ image.get_category_display }}</span
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="no-gallery-msg" style="text-align: center; padding: 4rem 0">
+      <h3>No photos available yet</h3>
+      <p>Check back soon for the latest moments from our school.</p>
+    </div>
+    {% endif %}
+  </div>
+</section>
+
+<!-- Gallery Info Section -->
+<section
+  class="gallery-info-section"
+  style="padding: 5rem 0; background: #f8f9fa"
+>
+  <div class="container">
+    <h2 class="section-title">Moments That Matter</h2>
+    <p class="section-subtitle">
+      Capturing the essence of our vibrant school community
+    </p>
+
+    <div
+      style="
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 2rem;
+        margin-top: 3rem;
+      "
+    >
+      <div
+        style="
+          background: white;
+          padding: 2rem;
+          border-radius: 8px;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        "
+      >
+        <h3
+          style="
+            color: var(--color-primary);
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+            font-weight: 600;
+          "
+        >
+          <i
+            class="bx bx-camera"
+            style="font-size: 1.8rem; margin-right: 0.5rem"
+          ></i>
+          Diverse Events
+        </h3>
+        <p style="color: #666; line-height: 1.6">
+          From sports days to cultural programs, we capture every memorable
+          moment of our students' journey.
+        </p>
+      </div>
+
+      <div
+        style="
+          background: white;
+          padding: 2rem;
+          border-radius: 8px;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        "
+      >
+        <h3
+          style="
+            color: var(--color-primary);
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+            font-weight: 600;
+          "
+        >
+          <i
+            class="bx bx-star"
+            style="font-size: 1.8rem; margin-right: 0.5rem"
+          ></i>
+          Student Excellence
+        </h3>
+        <p style="color: #666; line-height: 1.6">
+          Witness the talent, dedication, and achievements of our exceptional
+          students across various fields.
+        </p>
+      </div>
+
+      <div
+        style="
+          background: white;
+          padding: 2rem;
+          border-radius: 8px;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        "
+      >
+        <h3
+          style="
+            color: var(--color-primary);
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+            font-weight: 600;
+          "
+        >
+          <i
+            class="bx bx-heart"
+            style="font-size: 1.8rem; margin-right: 0.5rem"
+          ></i>
+          Community Spirit
+        </h3>
+        <p style="color: #666; line-height: 1.6">
+          Our gallery reflects the strong bonds and community spirit that define
+          our school culture.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
