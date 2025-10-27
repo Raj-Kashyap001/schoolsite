@@ -40,7 +40,6 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "django_browser_reload",
     "base.apps.BaseConfig",
     "dashboard.apps.DashboardConfig",
     "students.apps.StudentsConfig",
@@ -66,7 +65,6 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "django_browser_reload.middleware.BrowserReloadMiddleware",
 ]
 
 # Append demo middleware dynamically to avoid import errors during collectstatic/migrations in prod
@@ -94,7 +92,7 @@ TEMPLATES = [
     },
 ]
 
-# WSGI_APPLICATION = "hbr.wsgi.application"
+WSGI_APPLICATION = "hbr.wsgi.application"
 
 
 # Database
