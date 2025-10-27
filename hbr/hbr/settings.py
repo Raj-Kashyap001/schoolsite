@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 from decouple import config
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -25,6 +26,7 @@ SECRET_KEY = config("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config("DEBUG", default=False, cast=bool)
+DEMO_MODE = config("DEMO_MODE", default=False, cast=bool)
 
 ALLOWED_HOSTS = ["schoolsite-5t0v.onrender.com","localhost", "127.0.0.1"]
 
@@ -63,6 +65,10 @@ MIDDLEWARE = [
     "django_browser_reload.middleware.BrowserReloadMiddleware",
 ]
 
+# Append demo middleware dynamically to avoid import errors during collectstatic/migrations in prod
+if DEMO_MODE:
+    MIDDLEWARE.append("dashboard.middleware.DemoSeedResetMiddleware")
+
 ROOT_URLCONF = "hbr.urls"
 
 TEMPLATES = [
@@ -90,10 +96,15 @@ TEMPLATES = [
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+if DEMO_MODE:
+    db_name = BASE_DIR / "db.demo.sqlite3"
+else:
+    db_name = BASE_DIR / "db.sqlite3"
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "NAME": db_name,
     }
 }
 

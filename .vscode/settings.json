@@ -11,5 +11,6 @@
     "Requset",
     "stttendance"
   ],
-  "python.analysis.extraPaths": ["./hbr"]
+  "python.analysis.extraPaths": ["./hbr"],
+  "codium.codeCompletion.enable": true
 }
