@@ -1,5 +1,4 @@
 django
-django-browser-reload
 Pillow
 reportlab
 pandas
