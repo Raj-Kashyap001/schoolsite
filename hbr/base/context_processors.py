@@ -118,5 +118,5 @@ def school_name(request):
 
     name = config("SCHOOL_NAME", default="SCHOOL")
     if getattr(settings, "DEMO_MODE", False):
-        name = f"{name} Demo"
+        name = f"{name}"
     return {"school_name": name}
